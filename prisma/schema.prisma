@@ -1,0 +1,531 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum Role {
+  ADMIN
+  OWNER
+  VENDOR
+  ENGINEER
+}
+
+enum RestaurantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CategoryRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentProofStatus {
+  UPLOADED
+  VERIFIED
+  REJECTED
+}
+
+enum ServiceBookingStatus {
+  DRAFT
+  SLOT_SELECTED
+  PAYMENT_UPLOADED
+  PAYMENT_VERIFIED
+  PAYMENT_REJECTED
+  ENGINEER_ASSIGNED
+  ACCEPTED_BY_ENGINEER
+  REJECTED_BY_ENGINEER
+  COMPLETED
+  CANCELLED
+}
+
+enum EngineerAssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+enum VendorApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VendorSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  BLOCKED
+}
+
+enum MarketplaceOrderStatus {
+  PLACED
+  CANCELLED
+}
+
+enum CartItemType {
+  SERVICE
+  PART
+}
+
+enum CartStatus {
+  DRAFT
+  SUBMITTED
+}
+
+// ========================================
+// A) AUTH
+// ========================================
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  role         Role
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  sessions             Session[]
+  ownerProfile         OwnerProfile?
+  vendorProfile        VendorProfile?
+  engineerProfile      EngineerProfile?
+  notifications        Notification[]
+  restaurants          Restaurant[]
+  categoryRequests     CategoryRequest[]
+  carts                Cart[]
+  serviceBookings      ServiceBooking[]
+  paymentProofs        PaymentProof[]
+  engineerAssignments  EngineerAssignment[]
+  vendorProducts       VendorProduct[]
+  marketplaceOrders    MarketplaceOrder[]     @relation("OwnerOrders")
+  vendorOrders         MarketplaceOrder[]     @relation("VendorOrders")
+  auditLogs            AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ========================================
+// B) PROFILES
+// ========================================
+
+model OwnerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VendorProfile {
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  approvalStatus     VendorApprovalStatus     @default(PENDING)
+  approvalNote       String?
+  subscriptionStatus VendorSubscriptionStatus?
+  trialEndsAt        DateTime?
+  activeUntil        DateTime?
+  createdAt          DateTime                 @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EngineerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  city      String?
+  skills    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ========================================
+// C) NOTIFICATIONS
+// ========================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  linkUrl   String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ========================================
+// D) CATALOG
+// ========================================
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  subCategories        SubCategory[]
+  serviceItems         ServiceItem[]
+  partItems            PartItem[]
+  restaurantCategories RestaurantCategory[]
+  vendorProducts       VendorProduct[]
+
+  @@index([isActive])
+}
+
+model SubCategory {
+  id         String    @id @default(cuid())
+  categoryId String
+  name       String
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  serviceItems ServiceItem[]
+  partItems    PartItem[]
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+}
+
+model ServiceItem {
+  id            String    @id @default(cuid())
+  categoryId    String
+  subCategoryId String?
+  name          String
+  description   String?
+  price         Int       // in paise (1 INR = 100 paise)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory SubCategory? @relation(fields: [subCategoryId], references: [id])
+  cartItems   CartItem[]
+  bookingItems ServiceBookingItem[]
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([isActive])
+}
+
+model PartItem {
+  id            String    @id @default(cuid())
+  categoryId    String
+  subCategoryId String?
+  name          String
+  description   String?
+  price         Int       // in paise
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory  SubCategory? @relation(fields: [subCategoryId], references: [id])
+  cartItems    CartItem[]
+  bookingItems ServiceBookingItem[]
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([isActive])
+}
+
+// ========================================
+// E) OWNER RESTAURANT
+// ========================================
+
+model Restaurant {
+  id              String           @id @default(cuid())
+  ownerId         String
+  name            String
+  address         String
+  city            String
+  status          RestaurantStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  owner              User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  categories         RestaurantCategory[]
+  categoryRequests   CategoryRequest[]
+  carts              Cart[]
+  serviceBookings    ServiceBooking[]
+  marketplaceOrders  MarketplaceOrder[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model RestaurantCategory {
+  id           String @id @default(cuid())
+  restaurantId String
+  categoryId   String
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, categoryId])
+  @@index([restaurantId])
+  @@index([categoryId])
+}
+
+model CategoryRequest {
+  id              String                @id @default(cuid())
+  ownerId         String
+  restaurantId    String?
+  requestedName   String
+  status          CategoryRequestStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime              @default(now())
+
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id])
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ========================================
+// F) CART + BOOKING
+// ========================================
+
+model Cart {
+  id           String     @id @default(cuid())
+  ownerId      String
+  restaurantId String
+  status       CartStatus @default(DRAFT)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  owner      User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+
+  @@unique([ownerId, restaurantId, status])
+  @@index([ownerId])
+  @@index([restaurantId])
+}
+
+model CartItem {
+  id            String       @id @default(cuid())
+  cartId        String
+  itemType      CartItemType
+  serviceItemId String?
+  partItemId    String?
+  qty           Int
+  priceSnapshot Int
+  createdAt     DateTime     @default(now())
+
+  cart        Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  serviceItem ServiceItem? @relation(fields: [serviceItemId], references: [id])
+  partItem    PartItem?    @relation(fields: [partItemId], references: [id])
+
+  @@index([cartId])
+}
+
+model ServiceBooking {
+  id                    String               @id @default(cuid())
+  ownerId               String
+  restaurantId          String
+  slotStartDateTime     DateTime?
+  slotEndDateTime       DateTime?
+  adminAdjustedSlotStart DateTime?
+  adminAdjustedSlotEnd   DateTime?
+  status                ServiceBookingStatus @default(DRAFT)
+  totalAmount           Int
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  owner            User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant       Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items            ServiceBookingItem[]
+  paymentProof     PaymentProof?
+  engineerAssignment EngineerAssignment?
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([slotStartDateTime])
+}
+
+model ServiceBookingItem {
+  id            String       @id @default(cuid())
+  bookingId     String
+  itemType      CartItemType
+  serviceItemId String?
+  partItemId    String?
+  qty           Int
+  priceSnapshot Int
+
+  booking     ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceItem ServiceItem?   @relation(fields: [serviceItemId], references: [id])
+  partItem    PartItem?      @relation(fields: [partItemId], references: [id])
+
+  @@index([bookingId])
+}
+
+model PaymentProof {
+  id            String             @id @default(cuid())
+  bookingId     String             @unique
+  ownerId       String
+  screenshotUrl String
+  status        PaymentProofStatus @default(UPLOADED)
+  adminNote     String?
+  createdAt     DateTime           @default(now())
+  verifiedAt    DateTime?
+
+  booking ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  owner   User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model EngineerAssignment {
+  id          String                   @id @default(cuid())
+  bookingId   String                   @unique
+  engineerId  String
+  status      EngineerAssignmentStatus @default(PENDING)
+  assignedAt  DateTime                 @default(now())
+  respondedAt DateTime?
+  completedAt DateTime?
+
+  booking   ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  engineer  User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+  workLog   EngineerWorkLog?
+
+  @@index([engineerId])
+  @@index([status])
+}
+
+model EngineerWorkLog {
+  id             String   @id @default(cuid())
+  assignmentId   String   @unique
+  completionNote String
+  proofImageUrl  String?
+  createdAt      DateTime @default(now())
+
+  assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+}
+
+// ========================================
+// G) MARKETPLACE
+// ========================================
+
+model VendorProduct {
+  id          String    @id @default(cuid())
+  vendorId    String
+  categoryId  String?
+  name        String
+  description String?
+  price       Int       // in paise
+  unit        String    // kg, ltr, piece, etc.
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  vendor   User      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+  orderItems MarketplaceOrderItem[]
+
+  @@index([vendorId])
+  @@index([isActive])
+  @@index([categoryId])
+}
+
+model MarketplaceOrder {
+  id           String                 @id @default(cuid())
+  ownerId      String
+  vendorId     String
+  restaurantId String
+  status       MarketplaceOrderStatus @default(PLACED)
+  totalAmount  Int
+  createdAt    DateTime               @default(now())
+
+  owner      User                   @relation("OwnerOrders", fields: [ownerId], references: [id], onDelete: Cascade)
+  vendor     User                   @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Cascade)
+  restaurant Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      MarketplaceOrderItem[]
+
+  @@index([ownerId])
+  @@index([vendorId])
+  @@index([createdAt])
+}
+
+model MarketplaceOrderItem {
+  id              String @id @default(cuid())
+  orderId         String
+  vendorProductId String
+  qty             Int
+  priceSnapshot   Int
+
+  order   MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product VendorProduct    @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// ========================================
+// H) AUDIT LOG
+// ========================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  entityType  String
+  entityId    String
+  metaJson    String?
+  createdAt   DateTime @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId])
+  @@index([createdAt])
+}

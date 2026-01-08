@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/server/db";
+import { requireOwner } from "@/server/auth/rbac";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireOwner();
+    const { id } = await params;
+
+    const booking = await db.serviceBooking.findFirst({
+      where: {
+        id,
+        ownerId: session.id,
+      },
+      include: {
+        restaurant: {
+          select: { id: true, name: true, address: true, city: true },
+        },
+        items: {
+          include: {
+            serviceItem: { select: { id: true, name: true } },
+            partItem: { select: { id: true, name: true } },
+          },
+        },
+        paymentProof: true,
+        engineerAssignment: {
+          include: {
+            engineer: { select: { id: true, name: true, phone: true } },
+            workLog: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { ok: false, error: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ ok: true, data: booking });
+  } catch (error) {
+    console.error("Get booking error:", error);
+    return NextResponse.json(
+      { ok: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

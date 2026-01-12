@@ -26,28 +26,52 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const fetchNotifications = async () => {
     try {
       const response = await fetch("/api/notifications?limit=10");
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthenticated(false);
+        }
+        return;
+      }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        return;
+      }
       const data = await response.json();
       if (data.ok) {
         setNotifications(data.data.items);
       }
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      console.debug("Notifications not available");
     }
   };
 
   const fetchUnreadCount = async () => {
     try {
       const response = await fetch("/api/notifications/unread-count");
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthenticated(false);
+        }
+        setIsLoading(false);
+        return;
+      }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        setIsLoading(false);
+        return;
+      }
       const data = await response.json();
       if (data.ok) {
         setUnreadCount(data.data.count);
+        setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error("Failed to fetch unread count:", error);
+      console.debug("Unread count not available");
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +79,14 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30 seconds
+    const interval = setInterval(() => {
+      // Only poll if authenticated
+      if (isAuthenticated) {
+        fetchUnreadCount();
+      }
+    }, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isOpen) {

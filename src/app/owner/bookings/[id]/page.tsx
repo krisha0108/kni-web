@@ -23,13 +23,13 @@ interface Booking {
   restaurant: { id: string; name: string; address: string; city: string };
   items: Array<{
     id: string;
-    quantity: number;
-    price: number;
+    qty: number;
+    priceSnapshot: number;
     serviceItem?: { id: string; name: string };
     partItem?: { id: string; name: string };
   }>;
-  paymentProof?: { id: string; imageUrl: string; status: string; verifiedAt?: string };
-  engineerAssignment?: {
+  paymentProof?: { id: string; screenshotUrl: string; status: string; verifiedAt?: string };
+  engineerAssignments?: Array<{
     id: string;
     status: string;
     assignedAt: string;
@@ -39,9 +39,9 @@ interface Booking {
       startedAt?: string;
       completedAt?: string;
       workNotes?: string;
-      proofImageUrl?: string;
+      proofImageUrls?: string[];
     };
-  };
+  }>;
 }
 
 const statusColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
@@ -196,9 +196,9 @@ export default function BookingDetailPage() {
                         <span className="text-xs ml-2 px-2 py-0.5 rounded bg-muted">
                           {isService ? "Service" : "Part"}
                         </span>
-                        <span className="text-muted-foreground ml-2">x{item.quantity}</span>
+                        <span className="text-muted-foreground ml-2">x{item.qty}</span>
                       </div>
-                      <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+                      <span className="font-medium">{formatPrice(item.priceSnapshot * item.qty)}</span>
                     </div>
                   );
                 })}
@@ -212,52 +212,85 @@ export default function BookingDetailPage() {
           </Card>
 
           {/* Engineer Assignment */}
-          {booking.engineerAssignment && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Assigned Engineer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="font-medium">{booking.engineerAssignment.engineer?.name}</p>
-                  <p className="text-muted-foreground">{booking.engineerAssignment.engineer?.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Assignment Status</p>
-                  <Badge>{booking.engineerAssignment.status}</Badge>
-                </div>
-                {booking.engineerAssignment.workLog && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <p className="font-medium">Work Log</p>
-                      {booking.engineerAssignment.workLog.startedAt && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Started:</span>{" "}
-                          {formatDate(booking.engineerAssignment.workLog.startedAt)}
-                        </p>
-                      )}
-                      {booking.engineerAssignment.workLog.completedAt && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Completed:</span>{" "}
-                          {formatDate(booking.engineerAssignment.workLog.completedAt)}
-                        </p>
-                      )}
-                      {booking.engineerAssignment.workLog.workNotes && (
-                        <div>
-                          <p className="text-sm text-muted-foreground">Notes:</p>
-                          <p className="text-sm">{booking.engineerAssignment.workLog.workNotes}</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {booking.engineerAssignments && booking.engineerAssignments.length > 0 && (() => {
+            const assignment = booking.engineerAssignments[0]; // Get the latest assignment
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Assigned Engineer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="font-medium">{assignment.engineer?.name}</p>
+                    <p className="text-muted-foreground">{assignment.engineer?.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Assignment Status</p>
+                    <Badge>{assignment.status}</Badge>
+                  </div>
+                  {assignment.workLog && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <p className="font-medium">Work Log</p>
+                        {assignment.workLog.startedAt && (
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Started:</span>{" "}
+                            {formatDate(assignment.workLog.startedAt)}
+                          </p>
+                        )}
+                        {assignment.workLog.completedAt && (
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Completed:</span>{" "}
+                            {formatDate(assignment.workLog.completedAt)}
+                          </p>
+                        )}
+                        {assignment.workLog.workNotes && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Notes:</p>
+                            <p className="text-sm">{assignment.workLog.workNotes}</p>
+                          </div>
+                        )}
+                        {assignment.workLog.proofImageUrls &&
+                         Array.isArray(assignment.workLog.proofImageUrls) &&
+                         assignment.workLog.proofImageUrls.length > 0 && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Completion Proof ({assignment.workLog.proofImageUrls.filter(url => url && url.trim()).length} image{assignment.workLog.proofImageUrls.filter(url => url && url.trim()).length > 1 ? 's' : ''})
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {assignment.workLog.proofImageUrls.filter(url => url && url.trim()).map((url, index) => (
+                                <div key={index} className="relative">
+                                  <img
+                                    src={url}
+                                    alt={`Work proof ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => window.open(url, "_blank")}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+                                    {index + 1}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              Click images to view full size
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         <div className="space-y-6">
@@ -272,14 +305,18 @@ export default function BookingDetailPage() {
                   <Badge variant={booking.paymentProof.status === "VERIFIED" ? "success" : "secondary"}>
                     {booking.paymentProof.status}
                   </Badge>
-                  {booking.paymentProof.imageUrl && (
+                  {booking.paymentProof.screenshotUrl && (
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Payment Screenshot</p>
                       <img
-                        src={booking.paymentProof.imageUrl}
+                        src={booking.paymentProof.screenshotUrl}
                         alt="Payment proof"
-                        className="rounded border max-h-48 w-full object-cover"
+                        className="rounded border max-h-48 w-full object-cover cursor-pointer"
+                        onClick={() => window.open(booking.paymentProof!.screenshotUrl, "_blank")}
                       />
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        Click to view full size
+                      </p>
                     </div>
                   )}
                 </>
@@ -331,11 +368,11 @@ export default function BookingDetailPage() {
                     <span>{formatDate(booking.paymentProof.verifiedAt)}</span>
                   </div>
                 )}
-                {booking.engineerAssignment?.assignedAt && (
+                {booking.engineerAssignments && booking.engineerAssignments.length > 0 && booking.engineerAssignments[0].assignedAt && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Engineer Assigned:</span>
-                    <span>{formatDate(booking.engineerAssignment.assignedAt)}</span>
+                    <span>{formatDate(booking.engineerAssignments[0].assignedAt)}</span>
                   </div>
                 )}
               </div>

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const where = {
       deletedAt: null,
-      ...(search ? { name: { contains: search, mode: "insensitive" as const } } : {}),
+      ...(search ? { name: { contains: search } } : {}),
     };
 
     const [items, total] = await Promise.all([
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }

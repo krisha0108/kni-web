@@ -37,10 +37,13 @@ export async function GET(
           },
         },
         paymentProof: true,
-        engineerAssignment: {
+        engineerAssignments: {
           include: {
             engineer: { select: { id: true, name: true, email: true } },
             workLog: true,
+          },
+          orderBy: {
+            assignedAt: 'desc',
           },
         },
       },
@@ -72,7 +75,7 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const { action, engineerId, scheduledDate, scheduledTimeSlot } = body;
+    const { action, engineerId, slotStart, slotEnd } = body;
 
     const booking = await db.serviceBooking.findUnique({
       where: { id },
@@ -106,7 +109,7 @@ export async function PATCH(
       });
       await db.serviceBooking.update({
         where: { id },
-        data: { status: "PENDING_PAYMENT" },
+        data: { status: "PAYMENT_REJECTED" },
       });
       await notifyOwnerPaymentRejected(booking.ownerId, id, "Payment proof rejected");
       return NextResponse.json({ ok: true });
@@ -115,48 +118,101 @@ export async function PATCH(
     if (action === "assign_engineer") {
       if (!engineerId) {
         return NextResponse.json(
-          { ok: false, error: "Engineer ID is required" },
+          { ok: false, error: "Engineer ID(s) required" },
           { status: 400 }
         );
       }
-      if (booking.status !== "PAYMENT_VERIFIED") {
+      if (booking.status !== "PAYMENT_VERIFIED" && booking.status !== "ENGINEER_ASSIGNED") {
         return NextResponse.json(
-          { ok: false, error: "Payment must be verified first" },
+          { ok: false, error: "Payment must be verified before assigning engineers" },
           { status: 400 }
         );
       }
 
-      const engineer = await db.user.findFirst({
-        where: { id: engineerId, role: "ENGINEER", isActive: true },
-      });
-      if (!engineer) {
+      // Support both single engineer (string) and multiple engineers (array)
+      const engineerIds = Array.isArray(engineerId) ? engineerId : [engineerId];
+
+      if (engineerIds.length === 0) {
         return NextResponse.json(
-          { ok: false, error: "Engineer not found" },
+          { ok: false, error: "At least one engineer must be selected" },
+          { status: 400 }
+        );
+      }
+
+      // Verify all engineers exist and are active
+      const engineers = await db.user.findMany({
+        where: {
+          id: { in: engineerIds },
+          role: "ENGINEER",
+          isActive: true,
+        },
+      });
+
+      if (engineers.length !== engineerIds.length) {
+        return NextResponse.json(
+          { ok: false, error: "One or more engineers not found or inactive" },
           { status: 404 }
         );
       }
 
-      const assignment = await db.engineerAssignment.create({
-        data: {
+      // Check for existing assignments to avoid duplicates
+      const existingAssignments = await db.engineerAssignment.findMany({
+        where: {
           bookingId: id,
-          engineerId,
-          status: "PENDING",
+          engineerId: { in: engineerIds },
         },
       });
 
+      const existingEngineerIds = existingAssignments.map((a) => a.engineerId);
+      const newEngineerIds = engineerIds.filter((eId) => !existingEngineerIds.includes(eId));
+
+      // Create assignments for new engineers only
+      const assignments = await Promise.all(
+        newEngineerIds.map((eId) =>
+          db.engineerAssignment.create({
+            data: {
+              bookingId: id,
+              engineerId: eId,
+              status: "PENDING",
+            },
+          })
+        )
+      );
+
+      // Update booking status and slot times
       await db.serviceBooking.update({
         where: { id },
         data: {
-          status: "SCHEDULED",
-          scheduledDate: scheduledDate ? new Date(scheduledDate) : booking.preferredDate,
-          scheduledTimeSlot: scheduledTimeSlot || booking.preferredTimeSlot,
+          status: "ENGINEER_ASSIGNED",
+          ...(slotStart && { adminAdjustedSlotStart: new Date(slotStart) }),
+          ...(slotEnd && { adminAdjustedSlotEnd: new Date(slotEnd) }),
         },
       });
 
-      await notifyOwnerEngineerAssigned(booking.ownerId, id, engineer.name || "Engineer");
-      await notifyEngineerNewJob(engineerId, assignment.id, booking.restaurant.name);
+      // Send notifications to owner and all newly assigned engineers
+      if (assignments.length > 0) {
+        const engineerNames = engineers
+          .filter((e) => newEngineerIds.includes(e.id))
+          .map((e) => e.name)
+          .join(", ");
+        await notifyOwnerEngineerAssigned(booking.ownerId, id, engineerNames);
 
-      return NextResponse.json({ ok: true });
+        // Notify each engineer
+        await Promise.all(
+          assignments.map((assignment) =>
+            notifyEngineerNewJob(assignment.engineerId, assignment.id, booking.restaurant.name)
+          )
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        message: `${assignments.length} engineer(s) assigned successfully${
+          existingEngineerIds.length > 0
+            ? `. ${existingEngineerIds.length} engineer(s) were already assigned.`
+            : ""
+        }`,
+      });
     }
 
     return NextResponse.json({ ok: false, error: "Invalid action" }, { status: 400 });
@@ -182,7 +238,7 @@ export async function POST(
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }

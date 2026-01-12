@@ -30,10 +30,10 @@ import { formatDate, formatPrice } from "@/lib/utils";
 interface Booking {
   id: string;
   status: string;
-  preferredDate: string;
-  preferredTimeSlot: string;
-  scheduledDate?: string;
-  scheduledTimeSlot?: string;
+  slotStartDateTime?: string;
+  slotEndDateTime?: string;
+  adminAdjustedSlotStart?: string;
+  adminAdjustedSlotEnd?: string;
   totalAmount: number;
   notes?: string;
   createdAt: string;
@@ -41,17 +41,24 @@ interface Booking {
   owner: { id: string; name: string; phone: string };
   items: Array<{
     id: string;
-    quantity: number;
-    price: number;
+    qty: number;
+    priceSnapshot: number;
     serviceItem?: { name: string };
     partItem?: { name: string };
   }>;
-  paymentProof?: { id: string; imageUrl: string; status: string };
-  engineerAssignment?: {
+  paymentProof?: { id: string; screenshotUrl: string; status: string };
+  engineerAssignments?: Array<{
     id: string;
     status: string;
+    assignedAt: string;
     engineer?: { id: string; name: string };
-  };
+    workLog?: {
+      id: string;
+      completionNote?: string;
+      proofImageUrls?: string[];
+      createdAt?: string;
+    };
+  }>;
 }
 
 interface Engineer {
@@ -74,7 +81,7 @@ export default function AdminBookingDetailPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
-  const [selectedEngineer, setSelectedEngineer] = useState("");
+  const [selectedEngineers, setSelectedEngineers] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTimeSlot, setScheduledTimeSlot] = useState("");
   const { toast } = useToast();
@@ -89,11 +96,18 @@ export default function AdminBookingDetailPage() {
       const data = await response.json();
       if (data.ok) {
         setBooking(data.data);
-        if (data.data.preferredDate) {
-          setScheduledDate(data.data.scheduledDate || data.data.preferredDate.split("T")[0]);
-        }
-        if (data.data.preferredTimeSlot) {
-          setScheduledTimeSlot(data.data.scheduledTimeSlot || data.data.preferredTimeSlot);
+        // Initialize scheduled date/time from existing slot data
+        if (data.data.adminAdjustedSlotStart || data.data.slotStartDateTime) {
+          const slotDate = new Date(data.data.adminAdjustedSlotStart || data.data.slotStartDateTime);
+          setScheduledDate(slotDate.toISOString().split("T")[0]);
+
+          // Extract time range from start/end times
+          if (data.data.adminAdjustedSlotEnd || data.data.slotEndDateTime) {
+            const endDate = new Date(data.data.adminAdjustedSlotEnd || data.data.slotEndDateTime);
+            const startTime = slotDate.toTimeString().substring(0, 5);
+            const endTime = endDate.toTimeString().substring(0, 5);
+            setScheduledTimeSlot(`${startTime}-${endTime}`);
+          }
         }
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
@@ -148,8 +162,8 @@ export default function AdminBookingDetailPage() {
   };
 
   const handleAssignEngineer = async () => {
-    if (!selectedEngineer) {
-      toast({ title: "Error", description: "Please select an engineer", variant: "destructive" });
+    if (selectedEngineers.length === 0) {
+      toast({ title: "Error", description: "Please select at least one engineer", variant: "destructive" });
       return;
     }
     if (!scheduledDate) {
@@ -161,6 +175,11 @@ export default function AdminBookingDetailPage() {
       return;
     }
 
+    // Convert scheduledDate and scheduledTimeSlot to ISO datetime strings
+    const [startTime, endTime] = scheduledTimeSlot.split("-");
+    const slotStart = `${scheduledDate}T${startTime}:00`;
+    const slotEnd = `${scheduledDate}T${endTime}:00`;
+
     setIsAssigning(true);
     try {
       const response = await fetch("/api/admin/bookings/" + bookingId, {
@@ -168,21 +187,25 @@ export default function AdminBookingDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "assign_engineer",
-          engineerId: selectedEngineer,
-          scheduledDate,
-          scheduledTimeSlot,
+          engineerId: selectedEngineers,
+          slotStart,
+          slotEnd,
         }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Engineer assigned" });
+        toast({
+          title: "Success",
+          description: data.message || `${selectedEngineers.length} engineer(s) assigned successfully`,
+        });
         setIsAssignOpen(false);
+        setSelectedEngineers([]);
         fetchBooking();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to assign engineer", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to assign engineer(s)", variant: "destructive" });
     } finally {
       setIsAssigning(false);
     }
@@ -201,7 +224,7 @@ export default function AdminBookingDetailPage() {
   }
 
   const canVerifyPayment = booking.status === "PAYMENT_UPLOADED" && booking.paymentProof;
-  const canAssignEngineer = booking.status === "PAYMENT_VERIFIED" && !booking.engineerAssignment;
+  const canAssignEngineer = booking.status === "PAYMENT_VERIFIED" || booking.status === "ENGINEER_ASSIGNED";
 
   return (
     <div className="space-y-6">
@@ -270,31 +293,25 @@ export default function AdminBookingDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Preferred Date</p>
-                  <p className="font-medium">{formatDate(booking.preferredDate)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Preferred Time</p>
-                  <p className="font-medium">{booking.preferredTimeSlot}</p>
-                </div>
-              </div>
-              {booking.scheduledDate && (
-                <>
-                  <Separator />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Scheduled Date</p>
-                      <p className="font-medium text-green-600">{formatDate(booking.scheduledDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Scheduled Time</p>
-                      <p className="font-medium text-green-600">{booking.scheduledTimeSlot}</p>
-                    </div>
+              <div className="space-y-3">
+                {booking.slotStartDateTime && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Requested Slot</p>
+                    <p className="font-medium">{formatDate(booking.slotStartDateTime)}</p>
                   </div>
-                </>
-              )}
+                )}
+                {(booking.adminAdjustedSlotStart || booking.slotStartDateTime) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Scheduled Slot</p>
+                      <p className="font-medium text-green-600">
+                        {formatDate(booking.adminAdjustedSlotStart || booking.slotStartDateTime)}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -305,15 +322,22 @@ export default function AdminBookingDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {booking.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div>
-                      <span className="font-medium">{item.serviceItem?.name || item.partItem?.name}</span>
-                      <span className="text-muted-foreground ml-2">x{item.quantity}</span>
+                {booking.items.map((item) => {
+                  const itemData = item.serviceItem || item.partItem;
+                  const isService = !!item.serviceItem;
+                  return (
+                    <div key={item.id} className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{itemData?.name}</span>
+                        <span className="text-xs ml-2 px-2 py-0.5 rounded bg-muted">
+                          {isService ? "Service" : "Part"}
+                        </span>
+                        <span className="text-muted-foreground ml-2">x{item.qty}</span>
+                      </div>
+                      <span className="font-medium">{formatPrice(item.priceSnapshot * item.qty)}</span>
                     </div>
-                    <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
-                  </div>
-                ))}
+                  );
+                })}
                 <Separator />
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span>Total</span>
@@ -344,13 +368,19 @@ export default function AdminBookingDetailPage() {
                   >
                     {booking.paymentProof.status}
                   </Badge>
-                  {booking.paymentProof.imageUrl && (
-                    <img
-                      src={booking.paymentProof.imageUrl}
-                      alt="Payment proof"
-                      className="rounded border max-h-48 w-full object-cover cursor-pointer"
-                      onClick={() => window.open(booking.paymentProof!.imageUrl, "_blank")}
-                    />
+                  {booking.paymentProof.screenshotUrl && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Payment Screenshot</p>
+                      <img
+                        src={booking.paymentProof.screenshotUrl}
+                        alt="Payment proof"
+                        className="rounded border max-h-64 w-full object-contain cursor-pointer bg-muted"
+                        onClick={() => window.open(booking.paymentProof!.screenshotUrl, "_blank")}
+                      />
+                      <p className="text-xs text-muted-foreground text-center">
+                        Click image to view full size in new tab
+                      </p>
+                    </div>
                   )}
                   {canVerifyPayment && (
                     <div className="flex gap-2">
@@ -386,27 +416,130 @@ export default function AdminBookingDetailPage() {
               <CardTitle>Engineer Assignment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {booking.engineerAssignment ? (
+              {booking.engineerAssignments && booking.engineerAssignments.length > 0 ? (
                 <>
-                  <div>
-                    <p className="font-medium">{booking.engineerAssignment.engineer?.name}</p>
-                    <Badge>{booking.engineerAssignment.status}</Badge>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Assigned Engineers ({booking.engineerAssignments.length})
+                      </p>
+                      <div className="space-y-3">
+                        {booking.engineerAssignments.map((assignment) => (
+                          <div key={assignment.id} className="border rounded-lg p-3 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <p className="font-medium">{assignment.engineer?.name}</p>
+                              <Badge
+                                variant={
+                                  assignment.status === "COMPLETED"
+                                    ? "success"
+                                    : assignment.status === "ACCEPTED"
+                                    ? "default"
+                                    : assignment.status === "REJECTED"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
+                              >
+                                {assignment.status}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Assigned: {formatDate(assignment.assignedAt)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {(booking.adminAdjustedSlotStart || booking.slotStartDateTime) && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Scheduled Slot</p>
+                        <p className="font-medium text-green-600">
+                          {formatDate(booking.adminAdjustedSlotStart || booking.slotStartDateTime)}
+                        </p>
+                      </div>
+                    )}
                   </div>
+                  {canAssignEngineer && (
+                    <Button className="w-full" onClick={() => setIsAssignOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Assign More Engineers
+                    </Button>
+                  )}
                 </>
               ) : canAssignEngineer ? (
                 <Button className="w-full" onClick={() => setIsAssignOpen(true)}>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Assign Engineer
+                  Assign Engineer(s)
                 </Button>
               ) : (
                 <p className="text-muted-foreground">
                   {booking.status === "PAYMENT_VERIFIED"
-                    ? "Ready to assign engineer"
+                    ? "Ready to assign engineer(s)"
                     : "Payment verification required first"}
                 </p>
               )}
             </CardContent>
           </Card>
+
+          {/* Work Completion Proof */}
+          {booking.engineerAssignments && booking.engineerAssignments.some(a => a.workLog) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Work Completion</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {booking.engineerAssignments
+                  .filter(a => a.workLog)
+                  .map((assignment) => (
+                    <div key={assignment.id} className="border rounded-lg p-4 space-y-3">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Engineer</p>
+                        <p className="font-medium">{assignment.engineer?.name}</p>
+                      </div>
+                      {assignment.workLog?.completionNote && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Completion Notes</p>
+                          <p className="text-sm">{assignment.workLog.completionNote}</p>
+                        </div>
+                      )}
+                      {assignment.workLog?.proofImageUrls && Array.isArray(assignment.workLog.proofImageUrls) && assignment.workLog.proofImageUrls.length > 0 && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Completion Proof ({assignment.workLog.proofImageUrls.filter(url => url && url.trim()).length} image{assignment.workLog.proofImageUrls.filter(url => url && url.trim()).length > 1 ? 's' : ''})
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {assignment.workLog.proofImageUrls.filter(url => url && url.trim()).map((url, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={url}
+                                  alt={`Work proof ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => window.open(url, "_blank")}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+                                  {index + 1}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                            Click images to view full size
+                          </p>
+                        </div>
+                      )}
+                      {assignment.workLog?.createdAt && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Completed At</p>
+                          <p className="text-sm">{formatDate(assignment.workLog.createdAt)}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -421,19 +554,41 @@ export default function AdminBookingDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="engineer">Engineer *</Label>
-              <Select value={selectedEngineer} onValueChange={setSelectedEngineer}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select engineer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {engineers.map((eng) => (
-                    <SelectItem key={eng.id} value={eng.id}>
-                      {eng.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Engineers * (Select one or more)</Label>
+              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+                {engineers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No engineers available</p>
+                ) : (
+                  engineers.map((eng) => (
+                    <div key={eng.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`engineer-${eng.id}`}
+                        checked={selectedEngineers.includes(eng.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEngineers([...selectedEngineers, eng.id]);
+                          } else {
+                            setSelectedEngineers(selectedEngineers.filter((id) => id !== eng.id));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <label
+                        htmlFor={`engineer-${eng.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {eng.name}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedEngineers.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedEngineers.length} engineer(s) selected
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Scheduled Date *</Label>

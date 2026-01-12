@@ -26,10 +26,13 @@ export async function GET(
           },
         },
         paymentProof: true,
-        engineerAssignment: {
+        engineerAssignments: {
           include: {
             engineer: { select: { id: true, name: true, phone: true } },
             workLog: true,
+          },
+          orderBy: {
+            assignedAt: 'desc',
           },
         },
       },

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       where: {
         isActive: true,
         deletedAt: null,
-        ...(search ? { name: { contains: search, mode: "insensitive" as const } } : {}),
+        ...(search ? { name: { contains: search } } : {}),
         ...(categoryId ? { categoryId } : {}),
         vendor: {
           vendorProfile: {

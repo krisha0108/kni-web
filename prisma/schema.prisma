@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -85,6 +85,13 @@ enum CartItemType {
 enum CartStatus {
   DRAFT
   SUBMITTED
+  ARCHIVED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  CANCELLED
 }
 
 // ========================================
@@ -104,21 +111,29 @@ model User {
   deletedAt    DateTime?
 
   // Relations
-  sessions             Session[]
-  ownerProfile         OwnerProfile?
-  vendorProfile        VendorProfile?
-  engineerProfile      EngineerProfile?
-  notifications        Notification[]
-  restaurants          Restaurant[]
-  categoryRequests     CategoryRequest[]
-  carts                Cart[]
-  serviceBookings      ServiceBooking[]
-  paymentProofs        PaymentProof[]
-  engineerAssignments  EngineerAssignment[]
-  vendorProducts       VendorProduct[]
-  marketplaceOrders    MarketplaceOrder[]     @relation("OwnerOrders")
-  vendorOrders         MarketplaceOrder[]     @relation("VendorOrders")
-  auditLogs            AuditLog[]
+  sessions               Session[]
+  ownerProfile           OwnerProfile?
+  vendorProfile          VendorProfile?
+  engineerProfile        EngineerProfile?
+  notifications          Notification[]
+  restaurants            Restaurant[]
+  categoryRequests       CategoryRequest[]
+  carts                  Cart[]
+  serviceBookings        ServiceBooking[]
+  paymentProofs          PaymentProof[]
+  engineerAssignments    EngineerAssignment[]
+  vendorProducts         VendorProduct[]
+  marketplaceOrders      MarketplaceOrder[]      @relation("OwnerOrders")
+  vendorOrders           MarketplaceOrder[]      @relation("VendorOrders")
+  auditLogs              AuditLog[]
+  payouts                Payout[]
+  equipments             Equipment[]
+  amcSubscriptions       AMCSubscription[]
+  stockMovements         StockMovement[]
+  expenses               Expense[]
+  deviceTokens           DeviceToken[]
+  notificationPreference NotificationPreference?
+  pushNotificationLogs   PushNotificationLog[]
 
   @@index([email])
   @@index([role])
@@ -150,14 +165,14 @@ model OwnerProfile {
 }
 
 model VendorProfile {
-  id                 String                   @id @default(cuid())
-  userId             String                   @unique
-  approvalStatus     VendorApprovalStatus     @default(PENDING)
+  id                 String                    @id @default(cuid())
+  userId             String                    @unique
+  approvalStatus     VendorApprovalStatus      @default(PENDING)
   approvalNote       String?
   subscriptionStatus VendorSubscriptionStatus?
   trialEndsAt        DateTime?
   activeUntil        DateTime?
-  createdAt          DateTime                 @default(now())
+  createdAt          DateTime                  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -185,7 +200,8 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushLogs PushNotificationLog[]
 
   @@index([userId])
   @@index([isRead])
@@ -237,15 +253,15 @@ model ServiceItem {
   subCategoryId String?
   name          String
   description   String?
-  price         Int       // in paise (1 INR = 100 paise)
+  price         Int // in paise (1 INR = 100 paise)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subCategory SubCategory? @relation(fields: [subCategoryId], references: [id])
-  cartItems   CartItem[]
+  category     Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory  SubCategory?         @relation(fields: [subCategoryId], references: [id])
+  cartItems    CartItem[]
   bookingItems ServiceBookingItem[]
 
   @@index([categoryId])
@@ -259,16 +275,17 @@ model PartItem {
   subCategoryId String?
   name          String
   description   String?
-  price         Int       // in paise
+  price         Int // in paise
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subCategory  SubCategory? @relation(fields: [subCategoryId], references: [id])
+  category     Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory  SubCategory?         @relation(fields: [subCategoryId], references: [id])
   cartItems    CartItem[]
   bookingItems ServiceBookingItem[]
+  inventory    WarehouseInventory?
 
   @@index([categoryId])
   @@index([subCategoryId])
@@ -280,25 +297,32 @@ model PartItem {
 // ========================================
 
 model Restaurant {
-  id              String           @id @default(cuid())
-  ownerId         String
-  name            String
-  address         String
-  city            String
-  status          RestaurantStatus @default(PENDING)
-  rejectionReason String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                  String           @id @default(cuid())
+  ownerId             String
+  name                String
+  address             String
+  city                String
+  restaurantImageUrl  String?
+  fssaiNumber         String?
+  fssaiCertificateUrl String?
+  status              RestaurantStatus @default(PENDING)
+  rejectionReason     String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  owner              User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  categories         RestaurantCategory[]
-  categoryRequests   CategoryRequest[]
-  carts              Cart[]
-  serviceBookings    ServiceBooking[]
-  marketplaceOrders  MarketplaceOrder[]
+  owner             User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  categories        RestaurantCategory[]
+  categoryRequests  CategoryRequest[]
+  carts             Cart[]
+  serviceBookings   ServiceBooking[]
+  marketplaceOrders MarketplaceOrder[]
+  equipments        Equipment[]
+  amcSubscriptions  AMCSubscription[]
+  expenses          Expense[]
 
   @@index([ownerId])
   @@index([status])
+  @@index([fssaiNumber])
 }
 
 model RestaurantCategory {
@@ -319,6 +343,8 @@ model CategoryRequest {
   ownerId         String
   restaurantId    String?
   requestedName   String
+  description     String?
+  reason          String?
   status          CategoryRequestStatus @default(PENDING)
   rejectionReason String?
   createdAt       DateTime              @default(now())
@@ -369,23 +395,25 @@ model CartItem {
 }
 
 model ServiceBooking {
-  id                    String               @id @default(cuid())
-  ownerId               String
-  restaurantId          String
-  slotStartDateTime     DateTime?
-  slotEndDateTime       DateTime?
+  id                     String               @id @default(cuid())
+  ownerId                String
+  restaurantId           String
+  slotStartDateTime      DateTime?
+  slotEndDateTime        DateTime?
   adminAdjustedSlotStart DateTime?
   adminAdjustedSlotEnd   DateTime?
-  status                ServiceBookingStatus @default(DRAFT)
-  totalAmount           Int
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  status                 ServiceBookingStatus @default(DRAFT)
+  totalAmount            Int
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 
-  owner            User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  restaurant       Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  items            ServiceBookingItem[]
-  paymentProof     PaymentProof?
-  engineerAssignment EngineerAssignment?
+  owner               User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant          Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items               ServiceBookingItem[]
+  paymentProof        PaymentProof?
+  engineerAssignments EngineerAssignment[]
+  amcUsage            AMCServiceUse[]
+  stockMovements      StockMovement[]
 
   @@index([ownerId])
   @@index([restaurantId])
@@ -427,18 +455,23 @@ model PaymentProof {
 }
 
 model EngineerAssignment {
-  id          String                   @id @default(cuid())
-  bookingId   String                   @unique
-  engineerId  String
-  status      EngineerAssignmentStatus @default(PENDING)
-  assignedAt  DateTime                 @default(now())
-  respondedAt DateTime?
-  completedAt DateTime?
+  id               String                   @id @default(cuid())
+  bookingId        String
+  engineerId       String
+  status           EngineerAssignmentStatus @default(PENDING)
+  assignedAt       DateTime                 @default(now())
+  respondedAt      DateTime?
+  completedAt      DateTime?
+  commissionAmount Int? // Commission in paise (earned when completed)
+  commissionRate   Int                      @default(20) // Commission percentage (default 20%)
 
-  booking   ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  engineer  User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
-  workLog   EngineerWorkLog?
+  booking  ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  engineer User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+  workLog  EngineerWorkLog?
+  payout   Payout?
 
+  @@unique([bookingId, engineerId])
+  @@index([bookingId])
   @@index([engineerId])
   @@index([status])
 }
@@ -447,7 +480,7 @@ model EngineerWorkLog {
   id             String   @id @default(cuid())
   assignmentId   String   @unique
   completionNote String
-  proofImageUrl  String?
+  proofImageUrls Json? // Array of image URLs (max 5)
   createdAt      DateTime @default(now())
 
   assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
@@ -458,20 +491,21 @@ model EngineerWorkLog {
 // ========================================
 
 model VendorProduct {
-  id          String    @id @default(cuid())
-  vendorId    String
-  categoryId  String?
-  name        String
-  description String?
-  price       Int       // in paise
-  unit        String    // kg, ltr, piece, etc.
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id            String    @id @default(cuid())
+  vendorId      String
+  categoryId    String?
+  name          String
+  description   String?
+  price         Int // in paise
+  unit          String // kg, ltr, piece, etc.
+  stockQuantity Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
-  vendor   User      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id])
+  vendor     User                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category   Category?              @relation(fields: [categoryId], references: [id])
   orderItems MarketplaceOrderItem[]
 
   @@index([vendorId])
@@ -528,4 +562,318 @@ model AuditLog {
 
   @@index([actorUserId])
   @@index([createdAt])
+}
+
+// ========================================
+// I) PAYMENT SETTINGS
+// ========================================
+
+model PaymentSettings {
+  id                String   @id @default(cuid())
+  qrCodeImageUrl    String   @db.Text // UPI QR code image URL
+  upiId             String // UPI ID (e.g., merchant@upi)
+  accountHolderName String // Business name
+  instructions      String?  @db.Text // Payment instructions for customers
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// ========================================
+// J) ENGINEER PAYOUTS
+// ========================================
+
+model Payout {
+  id           String       @id @default(cuid())
+  assignmentId String       @unique
+  engineerId   String
+  amount       Int // Payout amount in paise
+  status       PayoutStatus @default(PENDING)
+  paidAt       DateTime?
+  paymentNote  String?      @db.Text // Admin notes about payment
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  engineer   User               @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@index([engineerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ========================================
+// K) EQUIPMENT MANAGEMENT
+// ========================================
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+enum AMCDuration {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum AMCSubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum StockMovementType {
+  INWARD_PURCHASE
+  INWARD_RETURN
+  OUTWARD_USAGE
+  OUTWARD_WASTAGE
+  ADJUSTMENT
+}
+
+enum ExpenseCategory {
+  FOOD
+  UTILITIES
+  SALARIES
+  MAINTENANCE
+  RENT
+  SUPPLIES
+  MARKETING
+  TRANSPORT
+  OTHER
+}
+
+model Equipment {
+  id              String          @id @default(cuid())
+  ownerId         String
+  restaurantId    String
+  name            String
+  category        String
+  purchaseDate    DateTime
+  warrantyEndDate DateTime?
+  serialNumber    String?
+  billImageUrl    String?
+  warrantyCardUrl String?
+  photoUrls       Json? // Array of equipment photo URLs (max 5)
+  status          EquipmentStatus @default(AVAILABLE)
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant      Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  amcSubscription AMCSubscription[]
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([warrantyEndDate])
+}
+
+// ========================================
+// L) AMC (ANNUAL MAINTENANCE CONTRACT)
+// ========================================
+
+model AMCPlan {
+  id           String      @id @default(cuid())
+  name         String      @unique
+  description  String?     @db.Text
+  duration     AMCDuration
+  price        Int // in paise
+  serviceLimit Int // Number of services included
+  featuresJson Json? // Array of features
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+
+  subscriptions AMCSubscription[]
+
+  @@index([isActive])
+}
+
+model AMCSubscription {
+  id              String                @id @default(cuid())
+  equipmentId     String
+  ownerId         String
+  restaurantId    String
+  planId          String? // Optional: null if custom plan, set if using admin template
+  // Custom Plan Fields (owner-defined)
+  planName        String?
+  planDescription String?               @db.Text
+  duration        AMCDuration
+  serviceLimit    Int
+  featuresJson    Json? // Array of feature strings
+  // Subscription Details
+  startDate       DateTime
+  endDate         DateTime
+  status          AMCSubscriptionStatus @default(ACTIVE)
+  autoRenew       Boolean               @default(false)
+  servicesUsed    Int                   @default(0)
+  totalAmount     Int // Cost in paise (owner can set their own pricing)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  cancelledAt     DateTime?
+
+  equipment  Equipment       @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  plan       AMCPlan?        @relation(fields: [planId], references: [id])
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  usageLogs  AMCServiceUse[]
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([equipmentId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model AMCServiceUse {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  bookingId      String?
+  serviceDate    DateTime
+  serviceType    String
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  subscription AMCSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  booking      ServiceBooking? @relation(fields: [bookingId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([bookingId])
+}
+
+// ========================================
+// M) WAREHOUSE MANAGEMENT
+// ========================================
+
+model WarehouseInventory {
+  id                String    @id @default(cuid())
+  partItemId        String    @unique
+  currentStock      Int       @default(0)
+  lowStockThreshold Int       @default(10)
+  lastRestockedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  partItem       PartItem        @relation(fields: [partItemId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+
+  @@index([currentStock])
+  @@index([lowStockThreshold])
+}
+
+model StockMovement {
+  id           String            @id @default(cuid())
+  inventoryId  String
+  movementType StockMovementType
+  quantity     Int
+  balanceAfter Int
+  bookingId    String?
+  notes        String?           @db.Text
+  createdBy    String
+  createdAt    DateTime          @default(now())
+
+  inventory WarehouseInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  booking   ServiceBooking?    @relation(fields: [bookingId], references: [id])
+  creator   User               @relation(fields: [createdBy], references: [id])
+
+  @@index([inventoryId])
+  @@index([movementType])
+  @@index([bookingId])
+  @@index([createdAt])
+}
+
+// ========================================
+// N) EXPENSE TRACKING
+// ========================================
+
+model Expense {
+  id              String          @id @default(cuid())
+  ownerId         String
+  restaurantId    String
+  category        ExpenseCategory
+  amount          Int // in paise
+  expenseDate     DateTime
+  description     String
+  receiptImageUrl String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  owner      User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([category])
+  @@index([expenseDate])
+}
+
+// ========================================
+// O) FIREBASE PUSH NOTIFICATIONS
+// ========================================
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  deviceId  String?
+  platform  String   @default("web")
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([isActive])
+}
+
+model NotificationPreference {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  enablePush         Boolean  @default(true)
+  enableEmail        Boolean  @default(true)
+  enableInApp        Boolean  @default(true)
+  notifyOnPayment    Boolean  @default(true)
+  notifyOnBooking    Boolean  @default(true)
+  notifyOnEngineer   Boolean  @default(true)
+  notifyOnCompletion Boolean  @default(true)
+  notifyOnOrder      Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushNotificationLog {
+  id             String    @id @default(cuid())
+  notificationId String?
+  userId         String
+  fcmMessageId   String?
+  title          String
+  body           String
+  data           Json?
+  status         String
+  errorMessage   String?   @db.Text
+  sentAt         DateTime  @default(now())
+  deliveredAt    DateTime?
+  clickedAt      DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([notificationId])
+  @@index([status])
 }

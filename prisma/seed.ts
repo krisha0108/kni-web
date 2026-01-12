@@ -6,31 +6,58 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Starting seed...");
 
-  // Clear existing data in development
-  await prisma.auditLog.deleteMany();
-  await prisma.marketplaceOrderItem.deleteMany();
-  await prisma.marketplaceOrder.deleteMany();
-  await prisma.vendorProduct.deleteMany();
-  await prisma.engineerWorkLog.deleteMany();
-  await prisma.engineerAssignment.deleteMany();
-  await prisma.paymentProof.deleteMany();
-  await prisma.serviceBookingItem.deleteMany();
-  await prisma.serviceBooking.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.cart.deleteMany();
-  await prisma.categoryRequest.deleteMany();
-  await prisma.restaurantCategory.deleteMany();
-  await prisma.restaurant.deleteMany();
-  await prisma.partItem.deleteMany();
-  await prisma.serviceItem.deleteMany();
-  await prisma.subCategory.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.engineerProfile.deleteMany();
-  await prisma.vendorProfile.deleteMany();
-  await prisma.ownerProfile.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.user.deleteMany();
+  // Clear existing data in development (in reverse dependency order)
+  try {
+    // Phase 5: Firebase Push Notifications
+    await prisma.pushNotificationLog.deleteMany();
+    await prisma.deviceToken.deleteMany();
+    await prisma.notificationPreference.deleteMany();
+
+    // Phase 4: Expense Tracking
+    await prisma.expense.deleteMany();
+
+    // Phase 3: Warehouse Management
+    await prisma.stockMovement.deleteMany();
+    await prisma.warehouseInventory.deleteMany();
+
+    // Phase 2: AMC Module
+    await prisma.aMCServiceUse.deleteMany();
+    await prisma.aMCSubscription.deleteMany();
+    await prisma.aMCPlan.deleteMany();
+
+    // Phase 1: Equipment Management
+    await prisma.equipment.deleteMany();
+
+    // Existing tables
+    await prisma.auditLog.deleteMany();
+    await prisma.payout.deleteMany();
+    await prisma.marketplaceOrderItem.deleteMany();
+    await prisma.marketplaceOrder.deleteMany();
+    await prisma.vendorProduct.deleteMany();
+    await prisma.engineerWorkLog.deleteMany();
+    await prisma.engineerAssignment.deleteMany();
+    await prisma.paymentProof.deleteMany();
+    await prisma.serviceBookingItem.deleteMany();
+    await prisma.serviceBooking.deleteMany();
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
+    await prisma.categoryRequest.deleteMany();
+    await prisma.restaurantCategory.deleteMany();
+    await prisma.restaurant.deleteMany();
+    await prisma.partItem.deleteMany();
+    await prisma.serviceItem.deleteMany();
+    await prisma.subCategory.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.paymentSettings.deleteMany();
+    await prisma.engineerProfile.deleteMany();
+    await prisma.vendorProfile.deleteMany();
+    await prisma.ownerProfile.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.user.deleteMany();
+  } catch (error) {
+    console.warn("Error during cleanup (this is expected on first migration):", error);
+  }
 
   console.log("Cleared existing data");
 
@@ -418,6 +445,7 @@ async function main() {
         description: "Premium refined cooking oil",
         price: 65000, // ₹650
         unit: "bottle",
+        stockQuantity: 50,
         vendorId: approvedVendor.id,
         categoryId: categories[0].id,
         isActive: true,
@@ -429,6 +457,7 @@ async function main() {
         description: "Basmati rice, premium quality",
         price: 180000, // ₹1,800
         unit: "bag",
+        stockQuantity: 30,
         vendorId: approvedVendor.id,
         isActive: true,
       },
@@ -439,6 +468,7 @@ async function main() {
         description: "All-purpose flour",
         price: 45000, // ₹450
         unit: "bag",
+        stockQuantity: 40,
         vendorId: approvedVendor.id,
         isActive: true,
       },
@@ -449,6 +479,7 @@ async function main() {
         description: "Commercial kitchen cleaning supplies",
         price: 250000, // ₹2,500
         unit: "kit",
+        stockQuantity: 20,
         vendorId: approvedVendor.id,
         isActive: true,
       },
@@ -489,6 +520,18 @@ async function main() {
     ],
   });
   console.log("Created sample notifications");
+
+  // Create default payment settings
+  const paymentSettings = await prisma.paymentSettings.create({
+    data: {
+      qrCodeImageUrl: "https://via.placeholder.com/400x400?text=UPI+QR+Code",
+      upiId: "kni@paytm",
+      accountHolderName: "KNI Super App",
+      instructions: "1. Scan the QR code with any UPI app\n2. Pay the exact amount shown\n3. Take a screenshot of the successful payment\n4. Upload the screenshot below for admin verification",
+      isActive: true,
+    },
+  });
+  console.log("Created payment settings");
 
   console.log("Seed completed successfully!");
   console.log("\n--- Login Credentials ---");

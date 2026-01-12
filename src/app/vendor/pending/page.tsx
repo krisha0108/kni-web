@@ -14,11 +14,6 @@ export default async function VendorPendingPage() {
     where: { userId: session.id },
   });
 
-  // If approved, redirect to dashboard
-  if (vendorProfile?.approvalStatus === "APPROVED") {
-    redirect("/vendor/dashboard");
-  }
-
   const statusIcons = {
     PENDING: Clock,
     REJECTED: XCircle,
@@ -31,8 +26,13 @@ export default async function VendorPendingPage() {
     APPROVED: "success" as const,
   };
 
-  const status = vendorProfile?.approvalStatus || "PENDING";
+  const status = (vendorProfile?.approvalStatus || "PENDING") as "PENDING" | "REJECTED" | "APPROVED";
   const StatusIcon = statusIcons[status];
+
+  // If approved, redirect to dashboard
+  if (status === "APPROVED") {
+    redirect("/vendor/dashboard");
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -49,15 +49,12 @@ export default async function VendorPendingPage() {
             <StatusIcon className="h-5 w-5" />
             {status === "PENDING" && "Pending Approval"}
             {status === "REJECTED" && "Application Rejected"}
-            {status === "APPROVED" && "Approved"}
           </CardTitle>
           <CardDescription>
             {status === "PENDING" &&
               "Your vendor application is being reviewed by our team."}
             {status === "REJECTED" &&
               "Unfortunately, your application was not approved."}
-            {status === "APPROVED" &&
-              "Congratulations! Your application has been approved."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

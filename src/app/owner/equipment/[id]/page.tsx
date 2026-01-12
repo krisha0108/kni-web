@@ -1,0 +1,714 @@
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClientOnly } from "@/components/client-only";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Plus, CheckCircle2, XCircle, Clock, FileText, Image as ImageIcon, Shield } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
+import { getAMCDurationLabel, getAMCStatusColor, getAMCStatusLabel } from "@/lib/amc";
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  serialNumber: string | null;
+  purchaseDate: string;
+  warrantyEndDate: string | null;
+  status: string;
+  notes: string | null;
+  billImageUrl: string | null;
+  warrantyCardUrl: string | null;
+  photoUrls: string[];
+  restaurant: {
+    id: string;
+    name: string;
+    status: string;
+  };
+  createdAt: string;
+}
+
+interface AMCSubscription {
+  id: string;
+  planName: string | null;
+  planDescription: string | null;
+  duration: string;
+  serviceLimit: number;
+  servicesUsed: number;
+  featuresJson: string[];
+  totalAmount: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  autoRenew: boolean;
+  createdAt: string;
+  usageLogs?: {
+    id: string;
+    serviceDate: string;
+    serviceType: string;
+    notes: string | null;
+    createdAt: string;
+  }[];
+}
+
+export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const [equipment, setEquipment] = useState<Equipment | null>(null);
+  const [amcSubscriptions, setAmcSubscriptions] = useState<AMCSubscription[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreateAmcOpen, setIsCreateAmcOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const [amcFormData, setAmcFormData] = useState({
+    planName: "",
+    planDescription: "",
+    duration: "MONTHLY",
+    serviceLimit: 1,
+    featuresJson: [] as string[],
+    totalAmount: 0,
+    startDate: "",
+    autoRenew: false,
+  });
+
+  const [featureInput, setFeatureInput] = useState("");
+
+  useEffect(() => {
+    fetchEquipment();
+    fetchAmcSubscriptions();
+  }, [resolvedParams.id]);
+
+  const fetchEquipment = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}`);
+      const data = await response.json();
+
+      if (data.ok) {
+        setEquipment(data.data);
+        setAmcFormData(prev => ({
+          ...prev,
+          planName: `${data.data.name} Maintenance Plan`,
+        }));
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch equipment",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch equipment details",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAmcSubscriptions = async () => {
+    try {
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc`);
+      const data = await response.json();
+
+      if (data.ok) {
+        setAmcSubscriptions(data.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch AMC subscriptions:", error);
+    }
+  };
+
+  const handleCreateAmc = async () => {
+    try {
+      if (!amcFormData.planName || !amcFormData.startDate || amcFormData.serviceLimit < 1) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipmentId: resolvedParams.id,
+          planName: amcFormData.planName,
+          planDescription: amcFormData.planDescription || undefined,
+          duration: amcFormData.duration,
+          serviceLimit: amcFormData.serviceLimit,
+          featuresJson: amcFormData.featuresJson.length > 0 ? amcFormData.featuresJson : undefined,
+          totalAmount: Math.round(amcFormData.totalAmount * 100), // Convert to paise
+          startDate: new Date(amcFormData.startDate).toISOString(),
+          autoRenew: amcFormData.autoRenew,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: "AMC subscription created successfully",
+        });
+        setIsCreateAmcOpen(false);
+        setAmcFormData({
+          planName: equipment ? `${equipment.name} Maintenance Plan` : "",
+          planDescription: "",
+          duration: "MONTHLY",
+          serviceLimit: 1,
+          featuresJson: [],
+          totalAmount: 0,
+          startDate: "",
+          autoRenew: false,
+        });
+        setFeatureInput("");
+        fetchAmcSubscriptions();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create AMC subscription",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create AMC subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddFeature = () => {
+    if (featureInput.trim()) {
+      setAmcFormData({
+        ...amcFormData,
+        featuresJson: [...amcFormData.featuresJson, featureInput.trim()],
+      });
+      setFeatureInput("");
+    }
+  };
+
+  const handleRemoveFeature = (index: number) => {
+    setAmcFormData({
+      ...amcFormData,
+      featuresJson: amcFormData.featuresJson.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleCancelAmc = async (amcId: string) => {
+    if (!confirm("Are you sure you want to cancel this AMC subscription?")) return;
+
+    try {
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc/${amcId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "AMC subscription cancelled successfully",
+        });
+        fetchAmcSubscriptions();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to cancel AMC subscription",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to cancel AMC subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleAutoRenew = async (amcId: string, currentValue: boolean) => {
+    try {
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc/${amcId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoRenew: !currentValue }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Auto-renew ${!currentValue ? "enabled" : "disabled"}`,
+        });
+        fetchAmcSubscriptions();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update auto-renew",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update auto-renew",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading equipment details...</p>
+      </div>
+    );
+  }
+
+  if (!equipment) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <p className="text-muted-foreground">Equipment not found</p>
+        <Button onClick={() => router.push("/owner/equipment")}>
+          Back to Equipment List
+        </Button>
+      </div>
+    );
+  }
+
+  const warrantyStatus = getWarrantyStatus(equipment.warrantyEndDate);
+  const activeAmc = amcSubscriptions.find(amc => amc.status === "ACTIVE");
+  const photoUrls = Array.isArray(equipment.photoUrls) ? equipment.photoUrls : [];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/owner/equipment")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{equipment.name}</h1>
+            <p className="text-muted-foreground">{equipment.category}</p>
+          </div>
+        </div>
+        <Badge variant={getEquipmentStatusColor(equipment.status)}>
+          {getEquipmentStatusLabel(equipment.status)}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Equipment Info */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Equipment Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipment Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Restaurant</Label>
+                  <p className="font-medium">{equipment.restaurant.name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Serial Number</Label>
+                  <p className="font-medium font-mono">{equipment.serialNumber || "N/A"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Purchase Date</Label>
+                  <p className="font-medium">{formatDate(equipment.purchaseDate)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Warranty Status</Label>
+                  <Badge variant={warrantyStatus.color === "green" ? "success" : warrantyStatus.color === "yellow" ? "warning" : "destructive"}>
+                    {warrantyStatus.label}
+                  </Badge>
+                </div>
+              </div>
+              {equipment.notes && (
+                <div>
+                  <Label className="text-muted-foreground">Notes</Label>
+                  <p className="mt-1">{equipment.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Images */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents & Images</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Bill & Warranty Card */}
+              <div className="grid grid-cols-2 gap-4">
+                {equipment.billImageUrl && (
+                  <div>
+                    <Label className="text-muted-foreground mb-2 block">Purchase Bill</Label>
+                    <div
+                      className="relative aspect-video rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setSelectedImage(equipment.billImageUrl)}
+                    >
+                      <img src={equipment.billImageUrl} alt="Bill" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {equipment.warrantyCardUrl && (
+                  <div>
+                    <Label className="text-muted-foreground mb-2 block">Warranty Card</Label>
+                    <div
+                      className="relative aspect-video rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setSelectedImage(equipment.warrantyCardUrl)}
+                    >
+                      <img src={equipment.warrantyCardUrl} alt="Warranty Card" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Shield className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Equipment Photos */}
+              {photoUrls.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground mb-2 block">Equipment Photos</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {photoUrls.map((url, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
+                        onClick={() => setSelectedImage(url)}
+                      >
+                        <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!equipment.billImageUrl && !equipment.warrantyCardUrl && photoUrls.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No documents or images uploaded</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - AMC Management */}
+        <div className="space-y-6">
+          {/* Active AMC Card */}
+          {activeAmc ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  Active AMC
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-muted-foreground">Plan Name</Label>
+                  <p className="font-medium">{activeAmc.planName || "Custom Plan"}</p>
+                </div>
+                {activeAmc.planDescription && (
+                  <div>
+                    <Label className="text-muted-foreground">Description</Label>
+                    <p className="text-sm">{activeAmc.planDescription}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Duration</Label>
+                    <p className="font-medium">{getAMCDurationLabel(activeAmc.duration)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Amount</Label>
+                    <p className="font-medium">₹{(activeAmc.totalAmount / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Period</Label>
+                  <p className="text-sm">
+                    {formatDate(activeAmc.startDate)} - {formatDate(activeAmc.endDate)}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground mb-2 block">Service Usage</Label>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{activeAmc.servicesUsed} used</span>
+                      <span>{activeAmc.serviceLimit - activeAmc.servicesUsed} remaining</span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-primary rounded-full h-2 transition-all"
+                        style={{ width: `${(activeAmc.servicesUsed / activeAmc.serviceLimit) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {activeAmc.servicesUsed} / {activeAmc.serviceLimit} services
+                    </p>
+                  </div>
+                </div>
+                {activeAmc.featuresJson && activeAmc.featuresJson.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground mb-2 block">Features</Label>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {activeAmc.featuresJson.map((feature, index) => (
+                        <li key={index}>{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-muted-foreground">Auto-Renew</Label>
+                    <Badge variant={activeAmc.autoRenew ? "success" : "secondary"}>
+                      {activeAmc.autoRenew ? "On" : "Off"}
+                    </Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggleAutoRenew(activeAmc.id, activeAmc.autoRenew)}
+                  >
+                    Toggle
+                  </Button>
+                </div>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => handleCancelAmc(activeAmc.id)}
+                >
+                  Cancel AMC
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-muted-foreground" />
+                  No Active AMC
+                </CardTitle>
+                <CardDescription>
+                  Create a maintenance plan for this equipment
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Dialog open={isCreateAmcOpen} onOpenChange={setIsCreateAmcOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create AMC Plan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create AMC Plan</DialogTitle>
+                      <DialogDescription>
+                        Set up a custom maintenance plan for {equipment.name}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Plan Name *</Label>
+                        <Input
+                          value={amcFormData.planName}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, planName: e.target.value })}
+                          placeholder="e.g., Monthly Oven Maintenance"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea
+                          value={amcFormData.planDescription}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, planDescription: e.target.value })}
+                          placeholder="Describe what's included in this maintenance plan"
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Duration *</Label>
+                          <ClientOnly>
+                            <Select
+                              value={amcFormData.duration}
+                              onValueChange={(v) => setAmcFormData({ ...amcFormData, duration: v })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MONTHLY">Monthly (1 month)</SelectItem>
+                                <SelectItem value="QUARTERLY">Quarterly (3 months)</SelectItem>
+                                <SelectItem value="YEARLY">Yearly (12 months)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </ClientOnly>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Service Limit *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={amcFormData.serviceLimit}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, serviceLimit: parseInt(e.target.value) || 1 })}
+                            placeholder="Number of services"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Plan Cost (₹) *</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={amcFormData.totalAmount}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, totalAmount: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Features</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={featureInput}
+                            onChange={(e) => setFeatureInput(e.target.value)}
+                            placeholder="Add a feature"
+                            onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddFeature())}
+                          />
+                          <Button type="button" onClick={handleAddFeature}>Add</Button>
+                        </div>
+                        {amcFormData.featuresJson.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {amcFormData.featuresJson.map((feature, index) => (
+                              <Badge key={index} variant="secondary" className="gap-1">
+                                {feature}
+                                <button
+                                  onClick={() => handleRemoveFeature(index)}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  ×
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Start Date *</Label>
+                        <Input
+                          type="date"
+                          value={amcFormData.startDate}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, startDate: e.target.value })}
+                          min={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="autoRenew"
+                          checked={amcFormData.autoRenew}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, autoRenew: e.target.checked })}
+                          className="rounded"
+                        />
+                        <Label htmlFor="autoRenew" className="cursor-pointer">
+                          Enable auto-renewal
+                        </Label>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsCreateAmcOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateAmc}>Create AMC Plan</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* AMC History */}
+          {amcSubscriptions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  AMC History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {amcSubscriptions.map((amc) => (
+                    <div key={amc.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium text-sm">{amc.planName || "Custom Plan"}</p>
+                        <Badge variant={getAMCStatusColor(amc.status)}>
+                          {getAMCStatusLabel(amc.status)}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>{getAMCDurationLabel(amc.duration)}</p>
+                        <p>{formatDate(amc.startDate)} - {formatDate(amc.endDate)}</p>
+                        <p>{amc.servicesUsed} / {amc.serviceLimit} services used</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Image Preview Dialog */}
+      {selectedImage && (
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Image Preview</DialogTitle>
+              <DialogDescription>
+                Full-size view of the image
+              </DialogDescription>
+            </DialogHeader>
+            <img src={selectedImage} alt="Preview" className="w-full h-auto" />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}

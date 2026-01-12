@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -60,19 +61,31 @@ export default function NewBookingPage() {
         const cartData = await cartRes.json();
         const restaurantsData = await restaurantsRes.json();
 
-        if (cartData.ok) {
-          setCartItems(cartData.data?.items || []);
+        if (cartData.ok && cartData.data) {
+          // Cart items with proper quantity mapping
+          const items = (cartData.data.items || []).map((item: any) => ({
+            id: item.id,
+            quantity: item.qty,
+            serviceItem: item.serviceItem,
+            partItem: item.partItem,
+          }));
+          setCartItems(items);
         }
-        if (restaurantsData.ok) {
-          const approved = restaurantsData.data.filter(
-            (r: { approvalStatus: string }) => r.approvalStatus === "APPROVED"
-          );
+
+        if (restaurantsData.ok && restaurantsData.data) {
+          // Restaurant API now returns an array
+          const approved = Array.isArray(restaurantsData.data)
+            ? restaurantsData.data.filter((r: any) => r.status === "APPROVED")
+            : [];
           setRestaurants(approved);
-          if (approved.length === 1) {
+          if (approved.length > 0) {
             setSelectedRestaurant(approved[0].id);
           }
+        } else {
+          setRestaurants([]);
         }
-      } catch {
+      } catch (error) {
+        console.error("Failed to load booking data:", error);
         toast({
           title: "Error",
           description: "Failed to load booking data",
@@ -83,7 +96,7 @@ export default function NewBookingPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [toast]);
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
@@ -114,14 +127,17 @@ export default function NewBookingPage() {
 
     setIsSubmitting(true);
     try {
+      // Convert date and time slot to ISO datetime strings
+      const [startTime, endTime] = preferredTimeSlot.split("-");
+      const slotStartDateTime = new Date(`${preferredDate}T${startTime}:00`).toISOString();
+      const slotEndDateTime = new Date(`${preferredDate}T${endTime}:00`).toISOString();
+
       const response = await fetch("/api/owner/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          restaurantId: selectedRestaurant,
-          preferredDate,
-          preferredTimeSlot,
-          notes: notes || undefined,
+          slotStartDateTime,
+          slotEndDateTime,
         }),
       });
       const data = await response.json();
@@ -132,7 +148,8 @@ export default function NewBookingPage() {
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
-    } catch {
+    } catch (error) {
+      console.error("Booking error:", error);
       toast({ title: "Error", description: "Failed to create booking", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -194,7 +211,8 @@ export default function NewBookingPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="restaurant">Restaurant *</Label>
-                  <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
+                  <ClientOnly>
+                    <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select restaurant" />
                     </SelectTrigger>
@@ -206,6 +224,7 @@ export default function NewBookingPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                    </ClientOnly>
                   {restaurants.length === 0 && (
                     <p className="text-sm text-destructive">
                       You need an approved restaurant to create a booking
@@ -231,6 +250,7 @@ export default function NewBookingPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="timeSlot">Preferred Time Slot *</Label>
+                    <ClientOnly>
                     <Select value={preferredTimeSlot} onValueChange={setPreferredTimeSlot}>
                       <SelectTrigger>
                         <Clock className="mr-2 h-4 w-4" />
@@ -244,6 +264,7 @@ export default function NewBookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    </ClientOnly>
                   </div>
                 </div>
 

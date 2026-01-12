@@ -10,7 +10,8 @@ import { formatPrice } from "@/lib/utils";
 
 interface CartItem {
   id: string;
-  quantity: number;
+  qty: number;
+  priceSnapshot: number;
   serviceItem?: { id: string; name: string; price: number };
   partItem?: { id: string; name: string; price: number };
 }
@@ -95,8 +96,8 @@ export default function OwnerCartPage() {
   const calculateTotal = () => {
     if (!cart?.items) return 0;
     return cart.items.reduce((total, item) => {
-      const price = item.serviceItem?.price || item.partItem?.price || 0;
-      return total + price * item.quantity;
+      const price = item.serviceItem?.price || item.partItem?.price || item.priceSnapshot || 0;
+      return total + price * item.qty;
     }, 0);
   };
 
@@ -148,7 +149,7 @@ export default function OwnerCartPage() {
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {formatPrice(itemData?.price || 0)} each
+                        {formatPrice(itemData?.price || item.priceSnapshot || 0)} each
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -157,24 +158,24 @@ export default function OwnerCartPage() {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                          disabled={isUpdating === item.id || item.quantity <= 1}
+                          onClick={() => handleUpdateQuantity(item.id, item.qty - 1)}
+                          disabled={isUpdating === item.id || item.qty <= 1}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center">{item.qty}</span>
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.qty + 1)}
                           disabled={isUpdating === item.id}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                       <div className="w-24 text-right font-medium">
-                        {formatPrice((itemData?.price || 0) * item.quantity)}
+                        {formatPrice((itemData?.price || item.priceSnapshot || 0) * item.qty)}
                       </div>
                       <Button
                         variant="ghost"

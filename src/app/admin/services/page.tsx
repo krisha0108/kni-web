@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -71,7 +72,7 @@ export default function AdminServicesPage() {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterCategoryId, setFilterCategoryId] = useState<string>("");
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -101,7 +102,7 @@ export default function AdminServicesPage() {
     try {
       setIsLoading(true);
       let url = "/api/admin/services?search=" + encodeURIComponent(search);
-      if (filterCategoryId) url += "&categoryId=" + filterCategoryId;
+      if (filterCategoryId && filterCategoryId !== "all") url += "&categoryId=" + filterCategoryId;
       const response = await fetch(url);
       const data = await response.json();
       if (data.ok) setServices(data.data.items);
@@ -246,22 +247,26 @@ export default function AdminServicesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={formData.categoryId} onValueChange={(v) => setFormData({ ...formData, categoryId: v, subCategoryId: "" })}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
+                <ClientOnly>
+                  <Select value={formData.categoryId} onValueChange={(v) => setFormData({ ...formData, categoryId: v, subCategoryId: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </ClientOnly>
               </div>
               {subCategories.length > 0 && (
                 <div className="space-y-2">
                   <Label>Subcategory (optional)</Label>
-                  <Select value={formData.subCategoryId} onValueChange={(v) => setFormData({ ...formData, subCategoryId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select subcategory" /></SelectTrigger>
-                    <SelectContent>
-                      {subCategories.map((sub) => (<SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
+                  <ClientOnly>
+                    <Select value={formData.subCategoryId} onValueChange={(v) => setFormData({ ...formData, subCategoryId: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select subcategory" /></SelectTrigger>
+                      <SelectContent>
+                        {subCategories.map((sub) => (<SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </ClientOnly>
                 </div>
               )}
             </div>
@@ -278,13 +283,15 @@ export default function AdminServicesPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search services..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="All categories" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All categories</SelectItem>
-            {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
-          </SelectContent>
-        </Select>
+        <ClientOnly>
+          <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="All categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </ClientOnly>
       </div>
 
       <div className="border rounded-lg">

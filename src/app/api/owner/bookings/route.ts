@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerWithApprovedRestaurant } from "@/server/auth/rbac";
 import { z } from "zod";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 
 const createBookingSchema = z.object({
   slotStartDateTime: z.string(),
@@ -23,7 +24,7 @@ export async function GET() {
           },
         },
         paymentProof: true,
-        engineerAssignment: {
+        engineerAssignments: {
           include: { engineer: { select: { id: true, name: true } } },
         },
       },
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
@@ -67,7 +68,14 @@ export async function POST(request: NextRequest) {
 
     const cart = await db.cart.findFirst({
       where: { ownerId: session.id, restaurantId: restaurant.id, status: "DRAFT" },
-      include: { items: true },
+      include: {
+        items: {
+          include: {
+            serviceItem: { select: { name: true } },
+            partItem: { select: { name: true } },
+          },
+        },
+      },
     });
 
     if (!cart || cart.items.length === 0) {
@@ -78,6 +86,25 @@ export async function POST(request: NextRequest) {
     }
 
     const totalAmount = cart.items.reduce((sum, item) => sum + item.priceSnapshot * item.qty, 0);
+
+    // Delete any existing ARCHIVED carts to avoid unique constraint violation
+    await db.cart.deleteMany({
+      where: {
+        ownerId: session.id,
+        restaurantId: restaurant.id,
+        status: "ARCHIVED",
+      },
+    });
+
+    // Archive any existing SUBMITTED carts to avoid unique constraint violation
+    await db.cart.updateMany({
+      where: {
+        ownerId: session.id,
+        restaurantId: restaurant.id,
+        status: "SUBMITTED",
+      },
+      data: { status: "ARCHIVED" },
+    });
 
     const booking = await db.serviceBooking.create({
       data: {
@@ -104,6 +131,23 @@ export async function POST(request: NextRequest) {
     await db.cart.update({
       where: { id: cart.id },
       data: { status: "SUBMITTED" },
+    });
+
+    // Send booking confirmation email (non-blocking)
+    const items = cart.items.map((item) => ({
+      name: item.serviceItem?.name || item.partItem?.name || "Unknown Item",
+      quantity: item.qty,
+    }));
+
+    sendBookingConfirmationEmail(
+      session.email,
+      session.name,
+      booking.id,
+      restaurant.name,
+      totalAmount,
+      items
+    ).catch((error) => {
+      console.error("Failed to send booking confirmation email:", error);
     });
 
     return NextResponse.json({ ok: true, data: booking });

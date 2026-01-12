@@ -1,0 +1,538 @@
+import sgMail from "@sendgrid/mail";
+
+// Initialize SendGrid
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
+
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@knisuperapp.com";
+const FROM_NAME = process.env.SENDGRID_FROM_NAME || "KNI Super App";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+interface EmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+// Base email sender
+async function sendEmail(options: EmailOptions): Promise<void> {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn("SendGrid API key not configured. Email not sent.");
+    console.log("Would send email:", {
+      to: options.to,
+      subject: options.subject,
+    });
+    return;
+  }
+
+  try {
+    await sgMail.send({
+      to: options.to,
+      from: {
+        email: FROM_EMAIL,
+        name: FROM_NAME,
+      },
+      subject: options.subject,
+      html: options.html,
+      text: options.text || options.html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
+    });
+    console.log(`Email sent successfully to ${options.to}`);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
+  }
+}
+
+// Email template wrapper
+function emailTemplate(content: string, title: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+          }
+          .content {
+            padding: 30px 20px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+          .button:hover {
+            background: #5568d3;
+          }
+          .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+          }
+          .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .credentials {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin-top: 0;
+          }
+          p {
+            margin: 10px 0;
+          }
+          ul {
+            margin: 10px 0;
+            padding-left: 20px;
+          }
+          .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔧 ${FROM_NAME}</h1>
+          </div>
+          <div class="content">
+            ${content}
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} KNI Super App. All rights reserved.</p>
+            <p>Professional Kitchen Equipment Service Platform</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+// 1. Engineer Welcome Email
+export async function sendEngineerWelcomeEmail(
+  engineerEmail: string,
+  engineerName: string,
+  password: string
+): Promise<void> {
+  const content = `
+    <h2>Welcome to KNI Super App!</h2>
+    <p>Hello ${engineerName},</p>
+    <p>You have been registered as an engineer on the KNI Super App platform. You can now start accepting service jobs from restaurant owners.</p>
+
+    <div class="credentials">
+      <strong>Your Login Credentials:</strong>
+      <ul>
+        <li><strong>Email:</strong> ${engineerEmail}</li>
+        <li><strong>Password:</strong> ${password}</li>
+      </ul>
+      <p><em>⚠️ Please change your password after first login for security.</em></p>
+    </div>
+
+    <a href="${APP_URL}/login" class="button">Login to Dashboard</a>
+
+    <div class="divider"></div>
+
+    <h3>What's Next?</h3>
+    <ul>
+      <li>Complete your profile with your skills and expertise</li>
+      <li>Wait for job assignments from the admin</li>
+      <li>Accept jobs and start earning</li>
+      <li>Upload work completion proofs to get paid</li>
+    </ul>
+
+    <p>If you have any questions, please contact the admin.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: engineerEmail,
+    subject: "Welcome to KNI Super App - Engineer Account Created",
+    html: emailTemplate(content, "Welcome Engineer"),
+  });
+}
+
+// 2. Booking Confirmation Email (Owner)
+export async function sendBookingConfirmationEmail(
+  ownerEmail: string,
+  ownerName: string,
+  bookingId: string,
+  restaurantName: string,
+  totalAmount: number,
+  items: Array<{ name: string; quantity: number }>
+): Promise<void> {
+  const itemsList = items
+    .map((item) => `<li>${item.name} x ${item.quantity}</li>`)
+    .join("");
+
+  const content = `
+    <h2>Booking Confirmed!</h2>
+    <p>Hello ${ownerName},</p>
+    <p>Your service booking has been successfully created and is awaiting payment.</p>
+
+    <div class="info-box">
+      <strong>Booking Details:</strong>
+      <ul>
+        <li><strong>Booking ID:</strong> ${bookingId}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Total Amount:</strong> ₹${(totalAmount / 100).toFixed(2)}</li>
+      </ul>
+    </div>
+
+    <h3>Services & Parts:</h3>
+    <ul>
+      ${itemsList}
+    </ul>
+
+    <a href="${APP_URL}/owner/bookings/${bookingId}/payment" class="button">Proceed to Payment</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Click the button above to go to the payment page</li>
+      <li>Scan the UPI QR code and make the payment</li>
+      <li>Upload a screenshot of the payment confirmation</li>
+      <li>Wait for admin verification</li>
+      <li>An engineer will be assigned to your booking</li>
+    </ol>
+
+    <p>Thank you for choosing KNI Super App!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Booking Confirmed - ${restaurantName}`,
+    html: emailTemplate(content, "Booking Confirmation"),
+  });
+}
+
+// 3. Payment Verified Email (Owner)
+export async function sendPaymentVerifiedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  bookingId: string,
+  restaurantName: string
+): Promise<void> {
+  const content = `
+    <h2>Payment Verified Successfully!</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="success">
+      <p><strong>✅ Your payment has been verified by our admin.</strong></p>
+      <p>An engineer will be assigned to your booking shortly.</p>
+    </div>
+
+    <div class="info-box">
+      <strong>Booking Details:</strong>
+      <ul>
+        <li><strong>Booking ID:</strong> ${bookingId}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+      </ul>
+    </div>
+
+    <a href="${APP_URL}/owner/bookings/${bookingId}" class="button">View Booking Details</a>
+
+    <h3>What Happens Next?</h3>
+    <ul>
+      <li>Our admin will assign a qualified engineer to your booking</li>
+      <li>You will receive another email once the engineer is assigned</li>
+      <li>The engineer will contact you to schedule the service</li>
+      <li>Service will be completed as per the scheduled time</li>
+    </ul>
+
+    <p>Thank you for your patience!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Payment Verified - ${restaurantName}`,
+    html: emailTemplate(content, "Payment Verified"),
+  });
+}
+
+// 4. Engineer Assigned Email (Owner)
+export async function sendEngineerAssignedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  bookingId: string,
+  restaurantName: string,
+  engineerName: string,
+  engineerPhone: string
+): Promise<void> {
+  const content = `
+    <h2>Engineer Assigned to Your Booking!</h2>
+    <p>Hello ${ownerName},</p>
+    <p>Great news! An engineer has been assigned to your service booking.</p>
+
+    <div class="success">
+      <strong>Engineer Details:</strong>
+      <ul>
+        <li><strong>Name:</strong> ${engineerName}</li>
+        <li><strong>Phone:</strong> ${engineerPhone || "Not provided"}</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>Booking Details:</strong>
+      <ul>
+        <li><strong>Booking ID:</strong> ${bookingId}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+      </ul>
+    </div>
+
+    <a href="${APP_URL}/owner/bookings/${bookingId}" class="button">View Booking Details</a>
+
+    <h3>What's Next?</h3>
+    <ul>
+      <li>The engineer will contact you to confirm the schedule</li>
+      <li>Please be available at the restaurant during the scheduled time</li>
+      <li>The engineer will complete the service and upload proof</li>
+      <li>You'll receive a notification once the work is completed</li>
+    </ul>
+
+    <p>Thank you for choosing KNI Super App!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Engineer Assigned - ${restaurantName}`,
+    html: emailTemplate(content, "Engineer Assigned"),
+  });
+}
+
+// 5. New Job Assignment Email (Engineer)
+export async function sendEngineerJobAssignmentEmail(
+  engineerEmail: string,
+  engineerName: string,
+  assignmentId: string,
+  restaurantName: string,
+  restaurantAddress: string,
+  ownerName: string,
+  ownerPhone: string,
+  items: Array<{ name: string; quantity: number }>
+): Promise<void> {
+  const itemsList = items
+    .map((item) => `<li>${item.name} x ${item.quantity}</li>`)
+    .join("");
+
+  const content = `
+    <h2>New Job Assignment!</h2>
+    <p>Hello ${engineerName},</p>
+    <p>You have been assigned a new service job. Please review the details and accept the assignment.</p>
+
+    <div class="info-box">
+      <strong>Job Location:</strong>
+      <ul>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Address:</strong> ${restaurantAddress}</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>Contact Person:</strong>
+      <ul>
+        <li><strong>Name:</strong> ${ownerName}</li>
+        <li><strong>Phone:</strong> ${ownerPhone || "Not provided"}</li>
+      </ul>
+    </div>
+
+    <h3>Services & Parts Required:</h3>
+    <ul>
+      ${itemsList}
+    </ul>
+
+    <a href="${APP_URL}/engineer/jobs/${assignmentId}" class="button">View Job Details</a>
+
+    <h3>Action Required:</h3>
+    <ol>
+      <li>Click the button above to view full job details</li>
+      <li>Accept the job assignment</li>
+      <li>Contact the restaurant owner to schedule</li>
+      <li>Complete the service work</li>
+      <li>Upload completion proof</li>
+    </ol>
+
+    <p><em>Please respond to this assignment as soon as possible.</em></p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: engineerEmail,
+    subject: `New Job Assignment - ${restaurantName}`,
+    html: emailTemplate(content, "New Job Assignment"),
+  });
+}
+
+// 6. Work Completed Email (Owner)
+export async function sendWorkCompletedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  bookingId: string,
+  restaurantName: string,
+  engineerName: string,
+  workNotes: string
+): Promise<void> {
+  const content = `
+    <h2>Service Work Completed!</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="success">
+      <p><strong>✅ Your service booking has been completed successfully!</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Booking Details:</strong>
+      <ul>
+        <li><strong>Booking ID:</strong> ${bookingId}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Engineer:</strong> ${engineerName}</li>
+      </ul>
+    </div>
+
+    ${
+      workNotes
+        ? `
+    <div class="info-box">
+      <strong>Work Completion Notes:</strong>
+      <p>${workNotes}</p>
+    </div>
+    `
+        : ""
+    }
+
+    <a href="${APP_URL}/owner/bookings/${bookingId}" class="button">View Completion Details</a>
+
+    <p>The engineer has uploaded proof of the completed work. You can view it in your booking details.</p>
+
+    <h3>Need Support?</h3>
+    <p>If you face any issues or have concerns about the completed work, please contact our admin team.</p>
+
+    <p>Thank you for using KNI Super App!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Service Completed - ${restaurantName}`,
+    html: emailTemplate(content, "Service Completed"),
+  });
+}
+
+// 7. Payment Rejected Email (Owner)
+export async function sendPaymentRejectedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  bookingId: string,
+  restaurantName: string,
+  rejectionReason: string
+): Promise<void> {
+  const content = `
+    <h2>Payment Verification Failed</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠️ Your payment proof has been rejected by our admin.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Booking Details:</strong>
+      <ul>
+        <li><strong>Booking ID:</strong> ${bookingId}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${rejectionReason}</p>
+    </div>
+
+    <a href="${APP_URL}/owner/bookings/${bookingId}/payment" class="button">Reupload Payment Proof</a>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Ensure you have made the correct payment</li>
+      <li>Upload a clear screenshot showing the payment confirmation</li>
+      <li>Include transaction ID and amount in the screenshot</li>
+    </ol>
+
+    <p>If you believe this is a mistake, please contact our admin team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Payment Verification Failed - ${restaurantName}`,
+    html: emailTemplate(content, "Payment Rejected"),
+  });
+}
+
+export default {
+  sendEngineerWelcomeEmail,
+  sendBookingConfirmationEmail,
+  sendPaymentVerifiedEmail,
+  sendEngineerAssignedEmail,
+  sendEngineerJobAssignmentEmail,
+  sendWorkCompletedEmail,
+  sendPaymentRejectedEmail,
+};

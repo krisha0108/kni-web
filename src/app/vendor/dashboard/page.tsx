@@ -108,6 +108,9 @@ export default async function VendorDashboardPage() {
             <p className="text-xs text-muted-foreground">
               From restaurant owners
             </p>
+            <Button size="sm" variant="outline" asChild className="mt-2">
+              <Link href="/vendor/orders">View Orders</Link>
+            </Button>
           </CardContent>
         </Card>
 

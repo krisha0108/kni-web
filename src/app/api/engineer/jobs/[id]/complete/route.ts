@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineer } from "@/server/auth/rbac";
-import { saveUploadedFile } from "@/server/upload/localUpload";
 import { notifyOwnerServiceCompleted } from "@/server/notifications/service";
+import { calculateCommission } from "@/lib/commission";
 
 export async function POST(
   request: NextRequest,
@@ -12,7 +12,7 @@ export async function POST(
     const session = await requireEngineer();
     const { id } = await params;
 
-    // Verify assignment belongs to this engineer and is in progress
+    // Verify assignment belongs to this engineer and is accepted
     const assignment = await db.engineerAssignment.findFirst({
       where: { id, engineerId: session.id },
       include: {
@@ -30,42 +30,70 @@ export async function POST(
       );
     }
 
-    if (assignment.status !== "IN_PROGRESS") {
+    if (assignment.status !== "ACCEPTED") {
       return NextResponse.json(
-        { ok: false, error: "Job must be in progress to complete" },
+        { ok: false, error: "Job must be accepted to complete" },
         { status: 400 }
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
-    const workNotes = formData.get("workNotes") as string;
-
-    if (!file) {
+    // Check if already completed
+    if (assignment.workLog) {
       return NextResponse.json(
-        { ok: false, error: "Proof image is required" },
+        { ok: false, error: "Job has already been completed" },
         { status: 400 }
       );
     }
 
-    // Save the proof image
-    const imageUrl = await saveUploadedFile(file, "engineer-proof");
+    const body = await request.json();
+    const { workNotes, proofImageUrls } = body;
+
+    if (!proofImageUrls || !Array.isArray(proofImageUrls) || proofImageUrls.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "At least one proof image is required" },
+        { status: 400 }
+      );
+    }
+
+    if (proofImageUrls.length > 5) {
+      return NextResponse.json(
+        { ok: false, error: "Maximum 5 proof images allowed" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate commission based on booking total amount
+    const commissionAmount = calculateCommission(
+      assignment.booking.totalAmount,
+      assignment.commissionRate
+    );
 
     await db.$transaction([
       db.engineerAssignment.update({
         where: { id },
-        data: { status: "COMPLETED" },
+        data: {
+          status: "COMPLETED",
+          completedAt: new Date(),
+          commissionAmount,
+        },
       }),
       db.serviceBooking.update({
         where: { id: assignment.bookingId },
         data: { status: "COMPLETED" },
       }),
-      db.engineerWorkLog.update({
-        where: { id: assignment.workLog!.id },
+      db.engineerWorkLog.create({
         data: {
-          completedAt: new Date(),
-          workNotes: workNotes || null,
-          proofImageUrl: imageUrl,
+          assignmentId: id,
+          completionNote: workNotes || "",
+          proofImageUrls: proofImageUrls,
+        },
+      }),
+      db.payout.create({
+        data: {
+          assignmentId: id,
+          engineerId: assignment.engineerId,
+          amount: commissionAmount,
+          status: "PENDING",
         },
       }),
     ]);

@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ClientOnly } from "@/components/client-only";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Search, Package } from "lucide-react";
@@ -53,7 +54,7 @@ interface Product {
   imageUrl?: string;
   isActive: boolean;
   createdAt: string;
-  category: { id: string; name: string };
+  category?: { id: string; name: string } | null;
 }
 
 interface Category {
@@ -218,7 +219,7 @@ export default function VendorProductsPage() {
       description: product.description || "",
       price: product.price.toString(),
       stockQuantity: product.stockQuantity.toString(),
-      categoryId: product.category.id,
+      categoryId: product.category?.id || "",
       imageUrl: product.imageUrl || "",
     });
     setIsEditOpen(true);
@@ -255,6 +256,7 @@ export default function VendorProductsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
+                <ClientOnly>
                 <Select
                   value={formData.categoryId}
                   onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
@@ -270,6 +272,7 @@ export default function VendorProductsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                </ClientOnly>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -363,7 +366,7 @@ export default function VendorProductsPage() {
               {products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category.name}</TableCell>
+                  <TableCell>{product.category?.name || "Uncategorized"}</TableCell>
                   <TableCell>{formatPrice(product.price)}</TableCell>
                   <TableCell>{product.stockQuantity}</TableCell>
                   <TableCell>
@@ -418,7 +421,8 @@ export default function VendorProductsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-category">Category *</Label>
-              <Select
+              <ClientOnly>
+                <Select
                 value={formData.categoryId}
                 onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
               >
@@ -433,6 +437,7 @@ export default function VendorProductsPage() {
                   ))}
                 </SelectContent>
               </Select>
+                </ClientOnly>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -20,7 +20,7 @@ export async function PATCH(
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
@@ -42,7 +42,7 @@ export async function PATCH(
 
     const updatedItem = await db.cartItem.update({
       where: { id: itemId },
-      data: { quantity: validation.data.quantity },
+      data: { qty: validation.data.quantity },
     });
 
     return NextResponse.json({ ok: true, data: updatedItem });

@@ -106,31 +106,7 @@ export async function PATCH(
       return NextResponse.json({ ok: true });
     }
 
-    if (action === "start") {
-      if (assignment.status !== "ACCEPTED") {
-        return NextResponse.json(
-          { ok: false, error: "Job must be accepted first" },
-          { status: 400 }
-        );
-      }
-      await db.$transaction([
-        db.engineerAssignment.update({
-          where: { id },
-          data: { status: "IN_PROGRESS" },
-        }),
-        db.serviceBooking.update({
-          where: { id: assignment.bookingId },
-          data: { status: "IN_PROGRESS" },
-        }),
-        db.engineerWorkLog.create({
-          data: {
-            assignmentId: id,
-            startedAt: new Date(),
-          },
-        }),
-      ]);
-      return NextResponse.json({ ok: true });
-    }
+    // "start" action removed - engineer can complete directly after accepting
 
     return NextResponse.json({ ok: false, error: "Invalid action" }, { status: 400 });
   } catch (error) {

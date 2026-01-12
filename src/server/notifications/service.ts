@@ -1,5 +1,13 @@
 import { db } from "@/server/db";
 import { Role } from "@prisma/client";
+import {
+  sendPaymentVerifiedEmail,
+  sendPaymentRejectedEmail,
+  sendEngineerAssignedEmail,
+  sendEngineerJobAssignmentEmail,
+  sendWorkCompletedEmail,
+} from "@/lib/email";
+import { sendPushNotification } from "./fcm-service";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -9,7 +17,7 @@ export interface CreateNotificationInput {
 }
 
 export async function createNotification(input: CreateNotificationInput) {
-  return db.notification.create({
+  const notification = await db.notification.create({
     data: {
       userId: input.userId,
       title: input.title,
@@ -17,6 +25,19 @@ export async function createNotification(input: CreateNotificationInput) {
       linkUrl: input.linkUrl || null,
     },
   });
+
+  // Send push notification asynchronously (don't await to avoid blocking)
+  sendPushNotification({
+    userId: input.userId,
+    title: input.title,
+    body: input.message,
+    linkUrl: input.linkUrl,
+    notificationId: notification.id,
+  }).catch((error) => {
+    console.error("Failed to send push notification:", error);
+  });
+
+  return notification;
 }
 
 export async function createNotificationForRole(
@@ -117,12 +138,38 @@ export async function notifyOwnerPaymentVerified(
   ownerId: string,
   bookingId: string
 ) {
-  return createNotification({
+  // Get owner and booking details for email
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { name: true, email: true },
+  });
+
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    include: { restaurant: { select: { name: true } } },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: ownerId,
     title: "Payment Verified",
     message: "Your payment has been verified. An engineer will be assigned soon.",
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Send email (non-blocking)
+  if (owner && booking) {
+    sendPaymentVerifiedEmail(
+      owner.email,
+      owner.name,
+      bookingId,
+      booking.restaurant.name
+    ).catch((error) => {
+      console.error("Failed to send payment verified email:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerPaymentRejected(
@@ -130,12 +177,39 @@ export async function notifyOwnerPaymentRejected(
   bookingId: string,
   reason: string
 ) {
-  return createNotification({
+  // Get owner and booking details for email
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { name: true, email: true },
+  });
+
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    include: { restaurant: { select: { name: true } } },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: ownerId,
     title: "Payment Rejected",
     message: "Your payment was rejected. Reason: " + reason,
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Send email (non-blocking)
+  if (owner && booking) {
+    sendPaymentRejectedEmail(
+      owner.email,
+      owner.name,
+      bookingId,
+      booking.restaurant.name,
+      reason
+    ).catch((error) => {
+      console.error("Failed to send payment rejected email:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerEngineerAssigned(
@@ -143,12 +217,42 @@ export async function notifyOwnerEngineerAssigned(
   bookingId: string,
   engineerName: string
 ) {
-  return createNotification({
+  // Get owner, booking, and engineer details for email
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { name: true, email: true },
+  });
+
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    include: {
+      restaurant: { select: { name: true } },
+    },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: ownerId,
     title: "Engineer Assigned",
     message: engineerName + " has been assigned to your booking.",
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Send email (non-blocking)
+  if (owner && booking) {
+    sendEngineerAssignedEmail(
+      owner.email,
+      owner.name,
+      bookingId,
+      booking.restaurant.name,
+      engineerName,
+      booking.engineerAssignment?.engineer.phone || ""
+    ).catch((error) => {
+      console.error("Failed to send engineer assigned email:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerJobCompleted(
@@ -168,12 +272,60 @@ export async function notifyEngineerNewJob(
   assignmentId: string,
   restaurantName: string
 ) {
-  return createNotification({
+  // Get engineer, assignment, and booking details for email
+  const engineer = await db.user.findUnique({
+    where: { id: engineerId },
+    select: { name: true, email: true },
+  });
+
+  const assignment = await db.engineerAssignment.findUnique({
+    where: { id: assignmentId },
+    include: {
+      booking: {
+        include: {
+          owner: { select: { name: true, phone: true } },
+          restaurant: { select: { name: true, address: true } },
+          items: {
+            include: {
+              serviceItem: { select: { name: true } },
+              partItem: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: engineerId,
     title: "New Job Assignment",
     message: "You have been assigned a job at " + restaurantName + ".",
     linkUrl: "/engineer/jobs/" + assignmentId,
   });
+
+  // Send email (non-blocking)
+  if (engineer && assignment) {
+    const items = assignment.booking.items.map((item) => ({
+      name: item.serviceItem?.name || item.partItem?.name || "Unknown Item",
+      quantity: item.qty,
+    }));
+
+    sendEngineerJobAssignmentEmail(
+      engineer.email,
+      engineer.name,
+      assignmentId,
+      assignment.booking.restaurant.name,
+      assignment.booking.restaurant.address,
+      assignment.booking.owner.name,
+      assignment.booking.owner.phone || "",
+      items
+    ).catch((error) => {
+      console.error("Failed to send engineer job assignment email:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyVendorApproved(vendorId: string) {
@@ -235,10 +387,52 @@ export async function notifyOwnerServiceCompleted(
   ownerId: string,
   bookingId: string
 ) {
-  return createNotification({
+  // Get owner, booking, and work log details for email
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { name: true, email: true },
+  });
+
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    include: {
+      restaurant: { select: { name: true } },
+      engineerAssignments: {
+        include: {
+          engineer: { select: { name: true } },
+          workLog: { select: { completionNote: true } },
+        },
+        orderBy: {
+          completedAt: 'desc',
+        },
+      },
+    },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: ownerId,
     title: "Service Completed",
     message: "Your service booking has been completed successfully.",
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Send email (non-blocking) - use the most recently completed assignment
+  if (owner && booking && booking.engineerAssignments.length > 0) {
+    const completedAssignment = booking.engineerAssignments.find(a => a.workLog);
+    if (completedAssignment) {
+      sendWorkCompletedEmail(
+        owner.email,
+        owner.name,
+        bookingId,
+        booking.restaurant.name,
+        completedAssignment.engineer.name,
+        completedAssignment.workLog?.completionNote || ""
+      ).catch((error) => {
+        console.error("Failed to send work completed email:", error);
+      });
+    }
+  }
+
+  return notification;
 }

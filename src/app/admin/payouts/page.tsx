@@ -1,0 +1,469 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { formatAmount } from "@/lib/commission";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type PayoutStatus = "PENDING" | "PAID" | "CANCELLED";
+
+interface Payout {
+  id: string;
+  amount: number;
+  status: PayoutStatus;
+  paidAt: string | null;
+  paymentNote: string | null;
+  createdAt: string;
+  engineer: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+  };
+  assignment: {
+    booking: {
+      id: string;
+      totalAmount: number;
+      restaurant: {
+        id: string;
+        name: string;
+      };
+    };
+  };
+}
+
+export default function AdminPayoutsPage() {
+  const { toast } = useToast();
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [filteredPayouts, setFilteredPayouts] = useState<Payout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
+  const [isMarkPaidDialogOpen, setIsMarkPaidDialogOpen] = useState(false);
+  const [paymentNote, setPaymentNote] = useState("");
+  const [isMarking, setIsMarking] = useState(false);
+
+  useEffect(() => {
+    fetchPayouts();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [payouts, statusFilter, searchQuery]);
+
+  const fetchPayouts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/admin/payouts");
+      const data = await response.json();
+
+      if (data.ok) {
+        setPayouts(data.data);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch payouts",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch payouts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...payouts];
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((p) => p.status === statusFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.engineer.name.toLowerCase().includes(query) ||
+          p.engineer.email.toLowerCase().includes(query) ||
+          p.assignment.booking.restaurant.name.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredPayouts(filtered);
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!selectedPayout) return;
+
+    try {
+      setIsMarking(true);
+      const response = await fetch(
+        `/api/admin/payouts/${selectedPayout.id}/mark-paid`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentNote }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: "Payout marked as paid successfully",
+        });
+        setIsMarkPaidDialogOpen(false);
+        setPaymentNote("");
+        setSelectedPayout(null);
+        fetchPayouts();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to mark payout as paid",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark payout as paid",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMarking(false);
+    }
+  };
+
+  const getStatusBadge = (status: PayoutStatus) => {
+    const variants = {
+      PENDING: "default" as const,
+      PAID: "default" as const,
+      CANCELLED: "destructive" as const,
+    };
+
+    const colors = {
+      PENDING: "bg-yellow-500 hover:bg-yellow-600",
+      PAID: "bg-green-500 hover:bg-green-600",
+      CANCELLED: "",
+    };
+
+    return (
+      <Badge variant={variants[status]} className={colors[status]}>
+        {status}
+      </Badge>
+    );
+  };
+
+  const calculateSummary = () => {
+    const totalAmount = payouts.reduce((sum, p) => sum + p.amount, 0);
+    const paidAmount = payouts
+      .filter((p) => p.status === "PAID")
+      .reduce((sum, p) => sum + p.amount, 0);
+    const pendingAmount = payouts
+      .filter((p) => p.status === "PENDING")
+      .reduce((sum, p) => sum + p.amount, 0);
+    const pendingCount = payouts.filter((p) => p.status === "PENDING").length;
+
+    return { totalAmount, paidAmount, pendingAmount, pendingCount };
+  };
+
+  const summary = calculateSummary();
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6">Loading payouts...</CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Engineer Payouts</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage engineer commission payouts
+          </p>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Earnings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatAmount(summary.totalAmount)}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Paid Out
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {formatAmount(summary.paidAmount)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending Payment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-yellow-600">
+              {formatAmount(summary.pendingAmount)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending Count
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{summary.pendingCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <Label>Search</Label>
+              <Input
+                placeholder="Search by engineer or restaurant..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="min-w-[180px]">
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payouts Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Payouts ({filteredPayouts.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredPayouts.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No payouts found
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Engineer</TableHead>
+                  <TableHead>Restaurant</TableHead>
+                  <TableHead>Booking Amount</TableHead>
+                  <TableHead>Commission</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Paid Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPayouts.map((payout) => (
+                  <TableRow key={payout.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{payout.engineer.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {payout.engineer.email}
+                        </p>
+                        {payout.engineer.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            {payout.engineer.phone}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {payout.assignment.booking.restaurant.name}
+                    </TableCell>
+                    <TableCell>
+                      {formatAmount(payout.assignment.booking.totalAmount)}
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatAmount(payout.amount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                    <TableCell>
+                      {new Date(payout.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {payout.paidAt
+                        ? new Date(payout.paidAt).toLocaleDateString()
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {payout.status === "PENDING" && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPayout(payout);
+                            setIsMarkPaidDialogOpen(true);
+                          }}
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
+                      {payout.status === "PAID" && payout.paymentNote && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            toast({
+                              title: "Payment Note",
+                              description: payout.paymentNote,
+                            });
+                          }}
+                        >
+                          View Note
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Mark as Paid Dialog */}
+      <Dialog open={isMarkPaidDialogOpen} onOpenChange={setIsMarkPaidDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark Payout as Paid</DialogTitle>
+            <DialogDescription>
+              Confirm that you have paid this engineer. Add optional payment notes.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPayout && (
+            <div className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Engineer:</span>
+                  <span className="text-sm">{selectedPayout.engineer.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Amount:</span>
+                  <span className="text-sm font-semibold">
+                    {formatAmount(selectedPayout.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Restaurant:</span>
+                  <span className="text-sm">
+                    {selectedPayout.assignment.booking.restaurant.name}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment-note">Payment Note (Optional)</Label>
+                <Textarea
+                  id="payment-note"
+                  placeholder="Enter payment details, transaction ID, etc..."
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsMarkPaidDialogOpen(false);
+                setPaymentNote("");
+                setSelectedPayout(null);
+              }}
+              disabled={isMarking}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleMarkAsPaid} disabled={isMarking}>
+              {isMarking ? "Processing..." : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

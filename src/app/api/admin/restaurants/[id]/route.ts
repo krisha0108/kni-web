@@ -58,7 +58,7 @@ export async function POST(
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }

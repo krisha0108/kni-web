@@ -1,0 +1,12 @@
+{
+  "name": "KNI Super App",
+  "short_name": "KNI",
+  "description": "Kitchen equipment service booking and marketplace platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [],
+  "gcm_sender_id": "103953800507"
+}

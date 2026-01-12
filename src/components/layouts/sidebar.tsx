@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  LayoutDashboard, 
-  FolderOpen, 
-  Users, 
-  Building2, 
-  ClipboardList, 
+import {
+  LayoutDashboard,
+  FolderOpen,
+  Users,
+  Building2,
+  ClipboardList,
   Settings,
   Package,
   ShoppingCart,
@@ -22,7 +22,14 @@ import {
   Layers,
   ShoppingBag,
   Clock,
-  CheckCircle
+  CheckCircle,
+  CreditCard,
+  Wallet,
+  Zap,
+  Shield,
+  Warehouse,
+  Receipt,
+  Bell
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -87,11 +94,21 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Vendors", href: "/admin/vendors", icon: Store },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
   { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
+  { title: "AMC Plans", href: "/admin/amc-plans", icon: Shield },
+  { title: "AMC Subscriptions", href: "/admin/amc-subscriptions", icon: FileText },
+  { title: "Warehouse", href: "/admin/warehouse", icon: Warehouse },
+  { title: "Payouts", href: "/admin/payouts", icon: Wallet },
+  { title: "Payment Settings", href: "/admin/payment-settings", icon: CreditCard },
+  { title: "Notifications", href: "/settings/notifications", icon: Bell },
 ];
 
 export const ownerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/owner/dashboard", icon: LayoutDashboard },
-  { title: "My Restaurant", href: "/owner/restaurant/status", icon: Building2 },
+  { title: "My Restaurants", href: "/owner/restaurants", icon: Building2 },
+  { title: "My Equipment", href: "/owner/equipment", icon: Zap },
+  { title: "AMC Plans", href: "/owner/amc-plans", icon: Shield },
+  { title: "My AMC", href: "/owner/amc-subscriptions", icon: Shield },
+  { title: "My Expenses", href: "/owner/expenses", icon: Receipt },
   { title: "Category Request", href: "/owner/category-request", icon: FileText },
   { title: "Service Feed", href: "/owner/feed", icon: FolderOpen },
   { title: "My Cart", href: "/owner/cart", icon: ShoppingCart },
@@ -99,16 +116,21 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "My Bookings", href: "/owner/bookings", icon: ClipboardList },
   { title: "Marketplace", href: "/owner/marketplace", icon: ShoppingBag },
   { title: "My Orders", href: "/owner/marketplace/orders", icon: Package },
+  { title: "Notifications", href: "/settings/notifications", icon: Bell },
 ];
 
 export const vendorSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/vendor/dashboard", icon: LayoutDashboard },
   { title: "My Products", href: "/vendor/products", icon: Package },
+  { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
+  { title: "Notifications", href: "/settings/notifications", icon: Bell },
 ];
 
 export const engineerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/engineer/dashboard", icon: LayoutDashboard },
   { title: "My Jobs", href: "/engineer/jobs", icon: ClipboardList },
   { title: "Completed", href: "/engineer/completed", icon: CheckCircle },
+  { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
+  { title: "Notifications", href: "/settings/notifications", icon: Bell },
 ];

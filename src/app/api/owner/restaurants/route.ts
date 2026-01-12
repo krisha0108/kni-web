@@ -8,13 +8,17 @@ const createRestaurantSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   city: z.string().min(2, "City must be at least 2 characters"),
+  restaurantImageUrl: z.string().url("Invalid image URL").optional(),
+  fssaiNumber: z.string().min(14, "FSSAI number must be 14 digits").max(14, "FSSAI number must be 14 digits"),
+  fssaiCertificateUrl: z.string().url("Invalid certificate URL"),
 });
 
 export async function GET() {
   try {
     const session = await requireOwner();
 
-    const restaurant = await db.restaurant.findFirst({
+    // Return all restaurants for this owner
+    const restaurants = await db.restaurant.findMany({
       where: { ownerId: session.id },
       orderBy: { createdAt: "desc" },
       include: {
@@ -24,7 +28,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ ok: true, data: restaurant });
+    return NextResponse.json({ ok: true, data: restaurants });
   } catch (error) {
     console.error("Get restaurant error:", error);
     return NextResponse.json(
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: validation.error.errors[0].message },
+        { ok: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
@@ -53,6 +57,9 @@ export async function POST(request: NextRequest) {
         name: validation.data.name,
         address: validation.data.address,
         city: validation.data.city,
+        restaurantImageUrl: validation.data.restaurantImageUrl,
+        fssaiNumber: validation.data.fssaiNumber,
+        fssaiCertificateUrl: validation.data.fssaiCertificateUrl,
         ownerId: session.id,
         status: "PENDING",
       },

@@ -23,6 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { ClientOnly } from "@/components/client-only";
 import { Search, ShoppingBag, Plus, Minus, Store } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -52,7 +53,7 @@ export default function OwnerMarketplacePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +66,7 @@ export default function OwnerMarketplacePage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (search) params.append("search", search);
-      if (categoryId) params.append("categoryId", categoryId);
+      if (categoryId && categoryId !== "all") params.append("categoryId", categoryId);
 
       const response = await fetch("/api/owner/marketplace/products?" + params.toString());
       const data = await response.json();
@@ -209,19 +210,21 @@ export default function OwnerMarketplacePage() {
             className="pl-10"
           />
         </div>
-        <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ClientOnly>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ClientOnly>
       </div>
 
       {isLoading ? (
@@ -251,7 +254,7 @@ export default function OwnerMarketplacePage() {
                   )}
                   <CardTitle className="text-lg">{product.name}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{product.category.name}</Badge>
+                    <Badge variant="secondary">{product.category?.name || "Uncategorized"}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
@@ -262,7 +265,7 @@ export default function OwnerMarketplacePage() {
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
                     <Store className="inline h-3 w-3 mr-1" />
-                    {product.vendor.name}
+                    {product.vendor?.name || "Unknown Vendor"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Stock: {product.stockQuantity}

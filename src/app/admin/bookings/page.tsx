@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,7 +36,7 @@ interface Booking {
   restaurant: { id: string; name: string };
   owner: { id: string; name: string };
   paymentProof?: { status: string };
-  engineerAssignment?: { engineer?: { name: string } };
+  engineerAssignments?: Array<{ engineer?: { name: string }; status: string }>;
 }
 
 const statusColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
@@ -52,7 +53,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const router = useRouter();
 
@@ -61,7 +62,7 @@ export default function AdminBookingsPage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (search) params.append("search", search);
-      if (statusFilter) params.append("status", statusFilter);
+      if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
 
       const response = await fetch("/api/admin/bookings?" + params.toString());
       const data = await response.json();
@@ -113,21 +114,23 @@ export default function AdminBookingsPage() {
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
-            <SelectItem value="PENDING_PAYMENT">Pending Payment</SelectItem>
-            <SelectItem value="PAYMENT_UPLOADED">Payment Uploaded</SelectItem>
-            <SelectItem value="PAYMENT_VERIFIED">Payment Verified</SelectItem>
-            <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
+        <ClientOnly>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="PENDING_PAYMENT">Pending Payment</SelectItem>
+              <SelectItem value="PAYMENT_UPLOADED">Payment Uploaded</SelectItem>
+              <SelectItem value="PAYMENT_VERIFIED">Payment Verified</SelectItem>
+              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </ClientOnly>
       </div>
 
       <div className="border rounded-lg">
@@ -173,7 +176,9 @@ export default function AdminBookingsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {booking.engineerAssignment?.engineer?.name || "-"}
+                    {booking.engineerAssignments && booking.engineerAssignments.length > 0
+                      ? booking.engineerAssignments[0]?.engineer?.name || "-"
+                      : "-"}
                   </TableCell>
                   <TableCell>
                     <Button

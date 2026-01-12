@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Sidebar, type SidebarItem } from "./sidebar";
 import { Topbar } from "./topbar";
+import { ClientOnly } from "@/components/client-only";
+import { EnablePushBanner } from "@/components/notifications/enable-push-banner";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -47,11 +49,18 @@ export function DashboardLayout({
       </div>
 
       <div className="lg:pl-64">
-        <Topbar
-          user={user}
-          onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        />
-        <main className="p-4 lg:p-6">{children}</main>
+        <ClientOnly>
+          <Topbar
+            user={user}
+            onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          />
+        </ClientOnly>
+        <main className="p-4 lg:p-6">
+          <ClientOnly>
+            <EnablePushBanner />
+          </ClientOnly>
+          {children}
+        </main>
       </div>
     </div>
   );

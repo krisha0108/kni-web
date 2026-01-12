@@ -20,8 +20,12 @@ export async function GET(request: NextRequest) {
           owner: { select: { id: true, name: true, email: true } },
           restaurant: { select: { id: true, name: true, city: true } },
           paymentProof: true,
-          engineerAssignment: {
-            include: { engineer: { select: { id: true, name: true } } },
+          engineerAssignments: {
+            include: {
+              engineer: { select: { id: true, name: true } },
+              workLog: true
+            },
+            orderBy: { assignedAt: 'desc' },
           },
         },
         orderBy: { createdAt: "desc" },

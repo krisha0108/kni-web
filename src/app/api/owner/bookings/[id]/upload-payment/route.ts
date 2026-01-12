@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
-import { saveUploadedFile } from "@/server/upload/localUpload";
 import { notifyAdminsNewPaymentUploaded } from "@/server/notifications/service";
 
 export async function POST(
@@ -12,12 +11,12 @@ export async function POST(
     const session = await requireOwner();
     const { id } = await params;
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const body = await request.json();
+    const { screenshotUrl } = body;
 
-    if (!file) {
+    if (!screenshotUrl) {
       return NextResponse.json(
-        { ok: false, error: "No file provided" },
+        { ok: false, error: "No screenshot URL provided" },
         { status: 400 }
       );
     }
@@ -40,13 +39,11 @@ export async function POST(
       );
     }
 
-    const { url } = await saveUploadedFile(file, "payment");
-
     await db.paymentProof.create({
       data: {
         bookingId: id,
         ownerId: session.id,
-        screenshotUrl: url,
+        screenshotUrl,
         status: "UPLOADED",
       },
     });

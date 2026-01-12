@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploaded files (local storage)
+/public/uploads
+
+# temporary files
+tmpclaude-*
+*.log
+*.bat
+*.ps1
+test-*.js
+test-*.ts
+check-*.ts
+fix-*.js
+wrap-*.js
+*-COMPLETE.md
+*-FIX.md
+*-FEATURE.md
+*-GUIDE.md
+*-SUMMARY.md
+IMPLEMENTATION*.md
+REQUIREMENTS*.md
+TESTING*.md
+PHASE-*.md

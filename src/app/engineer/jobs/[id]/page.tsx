@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +16,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Calendar, Clock, Phone, Play, CheckCircle, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, Phone, CheckCircle, Loader2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
+import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
 
 interface Job {
   id: string;
@@ -47,23 +47,22 @@ interface Job {
     startedAt?: string;
     completedAt?: string;
     workNotes?: string;
-    proofImageUrl?: string;
+    proofImageUrls?: string[];
   };
 }
 
 export default function EngineerJobDetailPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isStarting, setIsStarting] = useState(false);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [workNotes, setWorkNotes] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [proofImageUrls, setProofImageUrls] = useState<string[]>([]);
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;
+  const MAX_IMAGES = 5;
 
   const fetchJob = async () => {
     try {
@@ -87,65 +86,30 @@ export default function EngineerJobDetailPage() {
     fetchJob();
   }, [jobId]);
 
-  const handleStartWork = async () => {
-    setIsStarting(true);
-    try {
-      const response = await fetch("/api/engineer/jobs/" + jobId, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start" }),
-      });
-      const data = await response.json();
-      if (data.ok) {
-        toast({ title: "Success", description: "Work started" });
-        fetchJob();
-      } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to start work", variant: "destructive" });
-    } finally {
-      setIsStarting(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "Error", description: "File size must be less than 5MB", variant: "destructive" });
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
   const handleComplete = async () => {
-    if (!selectedFile) {
-      toast({ title: "Error", description: "Please upload proof image", variant: "destructive" });
+    if (proofImageUrls.length === 0) {
+      toast({ title: "Error", description: "Please upload at least one proof image", variant: "destructive" });
       return;
     }
 
     setIsCompleting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("workNotes", workNotes);
-
       const response = await fetch("/api/engineer/jobs/" + jobId + "/complete", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workNotes,
+          proofImageUrls,
+        }),
       });
       const data = await response.json();
 
       if (data.ok) {
         toast({ title: "Success", description: "Job completed successfully" });
         setIsCompleteOpen(false);
+        setWorkNotes("");
+        setProofImageUrls([]);
+        setCurrentImageUrl("");
         fetchJob();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
@@ -169,8 +133,8 @@ export default function EngineerJobDetailPage() {
     return null;
   }
 
-  const canStart = job.status === "ACCEPTED";
-  const canComplete = job.status === "IN_PROGRESS";
+  // Engineers can complete the job directly after accepting it (and not already completed)
+  const canComplete = job.status === "ACCEPTED" && !job.workLog;
   const isCompleted = job.status === "COMPLETED";
 
   return (
@@ -189,8 +153,6 @@ export default function EngineerJobDetailPage() {
           variant={
             job.status === "COMPLETED"
               ? "success"
-              : job.status === "IN_PROGRESS"
-              ? "default"
               : "warning"
           }
           className="text-sm py-1 px-3"
@@ -301,14 +263,32 @@ export default function EngineerJobDetailPage() {
                 <p>{job.workLog.workNotes}</p>
               </div>
             )}
-            {job.workLog.proofImageUrl && (
+            {job.workLog.proofImageUrls && Array.isArray(job.workLog.proofImageUrls) && job.workLog.proofImageUrls.length > 0 && (
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Completion Proof</p>
-                <img
-                  src={job.workLog.proofImageUrl}
-                  alt="Work proof"
-                  className="max-h-48 rounded border"
-                />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Completion Proof ({job.workLog.proofImageUrls.filter(url => url && url.trim()).length} image{job.workLog.proofImageUrls.filter(url => url && url.trim()).length > 1 ? 's' : ''})
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {job.workLog.proofImageUrls.filter(url => url && url.trim()).map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`Work proof ${index + 1}`}
+                        className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => window.open(url, "_blank")}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Click images to view full size
+                </p>
               </div>
             )}
           </CardContent>
@@ -316,23 +296,13 @@ export default function EngineerJobDetailPage() {
       )}
 
       {/* Actions */}
-      {!isCompleted && (
+      {canComplete && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex gap-4">
-              {canStart && (
-                <Button className="flex-1" onClick={handleStartWork} disabled={isStarting}>
-                  <Play className="mr-2 h-4 w-4" />
-                  {isStarting ? "Starting..." : "Start Work"}
-                </Button>
-              )}
-              {canComplete && (
-                <Button className="flex-1" onClick={() => setIsCompleteOpen(true)}>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Complete Job
-                </Button>
-              )}
-            </div>
+            <Button className="w-full" onClick={() => setIsCompleteOpen(true)}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Complete Job
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -358,48 +328,33 @@ export default function EngineerJobDetailPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="proof">Proof Image *</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                {previewUrl ? (
-                  <div className="space-y-2">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-h-32 mx-auto rounded"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setPreviewUrl(null);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer">
-                    <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload</p>
-                    <Input
-                      id="proof"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
+              <Label>Proof Images * (Max {MAX_IMAGES})</Label>
+              <p className="text-sm text-muted-foreground">
+                Select multiple files at once to upload up to {MAX_IMAGES} images
+              </p>
+              <MultipleImageUpload
+                value={proofImageUrls}
+                onChange={setProofImageUrls}
+                folder="work-completion-proofs"
+                maxImages={MAX_IMAGES}
+                maxSizeMB={5}
+                disabled={isCompleting}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCompleteOpen(false)}>
+            <Button variant="outline" onClick={() => setIsCompleteOpen(false)} disabled={isCompleting}>
               Cancel
             </Button>
-            <Button onClick={handleComplete} disabled={isCompleting}>
-              {isCompleting ? "Completing..." : "Complete Job"}
+            <Button onClick={handleComplete} disabled={isCompleting || proofImageUrls.length === 0}>
+              {isCompleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Completing...
+                </>
+              ) : (
+                "Complete Job"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

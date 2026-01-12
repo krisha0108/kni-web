@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, CheckCircle, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, Link as LinkIcon } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Booking {
   id: string;
@@ -17,81 +20,96 @@ interface Booking {
   restaurant: { name: string };
   items: Array<{
     id: string;
-    quantity: number;
-    price: number;
+    qty: number;
+    priceSnapshot: number;
     serviceItem?: { name: string };
     partItem?: { name: string };
   }>;
-  paymentProof?: { id: string; imageUrl: string; status: string };
+  paymentProof?: { id: string; screenshotUrl: string; status: string };
+}
+
+interface PaymentSettings {
+  qrCodeImageUrl: string;
+  upiId: string;
+  accountHolderName: string;
+  instructions: string;
 }
 
 export default function PaymentUploadPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
   const bookingId = params.id as string;
 
   useEffect(() => {
-    const fetchBooking = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/owner/bookings/" + bookingId);
-        const data = await response.json();
-        if (data.ok) {
-          setBooking(data.data);
+
+        // Fetch booking and payment settings in parallel
+        const [bookingRes, settingsRes] = await Promise.all([
+          fetch("/api/owner/bookings/" + bookingId),
+          fetch("/api/public/payment-settings"),
+        ]);
+
+        const bookingData = await bookingRes.json();
+        const settingsData = await settingsRes.json();
+
+        if (bookingData.ok) {
+          setBooking(bookingData.data);
         } else {
-          toast({ title: "Error", description: data.error, variant: "destructive" });
+          toast({ title: "Error", description: bookingData.error, variant: "destructive" });
           router.push("/owner/bookings");
+          return;
+        }
+
+        if (settingsData.ok) {
+          setPaymentSettings(settingsData.data);
+        } else {
+          toast({
+            title: "Warning",
+            description: "Payment settings not configured. Please contact admin.",
+            variant: "destructive"
+          });
         }
       } catch {
-        toast({ title: "Error", description: "Failed to load booking", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
     };
-    fetchBooking();
+    fetchData();
   }, [bookingId]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "Error", description: "File size must be less than 5MB", variant: "destructive" });
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      toast({ title: "Error", description: "Please select a file", variant: "destructive" });
+  const handleSubmitPayment = async () => {
+    if (!uploadedImageUrl || uploadedImageUrl.trim() === "") {
+      toast({
+        title: "Payment Proof Required",
+        description: "Please upload a payment screenshot before submitting. The order will only be placed after you provide payment proof.",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
       const response = await fetch("/api/owner/bookings/" + bookingId + "/upload-payment", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ screenshotUrl: uploadedImageUrl }),
       });
       const data = await response.json();
 
       if (data.ok) {
-        toast({ title: "Success", description: "Payment proof uploaded successfully" });
+        toast({
+          title: "Success",
+          description: "Payment proof uploaded successfully. Your booking will be verified by admin."
+        });
         router.push("/owner/bookings/" + bookingId);
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
@@ -106,7 +124,7 @@ export default function PaymentUploadPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -115,7 +133,7 @@ export default function PaymentUploadPage() {
     return null;
   }
 
-  const alreadyUploaded = booking.status !== "PENDING_PAYMENT";
+  const alreadyUploaded = booking.status !== "SLOT_SELECTED";
 
   return (
     <div className="space-y-6">
@@ -131,48 +149,86 @@ export default function PaymentUploadPage() {
         </p>
       </div>
 
+      <Alert>
+        <AlertDescription className="font-medium">
+          ⚠️ Payment proof screenshot is required. Your booking will only be placed after you upload the payment proof and admin verifies it.
+        </AlertDescription>
+      </Alert>
+
+      {!paymentSettings && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Payment settings are not configured. Please contact the administrator.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Payment Details</CardTitle>
-            <CardDescription>Transfer the amount to the following account</CardDescription>
+            <CardDescription>
+              Scan the QR code with any UPI app to make payment
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Bank Name</span>
-                <span className="font-medium">State Bank of India</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Account Name</span>
-                <span className="font-medium">KNI Services Pvt Ltd</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Account Number</span>
-                <span className="font-medium font-mono">1234567890123456</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">IFSC Code</span>
-                <span className="font-medium font-mono">SBIN0001234</span>
-              </div>
-            </div>
+          <CardContent className="space-y-6">
+            {paymentSettings ? (
+              <>
+                {/* QR Code Display */}
+                <div className="flex justify-center p-6 bg-muted/50 rounded-lg">
+                  <img
+                    src={paymentSettings.qrCodeImageUrl}
+                    alt="Payment QR Code"
+                    className="w-64 h-64 border-2 border-border rounded-lg object-contain bg-white"
+                  />
+                </div>
 
-            <div className="border-t pt-4">
-              <div className="flex justify-between text-lg font-bold">
-                <span>Amount to Pay</span>
-                <span className="text-primary">{formatPrice(booking.totalAmount)}</span>
+                {/* Payment Info */}
+                <div className="space-y-3">
+                  <div className="p-4 bg-muted rounded-lg space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">UPI ID</span>
+                      <span className="font-medium font-mono">{paymentSettings.upiId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Account Name</span>
+                      <span className="font-medium">{paymentSettings.accountHolderName}</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Amount to Pay</span>
+                      <span className="text-primary">{formatPrice(booking.totalAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Instructions */}
+                {paymentSettings.instructions && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-2">Payment Instructions:</h4>
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">
+                      {paymentSettings.instructions}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-center py-12">
+                <p className="text-muted-foreground">Payment details not available</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Upload Screenshot</CardTitle>
+            <CardTitle>Upload Payment Screenshot (Required)</CardTitle>
             <CardDescription>
               {alreadyUploaded
                 ? "Payment proof has already been uploaded"
-                : "Upload a clear screenshot of your payment confirmation"}
+                : "Upload a clear screenshot of your payment confirmation to place your order"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -193,60 +249,82 @@ export default function PaymentUploadPage() {
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="file">Payment Screenshot *</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                    {previewUrl ? (
-                      <div className="space-y-4">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="max-h-48 mx-auto rounded"
-                        />
-                        <p className="text-sm text-muted-foreground">{selectedFile?.name}</p>
-                        <Button variant="outline" onClick={() => {
-                          setSelectedFile(null);
-                          setPreviewUrl(null);
-                        }}>
-                          Remove
-                        </Button>
-                      </div>
-                    ) : (
-                      <label className="cursor-pointer">
-                        <div className="space-y-2">
-                          <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground" />
-                          <p className="text-muted-foreground">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            PNG, JPG or WebP (max 5MB)
-                          </p>
+                  <Label>Payment Screenshot *</Label>
+                  <Tabs defaultValue="url" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="url">
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        Enter URL
+                      </TabsTrigger>
+                      <TabsTrigger value="upload">Upload File</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="url" className="space-y-2">
+                      <Input
+                        type="text"
+                        placeholder="https://example.com/payment.png or /uploads/payment-proofs/..."
+                        value={uploadedImageUrl}
+                        onChange={(e) => setUploadedImageUrl(e.target.value)}
+                        disabled={isUploading}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Paste image URL or local path from uploads
+                      </p>
+                      {uploadedImageUrl && (
+                        <div className="border rounded-lg p-4">
+                          <img
+                            src={uploadedImageUrl}
+                            alt="Payment Preview"
+                            className="max-w-full h-auto max-h-64 mx-auto"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         </div>
-                        <Input
-                          id="file"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="upload">
+                      <ImageUpload
+                        value={uploadedImageUrl}
+                        onChange={(url) => setUploadedImageUrl(url)}
+                        folder="payment-proofs"
+                        label="Upload Payment Screenshot"
+                        disabled={isUploading}
+                      />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Upload your payment screenshot (requires Cloudinary configuration)
+                      </p>
+                    </TabsContent>
+                  </Tabs>
                 </div>
+
+                {!uploadedImageUrl && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      Please upload a payment screenshot above to enable submission
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <Button
                   className="w-full"
-                  onClick={handleUpload}
-                  disabled={!selectedFile || isUploading}
+                  onClick={handleSubmitPayment}
+                  disabled={!uploadedImageUrl || isUploading}
                 >
                   {isUploading ? (
-                    "Uploading..."
-                  ) : (
                     <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Payment Proof
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting Payment Proof...
                     </>
+                  ) : (
+                    "Submit Payment Proof & Place Order"
                   )}
                 </Button>
+
+                {uploadedImageUrl && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    By submitting, your booking will be placed and sent for admin verification
+                  </p>
+                )}
               </>
             )}
           </CardContent>

@@ -13,6 +13,7 @@ import {
   Package,
   MapPin,
   Users,
+  Download,
 } from "lucide-react";
 import { formatPrice, formatDate } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ interface AnalyticsData {
 export default function VendorAnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [period, setPeriod] = useState("30");
   const { toast } = useToast();
 
@@ -86,6 +88,43 @@ export default function VendorAnalyticsPage() {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch(`/api/vendor/analytics/export?period=${period}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to export PDF");
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vendor-analytics-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Analytics report exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -115,17 +154,23 @@ export default function VendorAnalyticsPage() {
           <p className="text-muted-foreground">Track your marketplace performance</p>
         </div>
         <ClientOnly>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-              <SelectItem value="365">Last year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+                <SelectItem value="365">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleExportPDF} disabled={isExporting || !analytics}>
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? "Exporting..." : "Export PDF"}
+            </Button>
+          </div>
         </ClientOnly>
       </div>
 

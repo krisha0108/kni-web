@@ -1,0 +1,220 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/server/db";
+import { requireVendor } from "@/server/auth/rbac";
+import { z } from "zod";
+import { MarketplaceOrderStatus } from "@prisma/client";
+
+const updateStatusSchema = z.object({
+  status: z.enum([
+    "PLACED",
+    "CONFIRMED",
+    "PROCESSING",
+    "SHIPPED",
+    "DELIVERED",
+    "CANCELLED",
+  ]),
+  statusNotes: z.string().optional(),
+  expectedDeliveryDate: z.string().optional(),
+  actualDeliveryDate: z.string().optional(),
+});
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const session = await requireVendor();
+    const { orderId } = params;
+
+    // Verify the order belongs to this vendor
+    const order = await db.marketplaceOrder.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        vendorId: true,
+        status: true,
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { ok: false, error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    if (order.vendorId !== session.id) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const validation = updateStatusSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { ok: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { status, statusNotes, expectedDeliveryDate, actualDeliveryDate } =
+      validation.data;
+
+    // Validate status transition
+    const validTransitions: Record<
+      MarketplaceOrderStatus,
+      MarketplaceOrderStatus[]
+    > = {
+      PLACED: ["CONFIRMED", "CANCELLED"],
+      CONFIRMED: ["PROCESSING", "CANCELLED"],
+      PROCESSING: ["SHIPPED", "CANCELLED"],
+      SHIPPED: ["DELIVERED", "CANCELLED"],
+      DELIVERED: [], // Terminal state
+      CANCELLED: [], // Terminal state
+    };
+
+    const currentStatus = order.status as MarketplaceOrderStatus;
+    const newStatus = status as MarketplaceOrderStatus;
+
+    if (!validTransitions[currentStatus].includes(newStatus)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Cannot transition from ${currentStatus} to ${newStatus}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update order status and create history entry in a transaction
+    const result = await db.$transaction(async (tx) => {
+      // Update the order
+      const updatedOrder = await tx.marketplaceOrder.update({
+        where: { id: orderId },
+        data: {
+          status: newStatus,
+          statusNotes,
+          expectedDeliveryDate: expectedDeliveryDate
+            ? new Date(expectedDeliveryDate)
+            : undefined,
+          actualDeliveryDate:
+            newStatus === "DELIVERED" && actualDeliveryDate
+              ? new Date(actualDeliveryDate)
+              : newStatus === "DELIVERED"
+              ? new Date()
+              : undefined,
+          statusUpdatedAt: new Date(),
+        },
+        include: {
+          restaurant: {
+            select: {
+              name: true,
+              city: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  name: true,
+                  unit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Create status history entry
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId,
+          oldStatus: currentStatus,
+          newStatus: newStatus,
+          notes: statusNotes || `Status updated to ${newStatus}`,
+          changedBy: session.id,
+        },
+      });
+
+      return updatedOrder;
+    });
+
+    // TODO: Send email notification to restaurant owner about status change
+
+    return NextResponse.json({
+      ok: true,
+      data: result,
+      message: `Order status updated to ${newStatus}`,
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Get order status history
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const session = await requireVendor();
+    const { orderId } = params;
+
+    // Verify the order belongs to this vendor
+    const order = await db.marketplaceOrder.findUnique({
+      where: { id: orderId },
+      select: { vendorId: true },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { ok: false, error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    if (order.vendorId !== session.id) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const history = await db.orderStatusHistory.findMany({
+      where: { orderId },
+      include: {
+        changedByUser: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      data: history,
+    });
+  } catch (error) {
+    console.error("Get order status history error:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -6,10 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Package, MapPin, User, Phone, Mail, Calendar, X } from "lucide-react";
+import { Package, MapPin, User, Phone, Mail, Calendar, X, Clock, History } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { getOrderStatusColor, getOrderStatusLabel, getNextStatuses, canUpdateStatus } from "@/lib/order-status";
+import { MarketplaceOrderStatus } from "@prisma/client";
 
 interface OrderItem {
   id: string;
@@ -24,8 +29,12 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  status: "PLACED" | "CANCELLED";
+  status: MarketplaceOrderStatus;
   totalAmount: number;
+  statusNotes: string | null;
+  expectedDeliveryDate: string | null;
+  actualDeliveryDate: string | null;
+  statusUpdatedAt: string;
   createdAt: string;
   owner: {
     id: string;
@@ -42,6 +51,18 @@ interface Order {
   items: OrderItem[];
 }
 
+interface StatusHistoryItem {
+  id: string;
+  oldStatus: MarketplaceOrderStatus | null;
+  newStatus: MarketplaceOrderStatus;
+  notes: string | null;
+  createdAt: string;
+  changedByUser: {
+    name: string;
+    email: string;
+  };
+}
+
 export default function VendorOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +70,14 @@ export default function VendorOrdersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [statusForm, setStatusForm] = useState({
+    status: "" as MarketplaceOrderStatus,
+    statusNotes: "",
+    expectedDeliveryDate: "",
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,23 +114,63 @@ export default function VendorOrdersPage() {
     }
   };
 
-  const openOrderDetails = (order: Order) => {
+  const openOrderDetails = async (order: Order) => {
     setSelectedOrder(order);
     setIsDialogOpen(true);
+    await fetchStatusHistory(order.id);
   };
 
   const closeDialog = () => {
     setIsDialogOpen(false);
     setSelectedOrder(null);
+    setStatusHistory([]);
   };
 
-  const updateOrderStatus = async (orderId: string, status: "PLACED" | "CANCELLED") => {
+  const fetchStatusHistory = async (orderId: string) => {
+    try {
+      setIsLoadingHistory(true);
+      const response = await fetch(`/api/vendor/orders/${orderId}/status`);
+      const data = await response.json();
+
+      if (data.ok) {
+        setStatusHistory(data.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch status history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const openStatusDialog = (order: Order) => {
+    setSelectedOrder(order);
+    const nextStatuses = getNextStatuses(order.status);
+    setStatusForm({
+      status: nextStatuses[0] || order.status,
+      statusNotes: "",
+      expectedDeliveryDate: "",
+    });
+    setIsStatusDialogOpen(true);
+  };
+
+  const closeStatusDialog = () => {
+    setIsStatusDialogOpen(false);
+    setStatusForm({
+      status: "" as MarketplaceOrderStatus,
+      statusNotes: "",
+      expectedDeliveryDate: "",
+    });
+  };
+
+  const updateOrderStatus = async () => {
+    if (!selectedOrder) return;
+
     try {
       setIsUpdating(true);
-      const response = await fetch(`/api/vendor/orders/${orderId}`, {
+      const response = await fetch(`/api/vendor/orders/${selectedOrder.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(statusForm),
       });
 
       const data = await response.json();
@@ -109,10 +178,18 @@ export default function VendorOrdersPage() {
       if (data.ok) {
         toast({
           title: "Success",
-          description: "Order status updated successfully",
+          description: data.message || "Order status updated successfully",
         });
-        fetchOrders();
-        closeDialog();
+        await fetchOrders();
+        closeStatusDialog();
+        if (isDialogOpen) {
+          await fetchStatusHistory(selectedOrder.id);
+          // Update the selected order with new data
+          const updatedOrder = orders.find(o => o.id === selectedOrder.id);
+          if (updatedOrder) {
+            setSelectedOrder(updatedOrder);
+          }
+        }
       } else {
         toast({
           title: "Error",
@@ -131,12 +208,12 @@ export default function VendorOrdersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      PLACED: "default",
-      CANCELLED: "destructive",
-    };
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+  const getStatusBadge = (status: MarketplaceOrderStatus) => {
+    return (
+      <Badge variant={getOrderStatusColor(status)}>
+        {getOrderStatusLabel(status)}
+      </Badge>
+    );
   };
 
   const filteredOrders = orders;
@@ -161,6 +238,10 @@ export default function VendorOrdersPage() {
             <SelectContent>
               <SelectItem value="all">All Orders</SelectItem>
               <SelectItem value="PLACED">Placed</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="PROCESSING">Processing</SelectItem>
+              <SelectItem value="SHIPPED">Shipped</SelectItem>
+              <SelectItem value="DELIVERED">Delivered</SelectItem>
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
@@ -229,17 +310,17 @@ export default function VendorOrdersPage() {
                       <Button size="sm" onClick={() => openOrderDetails(order)}>
                         View Details
                       </Button>
-                      {order.status === "PLACED" && (
+                      {canUpdateStatus(order.status) && (
                         <Button
                           size="sm"
-                          variant="destructive"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateOrderStatus(order.id, "CANCELLED");
+                            openStatusDialog(order);
                           }}
-                          disabled={isUpdating}
                         >
-                          Cancel Order
+                          <Clock className="h-3 w-3 mr-1" />
+                          Update Status
                         </Button>
                       )}
                     </div>
@@ -270,7 +351,7 @@ export default function VendorOrdersPage() {
                       {getStatusBadge(selectedOrder.status)}
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Date:</span>
+                      <span className="text-muted-foreground">Placed:</span>
                       <span>
                         {new Date(selectedOrder.createdAt).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -281,6 +362,48 @@ export default function VendorOrdersPage() {
                         })}
                       </span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Updated:</span>
+                      <span>
+                        {new Date(selectedOrder.statusUpdatedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    {selectedOrder.expectedDeliveryDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Expected Delivery:</span>
+                        <span>
+                          {new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {selectedOrder.actualDeliveryDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Delivered On:</span>
+                        <span>
+                          {new Date(selectedOrder.actualDeliveryDate).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {selectedOrder.statusNotes && (
+                      <div className="pt-2">
+                        <span className="text-muted-foreground block mb-1">Status Notes:</span>
+                        <p className="text-sm bg-muted p-2 rounded">{selectedOrder.statusNotes}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -348,6 +471,50 @@ export default function VendorOrdersPage() {
                     </span>
                   </div>
                 </div>
+
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Status History
+                  </h3>
+                  {isLoadingHistory ? (
+                    <p className="text-sm text-muted-foreground">Loading history...</p>
+                  ) : statusHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No status history available</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {statusHistory.map((item) => (
+                        <div key={item.id} className="border-l-2 border-primary pl-4 pb-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              {item.oldStatus && (
+                                <>
+                                  {getStatusBadge(item.oldStatus)}
+                                  <span className="text-muted-foreground">→</span>
+                                </>
+                              )}
+                              {getStatusBadge(item.newStatus)}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          {item.notes && (
+                            <p className="text-sm text-muted-foreground mt-1">{item.notes}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            By: {item.changedByUser.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -355,15 +522,99 @@ export default function VendorOrdersPage() {
               <Button variant="outline" onClick={closeDialog}>
                 Close
               </Button>
-              {selectedOrder?.status === "PLACED" && (
+              {selectedOrder && canUpdateStatus(selectedOrder.status) && (
                 <Button
-                  variant="destructive"
-                  onClick={() => updateOrderStatus(selectedOrder.id, "CANCELLED")}
-                  disabled={isUpdating}
+                  onClick={() => {
+                    closeDialog();
+                    openStatusDialog(selectedOrder);
+                  }}
                 >
-                  Cancel Order
+                  <Clock className="h-4 w-4 mr-2" />
+                  Update Status
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Status Update Dialog */}
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Order Status</DialogTitle>
+              <DialogDescription>
+                Change the status of order #{selectedOrder?.id.slice(0, 8).toUpperCase()}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedOrder && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">New Status *</Label>
+                  <Select
+                    value={statusForm.status}
+                    onValueChange={(value) =>
+                      setStatusForm({ ...statusForm, status: value as MarketplaceOrderStatus })
+                    }
+                  >
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="Select new status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getNextStatuses(selectedOrder.status).map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {getOrderStatusLabel(status)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="statusNotes">Notes (Optional)</Label>
+                  <Textarea
+                    id="statusNotes"
+                    placeholder="Add any notes about this status update..."
+                    value={statusForm.statusNotes}
+                    onChange={(e) =>
+                      setStatusForm({ ...statusForm, statusNotes: e.target.value })
+                    }
+                    rows={3}
+                  />
+                </div>
+
+                {(statusForm.status === "SHIPPED" || statusForm.status === "PROCESSING") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="expectedDeliveryDate">Expected Delivery Date (Optional)</Label>
+                    <Input
+                      id="expectedDeliveryDate"
+                      type="date"
+                      value={statusForm.expectedDeliveryDate}
+                      onChange={(e) =>
+                        setStatusForm({ ...statusForm, expectedDeliveryDate: e.target.value })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="bg-muted p-3 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Current Status: <span className="font-medium">{getOrderStatusLabel(selectedOrder.status)}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    New Status: <span className="font-medium">{getOrderStatusLabel(statusForm.status)}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={closeStatusDialog} disabled={isUpdating}>
+                Cancel
+              </Button>
+              <Button onClick={updateOrderStatus} disabled={isUpdating || !statusForm.status}>
+                {isUpdating ? "Updating..." : "Update Status"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

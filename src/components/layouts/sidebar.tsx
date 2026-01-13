@@ -115,6 +115,7 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "AMC Plans", href: "/owner/amc-plans", icon: Shield },
   { title: "My AMC", href: "/owner/amc-subscriptions", icon: Shield },
   { title: "My Expenses", href: "/owner/expenses", icon: Receipt },
+  { title: "Khayabook", href: "/owner/khayabook", icon: Wallet },
   { title: "Category Request", href: "/owner/category-request", icon: FileText },
   { title: "Service Feed", href: "/owner/feed", icon: FolderOpen },
   { title: "My Cart", href: "/owner/cart", icon: ShoppingCart },

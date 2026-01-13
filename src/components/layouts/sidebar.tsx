@@ -30,7 +30,8 @@ import {
   Warehouse,
   Receipt,
   Bell,
-  MapPin
+  MapPin,
+  BarChart
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -105,6 +106,7 @@ export const adminSidebarItems: SidebarItem[] = [
 
 export const ownerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/owner/dashboard", icon: LayoutDashboard },
+  { title: "Analytics", href: "/owner/analytics", icon: BarChart },
   { title: "My Restaurants", href: "/owner/restaurants", icon: Building2 },
   { title: "Team Management", href: "/owner/team", icon: Users },
   { title: "My Equipment", href: "/owner/equipment", icon: Zap },
@@ -123,6 +125,7 @@ export const ownerSidebarItems: SidebarItem[] = [
 
 export const vendorSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/vendor/dashboard", icon: LayoutDashboard },
+  { title: "Analytics", href: "/vendor/analytics", icon: BarChart },
   { title: "My Products", href: "/vendor/products", icon: Package },
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
   { title: "Coverage Settings", href: "/vendor/coverage", icon: MapPin },

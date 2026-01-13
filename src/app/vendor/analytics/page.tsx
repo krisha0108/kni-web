@@ -148,15 +148,15 @@ export default function VendorAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Vendor Analytics</h1>
-          <p className="text-muted-foreground">Track your marketplace performance</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Vendor Analytics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track your marketplace performance</p>
         </div>
         <ClientOnly>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
@@ -166,7 +166,7 @@ export default function VendorAnalyticsPage() {
                 <SelectItem value="365">Last year</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleExportPDF} disabled={isExporting || !analytics}>
+            <Button onClick={handleExportPDF} disabled={isExporting || !analytics} className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               {isExporting ? "Exporting..." : "Export PDF"}
             </Button>

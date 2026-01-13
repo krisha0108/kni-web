@@ -24,8 +24,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ClientOnly } from "@/components/client-only";
-import { Search, ShoppingBag, Plus, Minus, Store } from "lucide-react";
+import { Search, ShoppingBag, Plus, Minus, Store, Building2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Product {
   id: string;
@@ -59,12 +60,16 @@ export default function OwnerMarketplacePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
   const fetchProducts = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+      params.append("restaurantId", selectedRestaurant.restaurantId);
       if (search) params.append("search", search);
       if (categoryId && categoryId !== "all") params.append("categoryId", categoryId);
 
@@ -72,6 +77,12 @@ export default function OwnerMarketplacePage() {
       const data = await response.json();
       if (data.ok) {
         setProducts(data.data);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch products",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -97,8 +108,10 @@ export default function OwnerMarketplacePage() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [search, categoryId]);
+    if (selectedRestaurant) {
+      fetchProducts();
+    }
+  }, [selectedRestaurant, search, categoryId]);
 
   useEffect(() => {
     fetchCategories();
@@ -144,6 +157,10 @@ export default function OwnerMarketplacePage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!selectedRestaurant) {
+      toast({ title: "Error", description: "Please select a restaurant", variant: "destructive" });
+      return;
+    }
     if (cart.length === 0) {
       toast({ title: "Error", description: "Cart is empty", variant: "destructive" });
       return;
@@ -153,30 +170,48 @@ export default function OwnerMarketplacePage() {
       return;
     }
 
+    // Group cart items by vendor
+    const vendorGroups = cart.reduce((groups, item) => {
+      const vendorId = item.product.vendor.id;
+      if (!groups[vendorId]) {
+        groups[vendorId] = [];
+      }
+      groups[vendorId].push(item);
+      return groups;
+    }, {} as Record<string, CartItem[]>);
+
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/owner/marketplace/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map((item) => ({
-            vendorProductId: item.product.id,
-            quantity: item.quantity,
-          })),
-          deliveryAddress,
-          deliveryNotes: deliveryNotes || undefined,
-        }),
-      });
-      const data = await response.json();
+      // Place separate orders for each vendor
+      const orderPromises = Object.entries(vendorGroups).map(([vendorId, items]) =>
+        fetch("/api/owner/marketplace/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            restaurantId: selectedRestaurant.restaurantId,
+            vendorId,
+            items: items.map((item) => ({
+              productId: item.product.id,
+              qty: item.quantity,
+            })),
+          }),
+        })
+      );
 
-      if (data.ok) {
-        toast({ title: "Success", description: "Order placed successfully" });
+      const responses = await Promise.all(orderPromises);
+      const dataPromises = responses.map((r) => r.json());
+      const results = await Promise.all(dataPromises);
+
+      const allSuccess = results.every((data) => data.ok);
+      if (allSuccess) {
+        toast({ title: "Success", description: `${results.length} order(s) placed successfully` });
         setCart([]);
         setIsOrderOpen(false);
         setDeliveryAddress("");
         setDeliveryNotes("");
       } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
+        const failedVendors = results.filter((d) => !d.ok).map((d) => d.error).join(", ");
+        toast({ title: "Error", description: `Some orders failed: ${failedVendors}`, variant: "destructive" });
       }
     } catch {
       toast({ title: "Error", description: "Failed to place order", variant: "destructive" });
@@ -185,12 +220,24 @@ export default function OwnerMarketplacePage() {
     }
   };
 
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Marketplace</h1>
-          <p className="text-muted-foreground">Browse and order products from vendors</p>
+          <p className="text-muted-foreground">Browse and order products from vendors delivering to {selectedRestaurant.restaurant.name}</p>
         </div>
         {cart.length > 0 && (
           <Button onClick={() => setIsOrderOpen(true)}>

@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatPrice } from "@/lib/utils";
-import { Package, Store, MapPin, Calendar, Phone } from "lucide-react";
+import { Package, Store, MapPin, Calendar, Phone, Building2 } from "lucide-react";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface OrderItem {
   id: string;
@@ -41,12 +42,15 @@ export default function OwnerMarketplaceOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
   const fetchOrders = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/marketplace/orders");
+      const response = await fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
 
       if (data.ok) {
@@ -71,8 +75,10 @@ export default function OwnerMarketplaceOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (selectedRestaurant) {
+      fetchOrders();
+    }
+  }, [selectedRestaurant]);
 
   const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -92,14 +98,24 @@ export default function OwnerMarketplaceOrdersPage() {
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
 
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">My Marketplace Orders</h1>
-          <p className="text-muted-foreground">
-            Track your product orders from vendors
-          </p>
+          <p className="text-muted-foreground">View your orders from vendors for {selectedRestaurant.restaurant.name}</p>
         </div>
         <Button onClick={() => window.location.href = "/owner/marketplace"}>
           Browse Products

@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Plus } from "lucide-react";
+import { Eye, Plus, Building2 } from "lucide-react";
+import { useRestaurant } from "@/contexts/restaurant-context";
 import {
   getAMCStatusColor,
   getAMCStatusLabel,
@@ -58,23 +59,35 @@ export default function OwnerAMCSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<AMCSubscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    fetchSubscriptions();
-  }, [statusFilter]);
+    if (selectedRestaurant) {
+      fetchSubscriptions();
+    }
+  }, [selectedRestaurant, statusFilter]);
 
   const fetchSubscriptions = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+      params.append("restaurantId", selectedRestaurant.restaurantId);
       if (statusFilter !== "all") params.append("status", statusFilter);
 
       const response = await fetch("/api/owner/amc-subscriptions?" + params.toString());
       const data = await response.json();
       if (data.ok) {
         setSubscriptions(data.data.subscriptions || []);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch AMC subscriptions",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -86,6 +99,18 @@ export default function OwnerAMCSubscriptionsPage() {
       setIsLoading(false);
     }
   };
+
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -100,7 +125,7 @@ export default function OwnerAMCSubscriptionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My AMC Subscriptions</h1>
-          <p className="text-muted-foreground">Manage your Annual Maintenance Contract subscriptions</p>
+          <p className="text-muted-foreground">Manage your Annual Maintenance Contract subscriptions for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex gap-2">
           <ExportButton

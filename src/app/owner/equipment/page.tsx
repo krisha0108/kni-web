@@ -9,15 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
-import { Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Search, Building2 } from "lucide-react";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
 import { formatDate } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Equipment {
   id: string;
@@ -40,6 +42,7 @@ export default function OwnerEquipmentPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -56,30 +59,21 @@ export default function OwnerEquipmentPage() {
     photoUrls: [] as string[],
   });
 
-  const [restaurants, setRestaurants] = useState<Array<{ id: string; name: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; category: { id: string; name: string } }>>([]);
 
   useEffect(() => {
-    fetchRestaurants();
-    fetchCategories();
-    fetchEquipment();
-  }, [search, statusFilter]);
-
-  const fetchRestaurants = async () => {
-    try {
-      const response = await fetch("/api/owner/restaurants");
-      const data = await response.json();
-      if (data.ok && data.data) {
-        // Filter for approved restaurants only
-        const approved = Array.isArray(data.data)
-          ? data.data.filter((r: any) => r.status === "APPROVED")
-          : [];
-        setRestaurants(approved);
-      }
-    } catch (error) {
-      console.error("Error fetching restaurants:", error);
+    if (selectedRestaurant) {
+      fetchCategories();
+      fetchEquipment();
     }
-  };
+  }, [selectedRestaurant, search, statusFilter]);
+
+  // Update formData.restaurantId when selectedRestaurant changes
+  useEffect(() => {
+    if (selectedRestaurant) {
+      setFormData(prev => ({ ...prev, restaurantId: selectedRestaurant.restaurantId }));
+    }
+  }, [selectedRestaurant]);
 
   const fetchCategories = async () => {
     try {
@@ -94,9 +88,12 @@ export default function OwnerEquipmentPage() {
   };
 
   const fetchEquipment = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+      params.append("restaurantId", selectedRestaurant.restaurantId);
       if (search) params.append("search", search);
       if (statusFilter !== "all") params.append("status", statusFilter);
 
@@ -104,6 +101,12 @@ export default function OwnerEquipmentPage() {
       const data = await response.json();
       if (data.ok) {
         setEquipment(data.data.items || []);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch equipment",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -215,12 +218,24 @@ export default function OwnerEquipmentPage() {
     }
   };
 
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Equipment</h1>
-          <p className="text-muted-foreground">Manage your kitchen equipment and appliances</p>
+          <p className="text-muted-foreground">Manage your kitchen equipment and appliances for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex gap-2">
           <ExportButton

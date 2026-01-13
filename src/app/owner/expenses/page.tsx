@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Calendar, Download, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, Download, BarChart3, Building2 } from "lucide-react";
 import { getAllExpenseCategories, getExpenseCategoryLabel } from "@/lib/expense";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Expense {
   id: string;
@@ -37,7 +38,6 @@ interface Restaurant {
 
 export default function OwnerExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -45,6 +45,7 @@ export default function OwnerExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -58,14 +59,25 @@ export default function OwnerExpensesPage() {
   });
 
   useEffect(() => {
-    fetchExpenses();
-    fetchRestaurants();
-  }, [categoryFilter, startDate, endDate]);
+    if (selectedRestaurant) {
+      fetchExpenses();
+    }
+  }, [selectedRestaurant, categoryFilter, startDate, endDate]);
+
+  // Update formData.restaurantId when selectedRestaurant changes
+  useEffect(() => {
+    if (selectedRestaurant) {
+      setFormData(prev => ({ ...prev, restaurantId: selectedRestaurant.restaurantId }));
+    }
+  }, [selectedRestaurant]);
 
   const fetchExpenses = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+      params.append("restaurantId", selectedRestaurant.restaurantId);
       if (categoryFilter !== "all") params.append("category", categoryFilter);
       if (startDate) params.append("startDate", new Date(startDate).toISOString());
       if (endDate) params.append("endDate", new Date(endDate).toISOString());
@@ -74,6 +86,12 @@ export default function OwnerExpensesPage() {
       const data = await response.json();
       if (data.ok) {
         setExpenses(data.data.expenses || []);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch expenses",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -86,27 +104,9 @@ export default function OwnerExpensesPage() {
     }
   };
 
-  const fetchRestaurants = async () => {
-    try {
-      const response = await fetch("/api/owner/restaurants");
-      const data = await response.json();
-      if (data.ok && data.data) {
-        const approved = Array.isArray(data.data)
-          ? data.data.filter((r: any) => r.status === "APPROVED")
-          : [];
-        setRestaurants(approved);
-        if (approved.length > 0 && !formData.restaurantId) {
-          setFormData((prev) => ({ ...prev, restaurantId: approved[0].id }));
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching restaurants:", error);
-    }
-  };
-
   const resetForm = () => {
     setFormData({
-      restaurantId: restaurants.length > 0 ? restaurants[0].id : "",
+      restaurantId: selectedRestaurant?.restaurantId || "",
       category: "FOOD",
       amount: "",
       expenseDate: "",
@@ -269,12 +269,24 @@ export default function OwnerExpensesPage() {
 
   const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Expenses</h1>
-          <p className="text-muted-foreground">Track and manage your restaurant expenses</p>
+          <p className="text-muted-foreground">Track and manage your restaurant expenses for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => router.push("/owner/expenses/reports")}>

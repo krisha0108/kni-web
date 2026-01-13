@@ -29,7 +29,8 @@ import {
   Shield,
   Warehouse,
   Receipt,
-  Bell
+  Bell,
+  MapPin
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -105,6 +106,7 @@ export const adminSidebarItems: SidebarItem[] = [
 export const ownerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/owner/dashboard", icon: LayoutDashboard },
   { title: "My Restaurants", href: "/owner/restaurants", icon: Building2 },
+  { title: "Team Management", href: "/owner/team", icon: Users },
   { title: "My Equipment", href: "/owner/equipment", icon: Zap },
   { title: "AMC Plans", href: "/owner/amc-plans", icon: Shield },
   { title: "My AMC", href: "/owner/amc-subscriptions", icon: Shield },
@@ -123,6 +125,7 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/vendor/dashboard", icon: LayoutDashboard },
   { title: "My Products", href: "/vendor/products", icon: Package },
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
+  { title: "Coverage Settings", href: "/vendor/coverage", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
   { title: "Notifications", href: "/settings/notifications", icon: Bell },
 ];

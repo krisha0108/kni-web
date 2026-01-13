@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, LogOut, User, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { RestaurantSwitcher } from "@/components/restaurant-switcher";
 
 interface TopbarProps {
   user: {
@@ -65,6 +66,10 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
       </Button>
 
       <div className="flex-1" />
+
+      {user.role === "OWNER" && (
+        <RestaurantSwitcher />
+      )}
 
       <div className="flex items-center gap-4">
         <NotificationBell />

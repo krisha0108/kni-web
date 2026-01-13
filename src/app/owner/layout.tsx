@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ownerSidebarItems } from "@/components/layouts/sidebar";
+import { RestaurantProvider } from "@/contexts/restaurant-context";
 
 export default async function OwnerLayout({
   children,
@@ -28,7 +29,9 @@ export default async function OwnerLayout({
         role: session.role,
       }}
     >
-      {children}
+      <RestaurantProvider>
+        {children}
+      </RestaurantProvider>
     </DashboardLayout>
   );
 }

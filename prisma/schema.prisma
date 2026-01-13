@@ -94,6 +94,18 @@ enum PayoutStatus {
   CANCELLED
 }
 
+enum CoverageType {
+  CITY_WIDE
+  PINCODE_WISE
+}
+
+enum RestaurantRole {
+  OWNER
+  MANAGER
+  ACCOUNTANT
+  VIEWER
+}
+
 // ========================================
 // A) AUTH
 // ========================================
@@ -114,6 +126,7 @@ model User {
   sessions               Session[]
   ownerProfile           OwnerProfile?
   vendorProfile          VendorProfile?
+  vendorCoverage         VendorCoverage?
   engineerProfile        EngineerProfile?
   notifications          Notification[]
   restaurants            Restaurant[]
@@ -134,6 +147,8 @@ model User {
   deviceTokens           DeviceToken[]
   notificationPreference NotificationPreference?
   pushNotificationLogs   PushNotificationLog[]
+  restaurantMemberships  RestaurantMember[]      @relation("RestaurantMember")
+  restaurantInvites      RestaurantMember[]      @relation("RestaurantInviter")
 
   @@index([email])
   @@index([role])
@@ -175,6 +190,20 @@ model VendorProfile {
   createdAt          DateTime                  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VendorCoverage {
+  id           String       @id @default(cuid())
+  vendorId     String       @unique
+  coverageType CoverageType
+  cities       Json?
+  pincodes     Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  vendor User @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
 }
 
 model EngineerProfile {
@@ -302,6 +331,7 @@ model Restaurant {
   name                String
   address             String
   city                String
+  pincode             String?
   restaurantImageUrl  String?
   fssaiNumber         String?
   fssaiCertificateUrl String?
@@ -311,6 +341,7 @@ model Restaurant {
   updatedAt           DateTime         @updatedAt
 
   owner             User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members           RestaurantMember[]
   categories        RestaurantCategory[]
   categoryRequests  CategoryRequest[]
   carts             Cart[]
@@ -323,6 +354,30 @@ model Restaurant {
   @@index([ownerId])
   @@index([status])
   @@index([fssaiNumber])
+}
+
+model RestaurantMember {
+  id              String         @id @default(cuid())
+  restaurantId    String
+  userId          String
+  role            RestaurantRole
+  invitedBy       String
+  inviteToken     String?        @unique
+  inviteExpiresAt DateTime?
+  invitedAt       DateTime       @default(now())
+  acceptedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User       @relation("RestaurantMember", fields: [userId], references: [id], onDelete: Cascade)
+  inviter    User       @relation("RestaurantInviter", fields: [invitedBy], references: [id])
+
+  @@unique([restaurantId, userId])
+  @@index([restaurantId])
+  @@index([userId])
+  @@index([invitedBy])
+  @@index([inviteToken])
 }
 
 model RestaurantCategory {

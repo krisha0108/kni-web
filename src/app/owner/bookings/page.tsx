@@ -13,10 +13,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Upload, Calendar } from "lucide-react";
+import { Eye, Upload, Calendar, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Booking {
   id: string;
@@ -53,16 +54,25 @@ const statusColors: Record<string, "default" | "secondary" | "success" | "destru
 export default function OwnerBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
 
   const fetchBookings = async () => {
+    if (!selectedRestaurant) return;
+
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/bookings");
+      const response = await fetch(`/api/owner/bookings?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         setBookings(data.data);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch bookings",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -76,8 +86,10 @@ export default function OwnerBookingsPage() {
   };
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    if (selectedRestaurant) {
+      fetchBookings();
+    }
+  }, [selectedRestaurant]);
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -92,12 +104,24 @@ export default function OwnerBookingsPage() {
     return labels[status] || status;
   };
 
+  if (!selectedRestaurant) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">Please select a restaurant</p>
+          <p className="text-sm text-muted-foreground mt-2">Use the restaurant switcher in the header to get started</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Bookings</h1>
-          <p className="text-muted-foreground">View and manage your service bookings</p>
+          <p className="text-muted-foreground">View and manage your service bookings for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex gap-2">
           <ExportButton

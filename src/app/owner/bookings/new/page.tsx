@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/select";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface CartItem {
   id: string;
@@ -40,26 +41,23 @@ const timeSlots = [
 
 export default function NewBookingPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRestaurant, setSelectedRestaurant] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTimeSlot, setPreferredTimeSlot] = useState("");
   const [notes, setNotes] = useState("");
+  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedRestaurant) return;
+
       try {
         setIsLoading(true);
-        const [cartRes, restaurantsRes] = await Promise.all([
-          fetch("/api/owner/cart"),
-          fetch("/api/owner/restaurants"),
-        ]);
+        const cartRes = await fetch("/api/owner/cart");
         const cartData = await cartRes.json();
-        const restaurantsData = await restaurantsRes.json();
 
         if (cartData.ok && cartData.data) {
           // Cart items with proper quantity mapping
@@ -70,19 +68,6 @@ export default function NewBookingPage() {
             partItem: item.partItem,
           }));
           setCartItems(items);
-        }
-
-        if (restaurantsData.ok && restaurantsData.data) {
-          // Restaurant API now returns an array
-          const approved = Array.isArray(restaurantsData.data)
-            ? restaurantsData.data.filter((r: any) => r.status === "APPROVED")
-            : [];
-          setRestaurants(approved);
-          if (approved.length > 0) {
-            setSelectedRestaurant(approved[0].id);
-          }
-        } else {
-          setRestaurants([]);
         }
       } catch (error) {
         console.error("Failed to load booking data:", error);
@@ -96,7 +81,7 @@ export default function NewBookingPage() {
       }
     };
     fetchData();
-  }, [toast]);
+  }, [selectedRestaurant, toast]);
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
@@ -136,6 +121,7 @@ export default function NewBookingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          restaurantId: selectedRestaurant.restaurantId,
           slotStartDateTime,
           slotEndDateTime,
         }),

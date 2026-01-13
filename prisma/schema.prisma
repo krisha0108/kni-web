@@ -135,6 +135,21 @@ enum SMSStatus {
   FAILED
 }
 
+enum KhatabookSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  SKIPPED
+}
+
+enum KhatabookTransactionType {
+  BOOKING_REVENUE
+  MARKETPLACE_ORDER
+  EXPENSE
+  ENGINEER_PAYOUT
+  AMC_REVENUE
+}
+
 // ========================================
 // A) AUTH
 // ========================================
@@ -1041,4 +1056,77 @@ model SMSTemplate {
 
   @@index([purpose])
   @@index([isActive])
+}
+
+// ========================================
+// Q) KHATABOOK FINANCE INTEGRATION
+// ========================================
+
+model KhatabookConnection {
+  id            String   @id @default(cuid())
+  userId        String   @unique // Restaurant owner's user ID
+  restaurantId  String? // Optional: specific restaurant, null means all
+  businessId    String // Khatabook business ID
+  businessName  String
+  accessToken   String   @db.Text // Encrypted access token
+  refreshToken  String?  @db.Text // Encrypted refresh token
+  tokenExpiresAt DateTime?
+  isActive      Boolean  @default(true)
+  autoSync      Boolean  @default(true) // Auto-sync transactions
+  lastSyncAt    DateTime?
+  syncError     String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transactions KhatabookTransaction[]
+
+  @@index([userId])
+  @@index([restaurantId])
+  @@index([isActive])
+}
+
+model KhatabookTransaction {
+  id             String                     @id @default(cuid())
+  connectionId   String
+  transactionType KhatabookTransactionType
+  entityType     String // "BOOKING", "ORDER", "EXPENSE", "PAYOUT", "AMC"
+  entityId       String // ID of the booking/order/expense/payout
+  khatabookId    String? // Khatabook's transaction ID after sync
+  amount         Int // Amount in paise
+  description    String   @db.Text
+  customerName   String?
+  date           DateTime
+  syncStatus     KhatabookSyncStatus        @default(PENDING)
+  syncAttempts   Int                        @default(0)
+  lastSyncAt     DateTime?
+  syncError      String?                    @db.Text
+  metadata       Json? // Additional data (invoice number, payment method, etc.)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  connection KhatabookConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([entityType, entityId])
+  @@index([connectionId])
+  @@index([syncStatus])
+  @@index([transactionType])
+  @@index([date])
+  @@index([khatabookId])
+}
+
+model KhatabookSyncLog {
+  id           String   @id @default(cuid())
+  connectionId String
+  syncType     String // "MANUAL", "AUTO", "WEBHOOK"
+  status       String // "SUCCESS", "PARTIAL", "FAILED"
+  itemsSynced  Int      @default(0)
+  itemsFailed  Int      @default(0)
+  errorMessage String?  @db.Text
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  duration     Int? // Duration in milliseconds
+
+  @@index([connectionId])
+  @@index([status])
+  @@index([startedAt])
 }

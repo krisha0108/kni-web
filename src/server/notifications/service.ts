@@ -9,6 +9,7 @@ import {
 } from "@/lib/email";
 import { sendPushNotification } from "./fcm-service";
 import { sendSMS, sendSMSFromTemplate } from "@/server/sms/service";
+import { autoSyncBooking } from "@/server/khatabook/service";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -211,6 +212,11 @@ export async function notifyOwnerPaymentVerified(
         console.error("Failed to send payment verified SMS:", error);
       });
     }
+
+    // Auto-sync to Khatabook (non-blocking)
+    autoSyncBooking(bookingId).catch((error) => {
+      console.error("Failed to auto-sync booking to Khatabook:", error);
+    });
   }
 
   return notification;

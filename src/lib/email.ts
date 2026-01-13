@@ -611,6 +611,135 @@ export async function sendTeamInvitationEmail(
   });
 }
 
+// 9. Order Status Update Email (Owner)
+export async function sendOrderStatusUpdateEmail(
+  ownerEmail: string,
+  ownerName: string,
+  orderId: string,
+  restaurantName: string,
+  oldStatus: string,
+  newStatus: string,
+  statusNotes: string | null,
+  vendorName: string,
+  orderTotal: number,
+  expectedDeliveryDate?: string | null,
+  actualDeliveryDate?: string | null
+): Promise<void> {
+  const statusDescriptions: Record<string, string> = {
+    PLACED: "Your order has been placed and is awaiting vendor confirmation.",
+    CONFIRMED: "Your order has been confirmed by the vendor and will be processed soon.",
+    PROCESSING: "Your order is currently being processed and prepared for shipment.",
+    SHIPPED: "Your order has been shipped and is on its way to your restaurant.",
+    DELIVERED: "Your order has been successfully delivered. Thank you for your purchase!",
+    CANCELLED: "Your order has been cancelled. If you have questions, please contact the vendor.",
+  };
+
+  const statusColors: Record<string, string> = {
+    PLACED: "#6c757d",
+    CONFIRMED: "#0d6efd",
+    PROCESSING: "#0dcaf0",
+    SHIPPED: "#fd7e14",
+    DELIVERED: "#198754",
+    CANCELLED: "#dc3545",
+  };
+
+  const content = `
+    <h2>Order Status Updated</h2>
+    <p>Hello ${ownerName},</p>
+    <p>Your marketplace order status has been updated.</p>
+
+    <div class="info-box">
+      <strong>Order Details:</strong>
+      <ul>
+        <li><strong>Order ID:</strong> #${orderId.slice(0, 8).toUpperCase()}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Vendor:</strong> ${vendorName}</li>
+        <li><strong>Total Amount:</strong> ₹${(orderTotal / 100).toFixed(2)}</li>
+      </ul>
+    </div>
+
+    <div style="background: ${statusColors[newStatus]}20; border-left: 4px solid ${statusColors[newStatus]}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <p><strong>Status:</strong> <span style="color: ${statusColors[oldStatus]};">${oldStatus}</span> → <span style="color: ${statusColors[newStatus]};">${newStatus}</span></p>
+      <p>${statusDescriptions[newStatus]}</p>
+    </div>
+
+    ${
+      statusNotes
+        ? `
+    <div class="info-box">
+      <strong>Vendor Notes:</strong>
+      <p>${statusNotes}</p>
+    </div>
+    `
+        : ""
+    }
+
+    ${
+      expectedDeliveryDate
+        ? `
+    <div class="info-box">
+      <strong>Expected Delivery:</strong>
+      <p>${new Date(expectedDeliveryDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}</p>
+    </div>
+    `
+        : ""
+    }
+
+    ${
+      actualDeliveryDate
+        ? `
+    <div class="success">
+      <strong>✅ Delivered On:</strong>
+      <p>${new Date(actualDeliveryDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}</p>
+    </div>
+    `
+        : ""
+    }
+
+    <a href="${APP_URL}/owner/marketplace/orders/${orderId}" class="button">View Order Details</a>
+
+    ${
+      newStatus === "DELIVERED"
+        ? `
+    <div class="divider"></div>
+    <h3>Thank You for Your Order!</h3>
+    <p>We hope you're satisfied with your purchase. If you have any issues with the delivered items, please contact the vendor directly.</p>
+    `
+        : newStatus === "CANCELLED"
+        ? `
+    <div class="divider"></div>
+    <h3>Order Cancelled</h3>
+    <p>If you didn't request this cancellation or have any questions, please contact the vendor or our support team.</p>
+    `
+        : newStatus === "SHIPPED"
+        ? `
+    <div class="divider"></div>
+    <h3>Track Your Order</h3>
+    <p>Your order is on its way! Please ensure someone is available at the restaurant to receive the delivery.</p>
+    `
+        : ""
+    }
+
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Order ${newStatus} - ${restaurantName} (#${orderId.slice(0, 8).toUpperCase()})`,
+    html: emailTemplate(content, "Order Status Update"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -620,4 +749,5 @@ export default {
   sendWorkCompletedEmail,
   sendPaymentRejectedEmail,
   sendTeamInvitationEmail,
+  sendOrderStatusUpdateEmail,
 };

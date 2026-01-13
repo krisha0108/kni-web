@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { MarketplaceOrderStatus } from "@prisma/client";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -115,6 +116,17 @@ export async function PATCH(
               city: true,
             },
           },
+          owner: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          vendor: {
+            select: {
+              name: true,
+            },
+          },
           items: {
             include: {
               product: {
@@ -142,7 +154,25 @@ export async function PATCH(
       return updatedOrder;
     });
 
-    // TODO: Send email notification to restaurant owner about status change
+    // Send email notification to restaurant owner about status change
+    try {
+      await sendOrderStatusUpdateEmail(
+        result.owner.email,
+        result.owner.name,
+        orderId,
+        result.restaurant.name,
+        currentStatus,
+        newStatus,
+        statusNotes || null,
+        result.vendor.name,
+        result.totalAmount,
+        expectedDeliveryDate || null,
+        result.actualDeliveryDate?.toISOString() || null
+      );
+    } catch (emailError) {
+      // Log email error but don't fail the request
+      console.error("Failed to send status update email:", emailError);
+    }
 
     return NextResponse.json({
       ok: true,

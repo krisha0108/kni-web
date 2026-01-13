@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { Role } from "@prisma/client";
+import { Role, NotificationType } from "@prisma/client";
 import {
   sendPaymentVerifiedEmail,
   sendPaymentRejectedEmail,
@@ -13,6 +13,7 @@ export interface CreateNotificationInput {
   userId: string;
   title: string;
   message: string;
+  type?: NotificationType;
   linkUrl?: string;
 }
 
@@ -22,6 +23,7 @@ export async function createNotification(input: CreateNotificationInput) {
       userId: input.userId,
       title: input.title,
       message: input.message,
+      type: input.type || NotificationType.SYSTEM,
       linkUrl: input.linkUrl || null,
     },
   });
@@ -44,6 +46,7 @@ export async function createNotificationForRole(
   role: Role,
   title: string,
   message: string,
+  type: NotificationType = NotificationType.SYSTEM,
   linkUrl?: string
 ) {
   const users = await db.user.findMany({
@@ -58,6 +61,7 @@ export async function createNotificationForRole(
       userId: user.id,
       title,
       message,
+      type,
       linkUrl: linkUrl || null,
     })),
   });
@@ -117,6 +121,7 @@ export async function notifyOwnerRestaurantApproved(
     userId: ownerId,
     title: "Restaurant Approved!",
     message: `Your restaurant "${restaurantName}" has been approved. You can now book services.`,
+    type: NotificationType.SYSTEM,
     linkUrl: "/owner/restaurant/status",
   });
 }
@@ -130,6 +135,7 @@ export async function notifyOwnerRestaurantRejected(
     userId: ownerId,
     title: "Restaurant Rejected",
     message: `Your restaurant "${restaurantName}" was rejected. Reason: ${reason}`,
+    type: NotificationType.SYSTEM,
     linkUrl: "/owner/restaurant/status",
   });
 }
@@ -154,6 +160,7 @@ export async function notifyOwnerPaymentVerified(
     userId: ownerId,
     title: "Payment Verified",
     message: "Your payment has been verified. An engineer will be assigned soon.",
+    type: NotificationType.PAYMENT,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 
@@ -193,6 +200,7 @@ export async function notifyOwnerPaymentRejected(
     userId: ownerId,
     title: "Payment Rejected",
     message: "Your payment was rejected. Reason: " + reason,
+    type: NotificationType.PAYMENT,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 
@@ -235,6 +243,7 @@ export async function notifyOwnerEngineerAssigned(
     userId: ownerId,
     title: "Engineer Assigned",
     message: engineerName + " has been assigned to your booking.",
+    type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 
@@ -263,6 +272,7 @@ export async function notifyOwnerJobCompleted(
     userId: ownerId,
     title: "Job Completed",
     message: "Your service booking has been completed.",
+    type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 }
@@ -301,6 +311,7 @@ export async function notifyEngineerNewJob(
     userId: engineerId,
     title: "New Job Assignment",
     message: "You have been assigned a job at " + restaurantName + ".",
+    type: NotificationType.BOOKING,
     linkUrl: "/engineer/jobs/" + assignmentId,
   });
 
@@ -333,6 +344,7 @@ export async function notifyVendorApproved(vendorId: string) {
     userId: vendorId,
     title: "Account Approved!",
     message: "Your vendor account has been approved. You can now add products.",
+    type: NotificationType.SYSTEM,
     linkUrl: "/vendor/dashboard",
   });
 }
@@ -342,6 +354,7 @@ export async function notifyVendorRejected(vendorId: string, reason: string) {
     userId: vendorId,
     title: "Account Rejected",
     message: "Your vendor application was rejected. Reason: " + reason,
+    type: NotificationType.SYSTEM,
     linkUrl: "/vendor/pending",
   });
 }
@@ -354,6 +367,7 @@ export async function notifyAdminsNewRestaurantRequest(
     Role.ADMIN,
     "New Restaurant Request",
     ownerName + " has submitted " + restaurantName + " for approval.",
+    NotificationType.SYSTEM,
     "/admin/restaurants/requests"
   );
 }
@@ -366,6 +380,7 @@ export async function notifyAdminsNewPaymentUploaded(
     Role.ADMIN,
     "Payment Proof Uploaded",
     ownerName + " has uploaded a payment proof.",
+    NotificationType.PAYMENT,
     "/admin/bookings/" + bookingId
   );
 }
@@ -379,6 +394,7 @@ export async function notifyOwnerEngineerStarted(
     userId: ownerId,
     title: "Work Started",
     message: `${engineerName} has started working on your service booking.`,
+    type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 }
@@ -414,6 +430,7 @@ export async function notifyOwnerServiceCompleted(
     userId: ownerId,
     title: "Service Completed",
     message: "Your service booking has been completed successfully.",
+    type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
 

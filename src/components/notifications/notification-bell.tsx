@@ -8,18 +8,88 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Bell,
+  Calendar,
+  DollarSign,
+  ShoppingCart,
+  Wrench,
+  Settings,
+  Megaphone,
+  MailOpen,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+
+type NotificationType = "BOOKING" | "PAYMENT" | "ORDER" | "AMC" | "EQUIPMENT" | "SYSTEM" | "ANNOUNCEMENT";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
+  type: NotificationType;
   linkUrl: string | null;
   isRead: boolean;
   createdAt: string;
 }
+
+const notificationTypeConfig: Record<
+  NotificationType,
+  { icon: React.ElementType; color: string; bgColor: string; label: string }
+> = {
+  BOOKING: {
+    icon: Calendar,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+    label: "Bookings",
+  },
+  PAYMENT: {
+    icon: DollarSign,
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+    label: "Payments",
+  },
+  ORDER: {
+    icon: ShoppingCart,
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    label: "Orders",
+  },
+  AMC: {
+    icon: Wrench,
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
+    label: "AMC",
+  },
+  EQUIPMENT: {
+    icon: Settings,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
+    label: "Equipment",
+  },
+  SYSTEM: {
+    icon: Bell,
+    color: "text-gray-600",
+    bgColor: "bg-gray-100",
+    label: "System",
+  },
+  ANNOUNCEMENT: {
+    icon: Megaphone,
+    color: "text-red-600",
+    bgColor: "bg-red-100",
+    label: "Announcements",
+  },
+};
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -27,6 +97,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [filterType, setFilterType] = useState<NotificationType | "all">("all");
 
   const fetchNotifications = async () => {
     try {
@@ -124,6 +195,39 @@ export function NotificationBell() {
     }
   };
 
+  const markAsUnread = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch("/api/notifications/mark-unread", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: false } : n))
+      );
+      setUnreadCount((prev) => prev + 1);
+    } catch (error) {
+      console.error("Failed to mark as unread:", error);
+    }
+  };
+
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "DELETE",
+      });
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      const wasUnread = notifications.find((n) => n.id === id)?.isRead === false;
+      if (wasUnread) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -138,6 +242,11 @@ export function NotificationBell() {
     return `${days}d ago`;
   };
 
+  const filteredNotifications =
+    filterType === "all"
+      ? notifications
+      : notifications.filter((n) => n.type === filterType);
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -151,7 +260,7 @@ export function NotificationBell() {
           <span className="sr-only">Notifications</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-96 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h4 className="font-semibold">Notifications</h4>
           {unreadCount > 0 && (
@@ -165,57 +274,153 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="h-[300px]">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              No notifications
+
+        <div className="p-3 border-b bg-muted/30">
+          <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All notifications</SelectItem>
+              {Object.entries(notificationTypeConfig).map(([type, config]) => (
+                <SelectItem key={type} value={type}>
+                  <div className="flex items-center gap-2">
+                    <config.icon className={cn("h-4 w-4", config.color)} />
+                    {config.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <ScrollArea className="h-[400px]">
+          {filteredNotifications.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">No notifications</p>
+              {filterType !== "all" && (
+                <p className="text-xs mt-1">Try changing the filter</p>
+              )}
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "p-4 hover:bg-muted/50 cursor-pointer",
-                    !notification.isRead && "bg-muted/30"
-                  )}
-                  onClick={() => {
-                    if (!notification.isRead) {
-                      markAsRead(notification.id);
-                    }
-                    if (notification.linkUrl) {
-                      setIsOpen(false);
-                    }
-                  }}
-                >
-                  {notification.linkUrl ? (
-                    <Link href={notification.linkUrl} className="block">
-                      <p className="font-medium text-sm">
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {formatDate(notification.createdAt)}
-                      </p>
-                    </Link>
-                  ) : (
-                    <>
-                      <p className="font-medium text-sm">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {formatDate(notification.createdAt)}
-                      </p>
-                    </>
-                  )}
-                </div>
-              ))}
+              {filteredNotifications.map((notification) => {
+                const config = notificationTypeConfig[notification.type];
+                const Icon = config.icon;
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "p-4 hover:bg-muted/50 transition-colors",
+                      !notification.isRead && "bg-blue-50/50 dark:bg-blue-950/10"
+                    )}
+                  >
+                    <div className="flex gap-3">
+                      <div
+                        className={cn(
+                          "flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center",
+                          config.bgColor
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5", config.color)} />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className="font-medium text-sm leading-tight">
+                            {notification.title}
+                          </p>
+                          {!notification.isRead && (
+                            <div className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-600" />
+                          )}
+                        </div>
+
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                          {notification.message}
+                        </p>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs py-0">
+                              {config.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(notification.createdAt)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {notification.linkUrl && (
+                              <Link
+                                href={notification.linkUrl}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!notification.isRead) {
+                                    markAsRead(notification.id);
+                                  }
+                                  setIsOpen(false);
+                                }}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2"
+                                  title="View details"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </Link>
+                            )}
+                            {notification.isRead ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={(e) => markAsUnread(notification.id, e)}
+                                title="Mark as unread"
+                              >
+                                <MailOpen className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() => markAsRead(notification.id)}
+                                title="Mark as read"
+                              >
+                                <Bell className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-destructive hover:text-destructive"
+                              onClick={(e) => deleteNotification(notification.id, e)}
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
+
+        <div className="p-3 border-t bg-muted/30">
+          <Link href="/notifications" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" className="w-full" size="sm">
+              View all notifications
+            </Button>
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );

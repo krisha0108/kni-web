@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Upload, Calendar, Building2 } from "lucide-react";
+import { Eye, Upload, Calendar, Building2, Search, Filter, X, ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
@@ -57,6 +75,16 @@ export default function OwnerBookingsPage() {
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "amount-desc" | "amount-asc">("date-desc");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
   const fetchBookings = async () => {
     if (!selectedRestaurant) return;
@@ -104,6 +132,88 @@ export default function OwnerBookingsPage() {
     return labels[status] || status;
   };
 
+  // Filtered and sorted bookings
+  const filteredBookings = useMemo(() => {
+    let filtered = [...bookings];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((booking) =>
+        booking.id.toLowerCase().includes(query) ||
+        booking.restaurant.name.toLowerCase().includes(query) ||
+        getStatusLabel(booking.status).toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((booking) => booking.status === filterStatus);
+    }
+
+    // Date range filter
+    if (filterDateFrom) {
+      filtered = filtered.filter((booking) =>
+        new Date(booking.preferredDate) >= new Date(filterDateFrom)
+      );
+    }
+    if (filterDateTo) {
+      filtered = filtered.filter((booking) =>
+        new Date(booking.preferredDate) <= new Date(filterDateTo)
+      );
+    }
+
+    // Amount range filter
+    if (filterMinAmount) {
+      filtered = filtered.filter((booking) =>
+        booking.totalAmount >= parseFloat(filterMinAmount)
+      );
+    }
+    if (filterMaxAmount) {
+      filtered = filtered.filter((booking) =>
+        booking.totalAmount <= parseFloat(filterMaxAmount)
+      );
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.preferredDate).getTime() - new Date(a.preferredDate).getTime();
+        case "date-asc":
+          return new Date(a.preferredDate).getTime() - new Date(b.preferredDate).getTime();
+        case "amount-desc":
+          return b.totalAmount - a.totalAmount;
+        case "amount-asc":
+          return a.totalAmount - b.totalAmount;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [bookings, searchQuery, filterStatus, filterDateFrom, filterDateTo, filterMinAmount, filterMaxAmount, sortBy]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterDateFrom) count++;
+    if (filterDateTo) count++;
+    if (filterMinAmount) count++;
+    if (filterMaxAmount) count++;
+    return count;
+  }, [filterStatus, filterDateFrom, filterDateTo, filterMinAmount, filterMaxAmount]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterStatus("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterMinAmount("");
+    setFilterMaxAmount("");
+  };
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -135,10 +245,215 @@ export default function OwnerBookingsPage() {
         </div>
       </div>
 
+      {/* Search and Filter Controls */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by booking ID, restaurant, or status..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
+                <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filter Button */}
+            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Filter Bookings</DialogTitle>
+                  <DialogDescription>
+                    Apply filters to narrow down your bookings
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Status Filter */}
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="PENDING_PAYMENT">Pending Payment</SelectItem>
+                        <SelectItem value="PAYMENT_UPLOADED">Payment Uploaded</SelectItem>
+                        <SelectItem value="PAYMENT_VERIFIED">Payment Verified</SelectItem>
+                        <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>From Date</Label>
+                      <Input
+                        type="date"
+                        value={filterDateFrom}
+                        onChange={(e) => setFilterDateFrom(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>To Date</Label>
+                      <Input
+                        type="date"
+                        value={filterDateTo}
+                        onChange={(e) => setFilterDateTo(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Amount Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Min Amount (₹)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={filterMinAmount}
+                        onChange={(e) => setFilterMinAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Amount (₹)</Label>
+                      <Input
+                        type="number"
+                        placeholder="No limit"
+                        value={filterMaxAmount}
+                        onChange={(e) => setFilterMaxAmount(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear All
+                  </Button>
+                  <Button onClick={() => setIsFilterDialogOpen(false)}>
+                    Apply Filters
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Active Filters Display */}
+          {(searchQuery || activeFiltersCount > 0) && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active:</span>
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setSearchQuery("")}
+                  />
+                </Badge>
+              )}
+              {filterStatus !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Status: {getStatusLabel(filterStatus)}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterStatus("all")}
+                  />
+                </Badge>
+              )}
+              {filterDateFrom && (
+                <Badge variant="secondary" className="gap-1">
+                  From: {filterDateFrom}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterDateFrom("")}
+                  />
+                </Badge>
+              )}
+              {filterDateTo && (
+                <Badge variant="secondary" className="gap-1">
+                  To: {filterDateTo}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterDateTo("")}
+                  />
+                </Badge>
+              )}
+              {filterMinAmount && (
+                <Badge variant="secondary" className="gap-1">
+                  Min: ₹{filterMinAmount}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterMinAmount("")}
+                  />
+                </Badge>
+              )}
+              {filterMaxAmount && (
+                <Badge variant="secondary" className="gap-1">
+                  Max: ₹{filterMaxAmount}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterMaxAmount("")}
+                  />
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Results Count */}
+          <div className="mt-4 text-sm text-muted-foreground">
+            Showing {filteredBookings.length} of {bookings.length} bookings
+          </div>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-muted-foreground">Loading bookings...</p>
+          </CardContent>
+        </Card>
+      ) : filteredBookings.length === 0 && bookings.length > 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg text-muted-foreground">No bookings match your filters</p>
+            <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria</p>
+            <Button className="mt-4" variant="outline" onClick={clearFilters}>
+              Clear All Filters
+            </Button>
           </CardContent>
         </Card>
       ) : bookings.length === 0 ? (
@@ -168,7 +483,7 @@ export default function OwnerBookingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.map((booking) => (
+              {filteredBookings.map((booking) => (
                 <TableRow key={booking.id}>
                   <TableCell className="font-mono text-sm">
                     {booking.id.slice(0, 8)}...

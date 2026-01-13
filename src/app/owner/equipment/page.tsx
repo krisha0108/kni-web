@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
-import { Plus, Eye, Pencil, Trash2, Search, Building2 } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Search, Building2, Filter, X, ArrowUpDown } from "lucide-react";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
 import { formatDate } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
@@ -40,8 +40,16 @@ export default function OwnerEquipmentPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterWarranty, setFilterWarranty] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "name-asc" | "name-desc">("date-desc");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
@@ -66,7 +74,7 @@ export default function OwnerEquipmentPage() {
       fetchCategories();
       fetchEquipment();
     }
-  }, [selectedRestaurant, search, statusFilter]);
+  }, [selectedRestaurant]);
 
   // Update formData.restaurantId when selectedRestaurant changes
   useEffect(() => {
@@ -92,12 +100,7 @@ export default function OwnerEquipmentPage() {
 
     try {
       setIsLoading(true);
-      const params = new URLSearchParams();
-      params.append("restaurantId", selectedRestaurant.restaurantId);
-      if (search) params.append("search", search);
-      if (statusFilter !== "all") params.append("status", statusFilter);
-
-      const response = await fetch("/api/owner/equipment?" + params.toString());
+      const response = await fetch(`/api/owner/equipment?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         setEquipment(data.data.items || []);
@@ -216,6 +219,87 @@ export default function OwnerEquipmentPage() {
         variant: "destructive",
       });
     }
+  };
+
+  // Filtered and sorted equipment
+  const filteredEquipment = useMemo(() => {
+    let filtered = [...equipment];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        (item.serialNumber && item.serialNumber.toLowerCase().includes(query)) ||
+        getEquipmentStatusLabel(item.status).toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((item) => item.status === filterStatus);
+    }
+
+    // Warranty filter
+    if (filterWarranty !== "all") {
+      filtered = filtered.filter((item) => {
+        const warrantyStatus = getWarrantyStatus(item.warrantyEndDate);
+        if (filterWarranty === "active" && warrantyStatus.color === "green") return true;
+        if (filterWarranty === "expiring" && warrantyStatus.color === "yellow") return true;
+        if (filterWarranty === "expired" && warrantyStatus.color === "red") return true;
+        if (filterWarranty === "no-warranty" && warrantyStatus.color === "gray") return true;
+        return false;
+      });
+    }
+
+    // Date range filter (purchase date)
+    if (filterDateFrom) {
+      filtered = filtered.filter((item) =>
+        new Date(item.purchaseDate) >= new Date(filterDateFrom)
+      );
+    }
+    if (filterDateTo) {
+      filtered = filtered.filter((item) =>
+        new Date(item.purchaseDate) <= new Date(filterDateTo)
+      );
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime();
+        case "date-asc":
+          return new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime();
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [equipment, searchQuery, filterStatus, filterWarranty, filterDateFrom, filterDateTo, sortBy]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterWarranty !== "all") count++;
+    if (filterDateFrom) count++;
+    if (filterDateTo) count++;
+    return count;
+  }, [filterStatus, filterWarranty, filterDateFrom, filterDateTo]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterStatus("all");
+    setFilterWarranty("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
   };
 
   if (!selectedRestaurant) {
@@ -383,31 +467,182 @@ export default function OwnerEquipmentPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search equipment..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <ClientOnly>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="AVAILABLE">Available</SelectItem>
-              <SelectItem value="IN_USE">In Use</SelectItem>
-              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-              <SelectItem value="RETIRED">Retired</SelectItem>
-            </SelectContent>
-          </Select>
-        </ClientOnly>
-      </div>
+      {/* Search and Filter Controls */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, category, serial number, or status..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filter Button */}
+            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Filter Equipment</DialogTitle>
+                  <DialogDescription>
+                    Apply filters to narrow down your equipment list
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Status Filter */}
+                  <div className="space-y-2">
+                    <Label>Equipment Status</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="AVAILABLE">Available</SelectItem>
+                        <SelectItem value="IN_USE">In Use</SelectItem>
+                        <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                        <SelectItem value="RETIRED">Retired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Warranty Filter */}
+                  <div className="space-y-2">
+                    <Label>Warranty Status</Label>
+                    <Select value={filterWarranty} onValueChange={setFilterWarranty}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Warranty Status</SelectItem>
+                        <SelectItem value="active">Active (Valid)</SelectItem>
+                        <SelectItem value="expiring">Expiring Soon</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="no-warranty">No Warranty</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Purchase Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Purchased From</Label>
+                      <Input
+                        type="date"
+                        value={filterDateFrom}
+                        onChange={(e) => setFilterDateFrom(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Purchased To</Label>
+                      <Input
+                        type="date"
+                        value={filterDateTo}
+                        onChange={(e) => setFilterDateTo(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear All
+                  </Button>
+                  <Button onClick={() => setIsFilterDialogOpen(false)}>
+                    Apply Filters
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Active Filters Display */}
+          {(searchQuery || activeFiltersCount > 0) && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active:</span>
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setSearchQuery("")}
+                  />
+                </Badge>
+              )}
+              {filterStatus !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Status: {getEquipmentStatusLabel(filterStatus)}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterStatus("all")}
+                  />
+                </Badge>
+              )}
+              {filterWarranty !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Warranty: {filterWarranty === "no-warranty" ? "No Warranty" : filterWarranty.charAt(0).toUpperCase() + filterWarranty.slice(1)}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterWarranty("all")}
+                  />
+                </Badge>
+              )}
+              {filterDateFrom && (
+                <Badge variant="secondary" className="gap-1">
+                  From: {filterDateFrom}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterDateFrom("")}
+                  />
+                </Badge>
+              )}
+              {filterDateTo && (
+                <Badge variant="secondary" className="gap-1">
+                  To: {filterDateTo}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => setFilterDateTo("")}
+                  />
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Results Count */}
+          <div className="mt-4 text-sm text-muted-foreground">
+            Showing {filteredEquipment.length} of {equipment.length} equipment items
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="border rounded-lg">
         <Table>
@@ -430,6 +665,18 @@ export default function OwnerEquipmentPage() {
                   Loading...
                 </TableCell>
               </TableRow>
+            ) : filteredEquipment.length === 0 && equipment.length > 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8">
+                  <div className="flex flex-col items-center gap-3">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-muted-foreground">No equipment matches your filters</p>
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
             ) : equipment.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
@@ -437,7 +684,7 @@ export default function OwnerEquipmentPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              equipment.map((item) => {
+              filteredEquipment.map((item) => {
                 const warrantyStatus = getWarrantyStatus(item.warrantyEndDate);
                 return (
                   <TableRow key={item.id}>

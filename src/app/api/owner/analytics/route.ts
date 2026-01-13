@@ -142,8 +142,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Daily booking trend (last 7 days)
-    const dailyBookingTrend = await db.$queryRaw<
-      Array<{ date: Date; count: number; revenue: number }>
+    const dailyBookingTrendRaw = await db.$queryRaw<
+      Array<{ date: Date; count: bigint; revenue: number }>
     >`
       SELECT
         DATE(createdAt) as date,
@@ -156,42 +156,56 @@ export async function GET(request: NextRequest) {
       ORDER BY date DESC
     `;
 
+    // Convert BigInt to Number
+    const dailyBookingTrend = dailyBookingTrendRaw.map(item => ({
+      date: item.date,
+      count: Number(item.count),
+      revenue: item.revenue,
+    }));
+
     // Daily expense trend (last 7 days)
-    const dailyExpenseTrend = await db.$queryRaw<
-      Array<{ date: Date; count: number; total: number }>
+    const dailyExpenseTrendRaw = await db.$queryRaw<
+      Array<{ date: Date; count: bigint; total: number }>
     >`
       SELECT
-        DATE(date) as date,
+        DATE(expenseDate) as date,
         COUNT(*) as count,
         SUM(amount) as total
       FROM Expense
       WHERE restaurantId = ${restaurantId}
-        AND date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      GROUP BY DATE(date)
+        AND expenseDate >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY DATE(expenseDate)
       ORDER BY date DESC
     `;
+
+    // Convert BigInt to Number
+    const dailyExpenseTrend = dailyExpenseTrendRaw.map(item => ({
+      date: item.date,
+      count: Number(item.count),
+      total: item.total,
+    }));
 
     return NextResponse.json({
       ok: true,
       data: {
         summary: {
           bookings: {
-            count: bookingStats._count.id,
+            count: Number(bookingStats._count.id),
             revenue: bookingStats._sum.totalAmount || 0,
           },
           expenses: {
-            count: expenseStats._count.id,
+            count: Number(expenseStats._count.id),
             total: expenseStats._sum.amount || 0,
           },
           equipment: {
             count: equipmentCount,
           },
           amcSubscriptions: {
-            count: amcStats._count.id,
+            count: Number(amcStats._count.id),
             value: amcStats._sum.totalAmount || 0,
           },
           marketplaceOrders: {
-            count: marketplaceOrderStats._count.id,
+            count: Number(marketplaceOrderStats._count.id),
             total: marketplaceOrderStats._sum.totalAmount || 0,
           },
           netRevenue:
@@ -201,16 +215,16 @@ export async function GET(request: NextRequest) {
         breakdowns: {
           bookingsByStatus: bookingsByStatus.map((item) => ({
             status: item.status,
-            count: item._count.id,
+            count: Number(item._count.id),
           })),
           expensesByCategory: expensesByCategory.map((item) => ({
             category: item.category,
-            count: item._count.id,
+            count: Number(item._count.id),
             total: item._sum.amount || 0,
           })),
           marketplaceOrdersByStatus: marketplaceOrdersByStatus.map((item) => ({
             status: item.status,
-            count: item._count.id,
+            count: Number(item._count.id),
           })),
         },
         trends: {

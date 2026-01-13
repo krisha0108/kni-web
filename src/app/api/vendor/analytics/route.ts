@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
           product,
           totalQuantity: item._sum.qty || 0,
           totalRevenue: (item._sum.qty || 0) * (item._sum.priceSnapshot || 0),
-          orderCount: item._count.id,
+          orderCount: Number(item._count.id),
         };
       })
     );
@@ -153,15 +153,15 @@ export async function GET(request: NextRequest) {
         });
         return {
           restaurant,
-          orderCount: item._count.id,
+          orderCount: Number(item._count.id),
           totalRevenue: item._sum.totalAmount || 0,
         };
       })
     );
 
     // Daily order trend (last 7 days)
-    const dailyOrderTrend = await db.$queryRaw<
-      Array<{ date: Date; count: number; revenue: number }>
+    const dailyOrderTrendRaw = await db.$queryRaw<
+      Array<{ date: Date; count: bigint; revenue: number }>
     >`
       SELECT
         DATE(createdAt) as date,
@@ -173,6 +173,13 @@ export async function GET(request: NextRequest) {
       GROUP BY DATE(createdAt)
       ORDER BY date DESC
     `;
+
+    // Convert BigInt to Number
+    const dailyOrderTrend = dailyOrderTrendRaw.map(item => ({
+      date: item.date,
+      count: Number(item.count),
+      revenue: item.revenue,
+    }));
 
     // Coverage stats
     const coverageStats = coverageInfo
@@ -190,7 +197,7 @@ export async function GET(request: NextRequest) {
       data: {
         summary: {
           orders: {
-            count: orderStats._count.id,
+            count: Number(orderStats._count.id),
             revenue: orderStats._sum.totalAmount || 0,
           },
           products: {
@@ -201,7 +208,7 @@ export async function GET(request: NextRequest) {
         breakdowns: {
           ordersByStatus: ordersByStatus.map((item) => ({
             status: item.status,
-            count: item._count.id,
+            count: Number(item._count.id),
             revenue: item._sum.totalAmount || 0,
           })),
           topProducts: topProductDetails,

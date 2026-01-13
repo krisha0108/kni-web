@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       summary: {
         orders: {
-          count: orderStats._count.id,
+          count: Number(orderStats._count.id),
           revenue: orderStats._sum.totalAmount || 0,
         },
         products: {
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       breakdowns: {
         ordersByStatus: ordersByStatus.map((item) => ({
           status: item.status,
-          count: item._count.id,
+          count: Number(item._count.id),
           revenue: item._sum.totalAmount || 0,
         })),
         topProducts: topProducts.map((item) => {
@@ -139,14 +139,14 @@ export async function GET(request: NextRequest) {
             product: product || null,
             totalQuantity: item._sum?.qty || 0,
             totalRevenue: (item._sum?.qty || 0) * (item._sum?.priceSnapshot || 0),
-            orderCount: item._count?.orderId || 0,
+            orderCount: Number(item._count?.orderId || 0),
           };
         }),
         topCustomers: topCustomers.map((item) => {
           const restaurant = restaurantDetails.find((r) => r.id === item.restaurantId);
           return {
             restaurant: restaurant || null,
-            orderCount: item._count.id,
+            orderCount: Number(item._count.id),
             totalRevenue: item._sum.totalAmount || 0,
           };
         }),

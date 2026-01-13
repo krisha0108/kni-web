@@ -126,22 +126,22 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       summary: {
         bookings: {
-          count: bookingStats._count.id,
+          count: Number(bookingStats._count.id),
           revenue: bookingRevenue,
         },
         expenses: {
-          count: expenseStats._count?.id || 0,
+          count: Number(expenseStats._count?.id || 0),
           total: expensesTotal,
         },
         equipment: {
           count: equipmentCount,
         },
         amcSubscriptions: {
-          count: amcStats._count.id,
+          count: Number(amcStats._count.id),
           value: amcStats._sum.totalAmount || 0,
         },
         marketplaceOrders: {
-          count: marketplaceOrderStats._count.id,
+          count: Number(marketplaceOrderStats._count.id),
           total: marketplaceOrderStats._sum.totalAmount || 0,
         },
         netRevenue,
@@ -149,16 +149,16 @@ export async function GET(request: NextRequest) {
       breakdowns: {
         bookingsByStatus: bookingsByStatus.map((item) => ({
           status: item.status,
-          count: item._count?.id || 0,
+          count: Number(item._count?.id || 0),
         })),
         expensesByCategory: expensesByCategory.map((item) => ({
           category: item.category,
-          count: item._count?.id || 0,
+          count: Number(item._count?.id || 0),
           total: item._sum?.amount || 0,
         })),
         marketplaceOrdersByStatus: marketplaceOrdersByStatus.map((item) => ({
           status: item.status,
-          count: item._count?.id || 0,
+          count: Number(item._count?.id || 0),
         })),
       },
       recent: {

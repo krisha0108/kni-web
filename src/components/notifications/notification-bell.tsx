@@ -37,7 +37,7 @@ interface Notification {
   id: string;
   title: string;
   message: string;
-  type: NotificationType;
+  type?: NotificationType;
   linkUrl: string | null;
   isRead: boolean;
   createdAt: string;
@@ -245,7 +245,7 @@ export function NotificationBell() {
   const filteredNotifications =
     filterType === "all"
       ? notifications
-      : notifications.filter((n) => n.type === filterType);
+      : notifications.filter((n) => (n.type || "SYSTEM") === filterType);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -306,7 +306,8 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y">
               {filteredNotifications.map((notification) => {
-                const config = notificationTypeConfig[notification.type];
+                const notifType = (notification.type || "SYSTEM") as NotificationType;
+                const config = notificationTypeConfig[notifType];
                 const Icon = config.icon;
 
                 return (

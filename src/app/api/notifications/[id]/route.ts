@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { getServerSession } from "@/server/auth";
+import { getSession } from "@/server/auth/session";
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getSession();
     if (!session) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },

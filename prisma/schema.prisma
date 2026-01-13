@@ -120,6 +120,21 @@ enum NotificationType {
   ANNOUNCEMENT
 }
 
+enum OTPPurpose {
+  LOGIN
+  REGISTRATION
+  PASSWORD_RESET
+  PHONE_VERIFICATION
+  BOOKING_CONFIRMATION
+}
+
+enum SMSStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
 // ========================================
 // A) AUTH
 // ========================================
@@ -973,4 +988,57 @@ model PushNotificationLog {
   @@index([userId])
   @@index([notificationId])
   @@index([status])
+}
+
+// ========================================
+// P) SMS NOTIFICATIONS & OTP
+// ========================================
+
+model OTP {
+  id         String     @id @default(cuid())
+  phone      String
+  code       String // 6-digit OTP code
+  purpose    OTPPurpose
+  isVerified Boolean    @default(false)
+  attempts   Int        @default(0) // Track verification attempts
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([phone])
+  @@index([phone, purpose, isVerified])
+  @@index([expiresAt])
+}
+
+model SMSLog {
+  id           String    @id @default(cuid())
+  phone        String
+  message      String    @db.Text
+  purpose      String? // LOGIN, BOOKING, PAYMENT, etc.
+  status       SMSStatus @default(PENDING)
+  providerId   String? // External SMS provider's message ID
+  errorMessage String?   @db.Text
+  sentAt       DateTime  @default(now())
+  deliveredAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([phone])
+  @@index([status])
+  @@index([sentAt])
+  @@index([purpose])
+}
+
+model SMSTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  purpose     String // LOGIN_OTP, BOOKING_CONFIRMATION, PAYMENT_RECEIVED, etc.
+  template    String   @db.Text // Template with variables like {{name}}, {{otp}}, {{amount}}
+  variables   Json? // Array of variable names used in template
+  isActive    Boolean  @default(true)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([purpose])
+  @@index([isActive])
 }

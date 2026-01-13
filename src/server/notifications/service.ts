@@ -8,6 +8,7 @@ import {
   sendWorkCompletedEmail,
 } from "@/lib/email";
 import { sendPushNotification } from "./fcm-service";
+import { sendSMS, sendSMSFromTemplate } from "@/server/sms/service";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -117,13 +118,34 @@ export async function notifyOwnerRestaurantApproved(
   ownerId: string,
   restaurantName: string
 ) {
-  return createNotification({
+  // Get owner details for SMS
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { phone: true },
+  });
+
+  // Send in-app notification
+  const notification = await createNotification({
     userId: ownerId,
     title: "Restaurant Approved!",
     message: `Your restaurant "${restaurantName}" has been approved. You can now book services.`,
     type: NotificationType.SYSTEM,
     linkUrl: "/owner/restaurant/status",
   });
+
+  // Send SMS (non-blocking)
+  if (owner?.phone) {
+    sendSMSFromTemplate(
+      owner.phone,
+      "RESTAURANT_APPROVED",
+      { restaurantName },
+      "RESTAURANT_APPROVED"
+    ).catch((error) => {
+      console.error("Failed to send restaurant approved SMS:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerRestaurantRejected(
@@ -144,10 +166,10 @@ export async function notifyOwnerPaymentVerified(
   ownerId: string,
   bookingId: string
 ) {
-  // Get owner and booking details for email
+  // Get owner and booking details for email and SMS
   const owner = await db.user.findUnique({
     where: { id: ownerId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, phone: true },
   });
 
   const booking = await db.serviceBooking.findUnique({
@@ -174,6 +196,21 @@ export async function notifyOwnerPaymentVerified(
     ).catch((error) => {
       console.error("Failed to send payment verified email:", error);
     });
+
+    // Send SMS (non-blocking)
+    if (owner.phone) {
+      sendSMSFromTemplate(
+        owner.phone,
+        "PAYMENT_VERIFIED",
+        {
+          amount: (booking.totalAmount / 100).toFixed(2),
+          bookingId: bookingId.slice(-8),
+        },
+        "PAYMENT_VERIFIED"
+      ).catch((error) => {
+        console.error("Failed to send payment verified SMS:", error);
+      });
+    }
   }
 
   return notification;
@@ -223,12 +260,13 @@ export async function notifyOwnerPaymentRejected(
 export async function notifyOwnerEngineerAssigned(
   ownerId: string,
   bookingId: string,
-  engineerName: string
+  engineerName: string,
+  engineerPhone?: string
 ) {
-  // Get owner, booking, and engineer details for email
+  // Get owner, booking, and engineer details for email and SMS
   const owner = await db.user.findUnique({
     where: { id: ownerId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, phone: true },
   });
 
   const booking = await db.serviceBooking.findUnique({
@@ -255,10 +293,30 @@ export async function notifyOwnerEngineerAssigned(
       bookingId,
       booking.restaurant.name,
       engineerName,
-      "" // Engineer phone not available in this context
+      engineerPhone || ""
     ).catch((error) => {
       console.error("Failed to send engineer assigned email:", error);
     });
+
+    // Send SMS (non-blocking)
+    if (owner.phone && booking.slotStartDateTime) {
+      const slotDate = new Date(booking.slotStartDateTime).toLocaleDateString(
+        "en-IN",
+        { day: "numeric", month: "short", year: "numeric" }
+      );
+      sendSMSFromTemplate(
+        owner.phone,
+        "ENGINEER_ASSIGNED",
+        {
+          engineerName,
+          date: slotDate,
+          engineerPhone: engineerPhone || "Not provided",
+        },
+        "ENGINEER_ASSIGNED"
+      ).catch((error) => {
+        console.error("Failed to send engineer assigned SMS:", error);
+      });
+    }
   }
 
   return notification;
@@ -282,10 +340,10 @@ export async function notifyEngineerNewJob(
   assignmentId: string,
   restaurantName: string
 ) {
-  // Get engineer, assignment, and booking details for email
+  // Get engineer, assignment, and booking details for email and SMS
   const engineer = await db.user.findUnique({
     where: { id: engineerId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, phone: true },
   });
 
   const assignment = await db.engineerAssignment.findUnique({
@@ -315,7 +373,7 @@ export async function notifyEngineerNewJob(
     linkUrl: "/engineer/jobs/" + assignmentId,
   });
 
-  // Send email (non-blocking)
+  // Send email and SMS (non-blocking)
   if (engineer && assignment) {
     const items = assignment.booking.items.map((item) => ({
       name: item.serviceItem?.name || item.partItem?.name || "Unknown Item",
@@ -334,6 +392,33 @@ export async function notifyEngineerNewJob(
     ).catch((error) => {
       console.error("Failed to send engineer job assignment email:", error);
     });
+
+    // Send SMS (non-blocking)
+    if (engineer.phone && assignment.booking.slotStartDateTime) {
+      const booking = assignment.booking;
+      const slotDate = new Date(booking.slotStartDateTime).toLocaleDateString(
+        "en-IN",
+        { day: "numeric", month: "short", year: "numeric" }
+      );
+      const slotTime = new Date(booking.slotStartDateTime).toLocaleTimeString(
+        "en-IN",
+        { hour: "2-digit", minute: "2-digit" }
+      );
+
+      sendSMSFromTemplate(
+        engineer.phone,
+        "ENGINEER_JOB_ASSIGNED",
+        {
+          bookingId: booking.id.slice(-8),
+          date: slotDate,
+          time: slotTime,
+          address: booking.restaurant.address,
+        },
+        "ENGINEER_JOB_ASSIGNED"
+      ).catch((error) => {
+        console.error("Failed to send engineer job assigned SMS:", error);
+      });
+    }
   }
 
   return notification;

@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatPrice } from "@/lib/utils";
-import { Package, Store, MapPin, Calendar, Phone, Building2 } from "lucide-react";
+import { Package, Store, MapPin, Calendar, Phone, Building2, Star } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
+import { VendorRatingDialog } from "@/components/ratings/vendor-rating-dialog";
 
 interface OrderItem {
   id: string;
@@ -21,9 +22,11 @@ interface OrderItem {
   };
 }
 
+type OrderStatus = "PLACED" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
 interface Order {
   id: string;
-  status: "PLACED" | "CANCELLED";
+  status: OrderStatus;
   totalAmount: number;
   createdAt: string;
   vendor: {
@@ -42,6 +45,8 @@ export default function OwnerMarketplaceOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [orderToRate, setOrderToRate] = useState<Order | null>(null);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
@@ -90,9 +95,24 @@ export default function OwnerMarketplaceOrdersPage() {
     setSelectedOrder(null);
   };
 
+  const openRatingDialog = (order: Order) => {
+    setOrderToRate(order);
+    setIsRatingDialogOpen(true);
+  };
+
+  const handleRatingSuccess = () => {
+    fetchOrders();
+    setIsRatingDialogOpen(false);
+    setOrderToRate(null);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      PLACED: "default",
+      PLACED: "outline",
+      CONFIRMED: "secondary",
+      PROCESSING: "default",
+      SHIPPED: "default",
+      DELIVERED: "default",
       CANCELLED: "destructive",
     };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
@@ -200,6 +220,19 @@ export default function OwnerMarketplaceOrdersPage() {
                     <Button size="sm" onClick={() => openOrderDetails(order)}>
                       View Full Details
                     </Button>
+                    {order.status === "DELIVERED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openRatingDialog(order);
+                        }}
+                      >
+                        <Star className="h-4 w-4 mr-1" />
+                        Rate Vendor
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -305,12 +338,34 @@ export default function OwnerMarketplaceOrdersPage() {
           )}
 
           <DialogFooter>
+            {selectedOrder?.status === "DELIVERED" && (
+              <Button
+                variant="default"
+                onClick={() => {
+                  openRatingDialog(selectedOrder);
+                  closeDialog();
+                }}
+              >
+                <Star className="h-4 w-4 mr-2" />
+                Rate Vendor
+              </Button>
+            )}
             <Button variant="outline" onClick={closeDialog}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {orderToRate && (
+        <VendorRatingDialog
+          orderId={orderToRate.id}
+          vendorName={orderToRate.vendor.name}
+          open={isRatingDialogOpen}
+          onOpenChange={setIsRatingDialogOpen}
+          onSuccess={handleRatingSuccess}
+        />
+      )}
     </div>
   );
 }

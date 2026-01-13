@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Clock, MapPin, User, Upload } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { EngineerRatingDialog } from "@/components/ratings/engineer-rating-dialog";
 
 interface Booking {
   id: string;
@@ -41,6 +42,15 @@ interface Booking {
       workNotes?: string;
       proofImageUrls?: string[];
     };
+    rating?: {
+      overallRating: number;
+      professionalism?: number;
+      technicalSkill?: number;
+      communication?: number;
+      punctuality?: number;
+      problemSolving?: number;
+      review?: string;
+    } | null;
   }>;
 }
 
@@ -57,31 +67,45 @@ const statusColors: Record<string, "default" | "secondary" | "success" | "destru
 export default function BookingDetailPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [assignmentToRate, setAssignmentToRate] = useState<any>(null);
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
   const bookingId = params.id as string;
 
-  useEffect(() => {
-    const fetchBooking = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/owner/bookings/" + bookingId);
-        const data = await response.json();
-        if (data.ok) {
-          setBooking(data.data);
-        } else {
-          toast({ title: "Error", description: data.error, variant: "destructive" });
-          router.push("/owner/bookings");
-        }
-      } catch {
-        toast({ title: "Error", description: "Failed to load booking", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
+  const fetchBooking = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/owner/bookings/" + bookingId);
+      const data = await response.json();
+      if (data.ok) {
+        setBooking(data.data);
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+        router.push("/owner/bookings");
       }
-    };
+    } catch {
+      toast({ title: "Error", description: "Failed to load booking", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBooking();
   }, [bookingId]);
+
+  const openRatingDialog = (assignment: any) => {
+    setAssignmentToRate(assignment);
+    setIsRatingDialogOpen(true);
+  };
+
+  const handleRatingSuccess = () => {
+    fetchBooking();
+    setIsRatingDialogOpen(false);
+    setAssignmentToRate(null);
+  };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -287,6 +311,19 @@ export default function BookingDetailPage() {
                       </div>
                     </>
                   )}
+                  {assignment.status === "COMPLETED" && (
+                    <>
+                      <Separator />
+                      <Button
+                        className="w-full"
+                        variant={assignment.rating ? "outline" : "default"}
+                        onClick={() => openRatingDialog(assignment)}
+                      >
+                        <Star className="mr-2 h-4 w-4" />
+                        {assignment.rating ? "Update Rating" : "Rate Engineer"}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -380,6 +417,16 @@ export default function BookingDetailPage() {
           </Card>
         </div>
       </div>
+
+      {assignmentToRate && booking && (
+        <EngineerRatingDialog
+          bookingId={booking.id}
+          assignment={assignmentToRate}
+          open={isRatingDialogOpen}
+          onOpenChange={setIsRatingDialogOpen}
+          onSuccess={handleRatingSuccess}
+        />
+      )}
     </div>
   );
 }

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         _sum: { totalAmount: true },
       }),
       db.expense.aggregate({
-        where: { restaurantId, date: { gte: startDate } },
+        where: { restaurantId, expenseDate: { gte: startDate } },
         _count: { id: true },
         _sum: { amount: true },
       }),
@@ -83,15 +83,15 @@ export async function GET(request: NextRequest) {
         take: 5,
       }),
       db.expense.findMany({
-        where: { restaurantId, date: { gte: startDate } },
+        where: { restaurantId, expenseDate: { gte: startDate } },
         select: {
           id: true,
           amount: true,
           category: true,
-          date: true,
+          expenseDate: true,
           description: true,
         },
-        orderBy: { date: "desc" },
+        orderBy: { expenseDate: "desc" },
         take: 5,
       }),
     ]);
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     const expensesByCategory = await db.expense.groupBy({
       by: ["category"],
-      where: { restaurantId, date: { gte: startDate } },
+      where: { restaurantId, expenseDate: { gte: startDate } },
       _count: { id: true },
       _sum: { amount: true },
     });
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate net revenue
     const bookingRevenue = bookingStats._sum.totalAmount || 0;
-    const expensesTotal = expenseStats._sum.amount || 0;
+    const expensesTotal = expenseStats._sum?.amount || 0;
     const netRevenue = bookingRevenue - expensesTotal;
 
     const analyticsData = {
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
           revenue: bookingRevenue,
         },
         expenses: {
-          count: expenseStats._count.id,
+          count: expenseStats._count?.id || 0,
           total: expensesTotal,
         },
         equipment: {
@@ -149,16 +149,16 @@ export async function GET(request: NextRequest) {
       breakdowns: {
         bookingsByStatus: bookingsByStatus.map((item) => ({
           status: item.status,
-          count: item._count.id,
+          count: item._count?.id || 0,
         })),
         expensesByCategory: expensesByCategory.map((item) => ({
           category: item.category,
-          count: item._count.id,
-          total: item._sum.amount || 0,
+          count: item._count?.id || 0,
+          total: item._sum?.amount || 0,
         })),
         marketplaceOrdersByStatus: marketplaceOrdersByStatus.map((item) => ({
           status: item.status,
-          count: item._count.id,
+          count: item._count?.id || 0,
         })),
       },
       recent: {
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
           id: e.id,
           amount: e.amount,
           category: e.category,
-          date: e.date.toISOString(),
+          date: e.expenseDate.toISOString(),
           description: e.description,
         })),
       },

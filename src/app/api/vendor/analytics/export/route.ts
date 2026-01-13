@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     });
 
     const topProducts = await db.marketplaceOrderItem.groupBy({
-      by: ["productId"],
+      by: ["vendorProductId"],
       where: {
         order: { vendorId: session.id, createdAt: { gte: startDate } },
       },
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const productDetails = await db.vendorProduct.findMany({
       where: {
-        id: { in: topProducts.map((p) => p.productId) },
+        id: { in: topProducts.map((p) => p.vendorProductId) },
       },
       select: { id: true, name: true, price: true, unit: true },
     });
@@ -134,12 +134,12 @@ export async function GET(request: NextRequest) {
           revenue: item._sum.totalAmount || 0,
         })),
         topProducts: topProducts.map((item) => {
-          const product = productDetails.find((p) => p.id === item.productId);
+          const product = productDetails.find((p) => p.id === item.vendorProductId);
           return {
             product: product || null,
-            totalQuantity: item._sum.qty || 0,
-            totalRevenue: (item._sum.qty || 0) * (item._sum.priceSnapshot || 0),
-            orderCount: item._count.orderId,
+            totalQuantity: item._sum?.qty || 0,
+            totalRevenue: (item._sum?.qty || 0) * (item._sum?.priceSnapshot || 0),
+            orderCount: item._count?.orderId || 0,
           };
         }),
         topCustomers: topCustomers.map((item) => {

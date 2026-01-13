@@ -21,11 +21,11 @@ const updateStatusSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const session = await requireVendor();
-    const { orderId } = params;
+    const { orderId } = await params;
 
     // Verify the order belongs to this vendor
     const order = await db.marketplaceOrder.findUnique({
@@ -194,11 +194,11 @@ export async function PATCH(
 // Get order status history
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const session = await requireVendor();
-    const { orderId } = params;
+    const { orderId } = await params;
 
     // Verify the order belongs to this vendor
     const order = await db.marketplaceOrder.findUnique({

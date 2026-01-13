@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       db.expense.aggregate({
         where: {
           restaurantId,
-          date: { gte: startDate },
+          expenseDate: { gte: startDate },
         },
         _count: { id: true },
         _sum: { amount: true },
@@ -99,12 +99,12 @@ export async function GET(request: NextRequest) {
       db.expense.findMany({
         where: { restaurantId },
         take: 5,
-        orderBy: { date: "desc" },
+        orderBy: { expenseDate: "desc" },
         select: {
           id: true,
           amount: true,
           category: true,
-          date: true,
+          expenseDate: true,
           description: true,
         },
       }),
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       by: ["category"],
       where: {
         restaurantId,
-        date: { gte: startDate },
+        expenseDate: { gte: startDate },
       },
       _sum: { amount: true },
       _count: { id: true },

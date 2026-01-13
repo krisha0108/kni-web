@@ -155,7 +155,7 @@ const formatCurrency = (amount: number) => {
   })}`;
 };
 
-export const OwnerAnalyticsDocument: React.FC<{ data: OwnerAnalyticsData }> = ({ data }) => {
+export function OwnerAnalyticsDocument({ data }: { data: OwnerAnalyticsData }) {
   const profitMargin =
     data.summary.bookings.revenue > 0
       ? ((data.summary.netRevenue / data.summary.bookings.revenue) * 100).toFixed(1)

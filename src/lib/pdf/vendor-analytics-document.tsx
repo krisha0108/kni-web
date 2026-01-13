@@ -140,7 +140,7 @@ const formatCurrency = (amount: number) => {
   })}`;
 };
 
-export const VendorAnalyticsDocument: React.FC<{ data: VendorAnalyticsData }> = ({ data }) => {
+export function VendorAnalyticsDocument({ data }: { data: VendorAnalyticsData }) {
   const avgOrderValue =
     data.summary.orders.count > 0
       ? data.summary.orders.revenue / data.summary.orders.count

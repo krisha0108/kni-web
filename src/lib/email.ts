@@ -527,6 +527,90 @@ export async function sendPaymentRejectedEmail(
   });
 }
 
+// 8. Team Invitation Email
+export async function sendTeamInvitationEmail(
+  to: string,
+  inviterName: string,
+  restaurantName: string,
+  role: string,
+  inviteToken: string,
+  isNewUser: boolean,
+  tempPassword?: string
+): Promise<void> {
+  const acceptUrl = `${APP_URL}/owner/team/accept?token=${inviteToken}`;
+
+  const roleDescriptions: Record<string, string> = {
+    MANAGER: "Full access to manage bookings, equipment, expenses, and AMC subscriptions",
+    ACCOUNTANT: "Access to manage expenses and view financial reports",
+    VIEWER: "Read-only access to view restaurant data and reports"
+  };
+
+  const content = `
+    <h2>You're Invited to Join a Restaurant Team!</h2>
+    <p>Hello,</p>
+    <p><strong>${inviterName}</strong> has invited you to join the team at <strong>${restaurantName}</strong> on KNI Super App.</p>
+
+    <div class="info-box">
+      <strong>Your Role:</strong> ${role}
+      <p>${roleDescriptions[role] || "Team member access"}</p>
+    </div>
+
+    ${
+      isNewUser && tempPassword
+        ? `
+    <div class="credentials">
+      <strong>⚠️ New Account Created</strong>
+      <p>An account has been created for you. You'll set your own password when accepting the invitation.</p>
+      <ul>
+        <li><strong>Email:</strong> ${to}</li>
+      </ul>
+    </div>
+    `
+        : `
+    <div class="success">
+      <p>✅ Your existing KNI Super App account will be used for this team membership.</p>
+    </div>
+    `
+    }
+
+    <a href="${acceptUrl}" class="button">Accept Invitation</a>
+
+    <div class="divider"></div>
+
+    <h3>What's Next?</h3>
+    <ol>
+      <li>Click the button above to accept the invitation</li>
+      ${isNewUser ? "<li>Set your password for the account</li>" : ""}
+      <li>Login to your KNI Super App account</li>
+      <li>Select ${restaurantName} from the restaurant switcher</li>
+      <li>Start collaborating with the team!</li>
+    </ol>
+
+    <div class="credentials">
+      <strong>⚠️ Important:</strong>
+      <p>This invitation link will expire in <strong>7 days</strong>. Please accept it before then.</p>
+    </div>
+
+    <h3>About ${restaurantName}</h3>
+    <p>You'll have ${role.toLowerCase()} access to manage and collaborate on:</p>
+    <ul>
+      <li>Equipment maintenance and AMC subscriptions</li>
+      <li>Service bookings and engineer assignments</li>
+      <li>Expenses and financial tracking</li>
+      <li>Marketplace orders and vendor management</li>
+    </ul>
+
+    <p>If you didn't expect this invitation or have any questions, please contact ${inviterName} or our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `You're Invited to Join ${restaurantName} - KNI Super App`,
+    html: emailTemplate(content, "Team Invitation"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -535,4 +619,5 @@ export default {
   sendEngineerJobAssignmentEmail,
   sendWorkCompletedEmail,
   sendPaymentRejectedEmail,
+  sendTeamInvitationEmail,
 };

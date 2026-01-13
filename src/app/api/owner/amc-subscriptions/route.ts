@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { amcSubscriptionSchema } from "@/server/validators/amc";
 import { calculateAMCEndDate } from "@/lib/amc";
 
@@ -14,10 +15,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with amc:read permission
+    await requireRestaurantAccess(session, restaurantId, "amc:read");
+
     const where: any = {
-      ownerId: session.id,
+      restaurantId,
       ...(status ? { status: status as any } : {}),
-      ...(restaurantId ? { restaurantId } : {}),
     };
 
     const [subscriptions, total] = await Promise.all([
@@ -85,11 +95,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify equipment ownership
-    const equipment = await db.equipment.findFirst({
+    // Get equipment and verify restaurant access
+    const equipment = await db.equipment.findUnique({
       where: {
         id: validation.data.equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
       include: {
@@ -105,10 +114,13 @@ export async function POST(request: NextRequest) {
 
     if (!equipment) {
       return NextResponse.json(
-        { ok: false, error: "Equipment not found or you don't have access" },
+        { ok: false, error: "Equipment not found" },
         { status: 404 }
       );
     }
+
+    // Check restaurant access with amc:create permission
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:create");
 
     if (equipment.restaurant.status !== "APPROVED") {
       return NextResponse.json(

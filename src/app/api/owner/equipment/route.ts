@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { equipmentSchema } from "@/server/validators/equipment";
 
 export async function GET(request: NextRequest) {
@@ -14,10 +15,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with equipment:read permission
+    await requireRestaurantAccess(session, restaurantId, "equipment:read");
+
     const where: any = {
-      ownerId: session.id,
+      restaurantId,
       deletedAt: null,
-      ...(restaurantId ? { restaurantId } : {}),
       ...(status ? { status: status as any } : {}),
       ...(search ? {
         OR: [
@@ -73,11 +83,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify restaurant ownership
-    const restaurant = await db.restaurant.findFirst({
+    // Check restaurant access with equipment:create permission
+    await requireRestaurantAccess(session, validation.data.restaurantId, "equipment:create");
+
+    // Verify restaurant exists and is approved
+    const restaurant = await db.restaurant.findUnique({
       where: {
         id: validation.data.restaurantId,
-        ownerId: session.id,
         status: "APPROVED",
       },
     });

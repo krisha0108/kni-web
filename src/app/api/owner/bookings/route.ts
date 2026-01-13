@@ -1,20 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwnerWithApprovedRestaurant } from "@/server/auth/rbac";
+import { requireOwner } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 
 const createBookingSchema = z.object({
+  restaurantId: z.string().min(1, "Restaurant ID is required"),
   slotStartDateTime: z.string(),
   slotEndDateTime: z.string().optional(),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwnerWithApprovedRestaurant();
+    const session = await requireOwner();
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with bookings:read permission
+    await requireRestaurantAccess(session, restaurantId, "bookings:read");
 
     const bookings = await db.serviceBooking.findMany({
-      where: { ownerId: session.id },
+      where: { restaurantId },
       include: {
         restaurant: { select: { id: true, name: true } },
         items: {
@@ -43,7 +56,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwnerWithApprovedRestaurant();
+    const session = await requireOwner();
 
     const body = await request.json();
     const validation = createBookingSchema.safeParse(body);
@@ -55,19 +68,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const restaurant = await db.restaurant.findFirst({
-      where: { ownerId: session.id, status: "APPROVED" },
+    const { restaurantId, slotStartDateTime, slotEndDateTime } = validation.data;
+
+    // Check restaurant access with bookings:create permission
+    await requireRestaurantAccess(session, restaurantId, "bookings:create");
+
+    const restaurant = await db.restaurant.findUnique({
+      where: { id: restaurantId, status: "APPROVED" },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "No approved restaurant" },
+        { ok: false, error: "Restaurant not found or not approved" },
         { status: 400 }
       );
     }
 
     const cart = await db.cart.findFirst({
-      where: { ownerId: session.id, restaurantId: restaurant.id, status: "DRAFT" },
+      where: { ownerId: session.id, restaurantId, status: "DRAFT" },
       include: {
         items: {
           include: {
@@ -91,7 +109,7 @@ export async function POST(request: NextRequest) {
     await db.cart.deleteMany({
       where: {
         ownerId: session.id,
-        restaurantId: restaurant.id,
+        restaurantId,
         status: "ARCHIVED",
       },
     });
@@ -100,7 +118,7 @@ export async function POST(request: NextRequest) {
     await db.cart.updateMany({
       where: {
         ownerId: session.id,
-        restaurantId: restaurant.id,
+        restaurantId,
         status: "SUBMITTED",
       },
       data: { status: "ARCHIVED" },
@@ -109,10 +127,10 @@ export async function POST(request: NextRequest) {
     const booking = await db.serviceBooking.create({
       data: {
         ownerId: session.id,
-        restaurantId: restaurant.id,
-        slotStartDateTime: new Date(validation.data.slotStartDateTime),
-        slotEndDateTime: validation.data.slotEndDateTime
-          ? new Date(validation.data.slotEndDateTime)
+        restaurantId,
+        slotStartDateTime: new Date(slotStartDateTime),
+        slotEndDateTime: slotEndDateTime
+          ? new Date(slotEndDateTime)
           : null,
         status: "SLOT_SELECTED",
         totalAmount,

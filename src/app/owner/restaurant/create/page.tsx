@@ -101,6 +101,18 @@ export default function CreateRestaurantPage() {
                 disabled={isLoading}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode *</Label>
+              <Input
+                id="pincode"
+                value={formData.pincode}
+                onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                placeholder="400001"
+                maxLength={6}
+                required
+                disabled={isLoading}
+              />
+            </div>
           </div>
 
           {/* Restaurant Image */}

@@ -6,6 +6,7 @@ import { inviteMemberSchema } from "@/server/validators/team";
 import { RestaurantRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { sendTeamInvitationEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,12 +73,28 @@ export async function POST(request: NextRequest) {
     // Check if user has team:invite permission (only OWNER)
     await requireRestaurantAccess(session, restaurantId, "team:invite");
 
+    // Get restaurant details for email
+    const restaurant = await db.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { name: true },
+    });
+
+    if (!restaurant) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant not found" },
+        { status: 404 }
+      );
+    }
+
     // Check if user already exists
     let user = await db.user.findUnique({ where: { email } });
+    let isNewUser = false;
+    let tempPassword: string | undefined;
 
     if (!user) {
-      // Create new user account with temporary password
-      const tempPassword = crypto.randomBytes(12).toString("hex");
+      // Create new user account with temporary password (will be replaced on acceptance)
+      isNewUser = true;
+      tempPassword = crypto.randomBytes(12).toString("hex");
       const passwordHash = await bcrypt.hash(tempPassword, 10);
 
       user = await db.user.create({
@@ -91,8 +108,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // TODO: Send invitation email with temporary password
-      console.log(`User created with temp password: ${tempPassword}`);
+      console.log(`New user created: ${email}`);
     }
 
     // Check if already a member
@@ -125,8 +141,8 @@ export async function POST(request: NextRequest) {
         invitedBy: session.id,
         inviteToken,
         inviteExpiresAt,
-        // For MVP: auto-accept for existing users
-        acceptedAt: user.passwordHash ? new Date() : null,
+        // New users need to accept and set password, existing users are auto-accepted
+        acceptedAt: isNewUser ? null : new Date(),
       },
       include: {
         user: {
@@ -140,8 +156,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send invitation email
-    console.log(`Invitation created with token: ${inviteToken}`);
+    // Send invitation email
+    try {
+      await sendTeamInvitationEmail(
+        email,
+        session.name,
+        restaurant.name,
+        role,
+        inviteToken,
+        isNewUser,
+        tempPassword
+      );
+      console.log(`Invitation email sent to ${email}`);
+    } catch (emailError) {
+      console.error("Failed to send invitation email:", emailError);
+      // Don't fail the request if email fails
+    }
 
     return NextResponse.json({ ok: true, data: member });
   } catch (error) {

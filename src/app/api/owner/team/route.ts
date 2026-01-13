@@ -158,15 +158,16 @@ export async function POST(request: NextRequest) {
 
     // Send invitation email
     try {
-      await sendTeamInvitationEmail(
-        email,
-        session.name,
-        restaurant.name,
+      await sendTeamInvitationEmail({
+        to: email,
+        toName: name,
+        inviterName: session.name,
+        restaurantName: restaurant.name,
         role,
         inviteToken,
         isNewUser,
-        tempPassword
-      );
+        tempPassword,
+      });
       console.log(`Invitation email sent to ${email}`);
     } catch (emailError) {
       console.error("Failed to send invitation email:", emailError);

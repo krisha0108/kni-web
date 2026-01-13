@@ -150,6 +150,22 @@ enum KhatabookTransactionType {
   AMC_REVENUE
 }
 
+enum RatingCategory {
+  PRODUCT_QUALITY
+  DELIVERY_TIME
+  CUSTOMER_SERVICE
+  VALUE_FOR_MONEY
+  PACKAGING
+}
+
+enum EngineerRatingCategory {
+  PROFESSIONALISM
+  TECHNICAL_SKILL
+  COMMUNICATION
+  PUNCTUALITY
+  PROBLEM_SOLVING
+}
+
 // ========================================
 // A) AUTH
 // ========================================
@@ -194,6 +210,12 @@ model User {
   restaurantMemberships    RestaurantMember[]      @relation("RestaurantMember")
   restaurantInvites        RestaurantMember[]      @relation("RestaurantInviter")
   orderStatusHistoryChanges OrderStatusHistory[]
+  vendorRatingsReceived    VendorRating[]          @relation("VendorRatings")
+  vendorRatingsGiven       VendorRating[]          @relation("OwnerVendorRatings")
+  engineerRatingsReceived  EngineerRating[]        @relation("EngineerRatings")
+  engineerRatingsGiven     EngineerRating[]        @relation("OwnerEngineerRatings")
+  vendorStats              VendorStats?            @relation("VendorStats")
+  engineerStats            EngineerStats?          @relation("EngineerStats")
 
   @@index([email])
   @@index([role])
@@ -397,6 +419,8 @@ model Restaurant {
   equipments        Equipment[]
   amcSubscriptions  AMCSubscription[]
   expenses          Expense[]
+  vendorRatings     VendorRating[]
+  engineerRatings   EngineerRating[]
 
   @@index([ownerId])
   @@index([status])
@@ -516,6 +540,7 @@ model ServiceBooking {
   engineerAssignments EngineerAssignment[]
   amcUsage            AMCServiceUse[]
   stockMovements      StockMovement[]
+  engineerRatings     EngineerRating[]
 
   @@index([ownerId])
   @@index([restaurantId])
@@ -571,6 +596,7 @@ model EngineerAssignment {
   engineer User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
   workLog  EngineerWorkLog?
   payout   Payout?
+  rating   EngineerRating?
 
   @@unique([bookingId, engineerId])
   @@index([bookingId])
@@ -634,6 +660,7 @@ model MarketplaceOrder {
   restaurant    Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   items         MarketplaceOrderItem[]
   statusHistory OrderStatusHistory[]
+  rating        VendorRating?
 
   @@index([ownerId])
   @@index([vendorId])
@@ -1129,4 +1156,122 @@ model KhatabookSyncLog {
   @@index([connectionId])
   @@index([status])
   @@index([startedAt])
+}
+
+// ========================================
+// R) RATINGS & REVIEWS
+// ========================================
+
+model VendorRating {
+  id               String    @id @default(cuid())
+  orderId          String    @unique
+  vendorId         String
+  ownerId          String
+  restaurantId     String
+  overallRating    Int // 1-5 stars
+  productQuality   Int? // 1-5
+  deliveryTime     Int? // 1-5
+  customerService  Int? // 1-5
+  valueForMoney    Int? // 1-5
+  packaging        Int? // 1-5
+  review           String?   @db.Text
+  images           Json? // Array of image URLs
+  isVerifiedPurchase Boolean @default(true)
+  isPublished      Boolean   @default(true)
+  adminResponse    String?   @db.Text
+  respondedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  order      MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor     User             @relation("VendorRatings", fields: [vendorId], references: [id], onDelete: Cascade)
+  owner      User             @relation("OwnerVendorRatings", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([overallRating])
+  @@index([createdAt])
+}
+
+model EngineerRating {
+  id               String    @id @default(cuid())
+  assignmentId     String    @unique
+  engineerId       String
+  ownerId          String
+  restaurantId     String
+  bookingId        String
+  overallRating    Int // 1-5 stars
+  professionalism  Int? // 1-5
+  technicalSkill   Int? // 1-5
+  communication    Int? // 1-5
+  punctuality      Int? // 1-5
+  problemSolving   Int? // 1-5
+  review           String?   @db.Text
+  images           Json? // Array of image URLs
+  isPublished      Boolean   @default(true)
+  adminResponse    String?   @db.Text
+  respondedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  engineer   User               @relation("EngineerRatings", fields: [engineerId], references: [id], onDelete: Cascade)
+  owner      User               @relation("OwnerEngineerRatings", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  booking    ServiceBooking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([engineerId])
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([bookingId])
+  @@index([overallRating])
+  @@index([createdAt])
+}
+
+model VendorStats {
+  id                    String   @id @default(cuid())
+  vendorId              String   @unique
+  averageRating         Float    @default(0)
+  totalRatings          Int      @default(0)
+  fiveStarCount         Int      @default(0)
+  fourStarCount         Int      @default(0)
+  threeStarCount        Int      @default(0)
+  twoStarCount          Int      @default(0)
+  oneStarCount          Int      @default(0)
+  averageProductQuality Float?
+  averageDeliveryTime   Float?
+  averageCustomerService Float?
+  averageValueForMoney  Float?
+  averagePackaging      Float?
+  updatedAt             DateTime @updatedAt
+
+  vendor User @relation("VendorStats", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([averageRating])
+  @@index([totalRatings])
+}
+
+model EngineerStats {
+  id                     String   @id @default(cuid())
+  engineerId             String   @unique
+  averageRating          Float    @default(0)
+  totalRatings           Int      @default(0)
+  fiveStarCount          Int      @default(0)
+  fourStarCount          Int      @default(0)
+  threeStarCount         Int      @default(0)
+  twoStarCount           Int      @default(0)
+  oneStarCount           Int      @default(0)
+  averageProfessionalism Float?
+  averageTechnicalSkill  Float?
+  averageCommunication   Float?
+  averagePunctuality     Float?
+  averageProblemSolving  Float?
+  updatedAt              DateTime @updatedAt
+
+  engineer User @relation("EngineerStats", fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@index([averageRating])
+  @@index([totalRatings])
 }

@@ -74,6 +74,10 @@ enum VendorSubscriptionStatus {
 
 enum MarketplaceOrderStatus {
   PLACED
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
   CANCELLED
 }
 
@@ -146,9 +150,10 @@ model User {
   expenses               Expense[]
   deviceTokens           DeviceToken[]
   notificationPreference NotificationPreference?
-  pushNotificationLogs   PushNotificationLog[]
-  restaurantMemberships  RestaurantMember[]      @relation("RestaurantMember")
-  restaurantInvites      RestaurantMember[]      @relation("RestaurantInviter")
+  pushNotificationLogs     PushNotificationLog[]
+  restaurantMemberships    RestaurantMember[]      @relation("RestaurantMember")
+  restaurantInvites        RestaurantMember[]      @relation("RestaurantInviter")
+  orderStatusHistoryChanges OrderStatusHistory[]
 
   @@index([email])
   @@index([role])
@@ -569,21 +574,29 @@ model VendorProduct {
 }
 
 model MarketplaceOrder {
-  id           String                 @id @default(cuid())
-  ownerId      String
-  vendorId     String
-  restaurantId String
-  status       MarketplaceOrderStatus @default(PLACED)
-  totalAmount  Int
-  createdAt    DateTime               @default(now())
+  id              String                 @id @default(cuid())
+  ownerId         String
+  vendorId        String
+  restaurantId    String
+  status          MarketplaceOrderStatus @default(PLACED)
+  totalAmount     Int
+  statusNotes     String?                @db.Text
+  expectedDeliveryDate DateTime?
+  actualDeliveryDate   DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  statusUpdatedAt DateTime               @default(now())
 
-  owner      User                   @relation("OwnerOrders", fields: [ownerId], references: [id], onDelete: Cascade)
-  vendor     User                   @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Cascade)
-  restaurant Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  items      MarketplaceOrderItem[]
+  owner         User                   @relation("OwnerOrders", fields: [ownerId], references: [id], onDelete: Cascade)
+  vendor        User                   @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Cascade)
+  restaurant    Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items         MarketplaceOrderItem[]
+  statusHistory OrderStatusHistory[]
 
   @@index([ownerId])
   @@index([vendorId])
+  @@index([restaurantId])
+  @@index([status])
   @@index([createdAt])
 }
 
@@ -598,6 +611,23 @@ model MarketplaceOrderItem {
   product VendorProduct    @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id          String                 @id @default(cuid())
+  orderId     String
+  oldStatus   MarketplaceOrderStatus?
+  newStatus   MarketplaceOrderStatus
+  notes       String?                @db.Text
+  changedBy   String
+  createdAt   DateTime               @default(now())
+
+  order      MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedByUser User          @relation(fields: [changedBy], references: [id])
+
+  @@index([orderId])
+  @@index([changedBy])
+  @@index([createdAt])
 }
 
 // ========================================

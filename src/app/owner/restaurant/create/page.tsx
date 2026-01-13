@@ -16,6 +16,7 @@ export default function CreateRestaurantPage() {
     name: "",
     address: "",
     city: "",
+    pincode: "",
     restaurantImageUrl: "",
     fssaiNumber: "",
     fssaiCertificateUrl: "",

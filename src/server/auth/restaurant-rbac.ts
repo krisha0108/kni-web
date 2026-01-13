@@ -107,7 +107,7 @@ export function hasPermission(
   access: RestaurantAccess,
   permission: Permission
 ): boolean {
-  const allowedRoles = RESTAURANT_PERMISSIONS[permission];
+  const allowedRoles = RESTAURANT_PERMISSIONS[permission] as readonly RestaurantRole[];
   return allowedRoles.includes(access.role);
 }
 

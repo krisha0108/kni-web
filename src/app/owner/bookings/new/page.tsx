@@ -27,11 +27,6 @@ interface CartItem {
   partItem?: { id: string; name: string; price: number };
 }
 
-interface Restaurant {
-  id: string;
-  name: string;
-}
-
 const timeSlots = [
   { value: "09:00-11:00", label: "9:00 AM - 11:00 AM" },
   { value: "11:00-13:00", label: "11:00 AM - 1:00 PM" },
@@ -196,26 +191,14 @@ export default function NewBookingPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="restaurant">Restaurant *</Label>
-                  <ClientOnly>
-                    <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select restaurant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {restaurants.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                    </ClientOnly>
-                  {restaurants.length === 0 && (
-                    <p className="text-sm text-destructive">
-                      You need an approved restaurant to create a booking
-                    </p>
-                  )}
+                  <Label htmlFor="restaurant">Restaurant</Label>
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-muted">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{selectedRestaurant?.restaurant.name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use the restaurant switcher in the header to change restaurants
+                  </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -268,7 +251,7 @@ export default function NewBookingPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting || restaurants.length === 0}
+                  disabled={isSubmitting || !selectedRestaurant}
                 >
                   {isSubmitting ? "Creating Booking..." : "Create Booking"}
                 </Button>

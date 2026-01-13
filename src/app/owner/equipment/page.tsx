@@ -259,21 +259,11 @@ export default function OwnerEquipmentPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Restaurant *</Label>
-                <ClientOnly>
-                  <Select value={formData.restaurantId} onValueChange={(v) => setFormData({ ...formData, restaurantId: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select restaurant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {restaurants.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </ClientOnly>
+                <Label>Restaurant</Label>
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{selectedRestaurant?.restaurant.name}</span>
+                </div>
               </div>
 
               <div className="space-y-2">

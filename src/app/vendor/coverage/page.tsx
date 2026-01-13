@@ -18,14 +18,14 @@ interface Coverage {
 }
 
 export default function VendorCoveragePage() {
-  const [coverage, setCoverage] = React.useState<Coverage | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [coverageType, setCoverageType] = React.useState<"CITY_WIDE" | "PINCODE_WISE">("CITY_WIDE");
-  const [cities, setCities] = React.useState<string[]>([]);
-  const [pincodes, setPincodes] = React.useState<string[]>([]);
-  const [cityInput, setCityInput] = React.useState("");
-  const [pincodeInput, setPincodeInput] = React.useState("");
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [coverageType, setCoverageType] = useState<"CITY_WIDE" | "PINCODE_WISE">("CITY_WIDE");
+  const [cities, setCities] = useState<string[]>([]);
+  const [pincodes, setPincodes] = useState<string[]>([]);
+  const [cityInput, setCityInput] = useState("");
+  const [pincodeInput, setPincodeInput] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {

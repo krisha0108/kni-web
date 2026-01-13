@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Package, MapPin, User, Phone, Mail, Calendar, X, Clock, History } from "lucide-react";
+import { Package, MapPin, User, Phone, Mail, Calendar, X, Clock, History, Search, Filter, ArrowUpDown } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { getOrderStatusColor, getOrderStatusLabel, getNextStatuses, canUpdateStatus } from "@/lib/order-status";
 import { MarketplaceOrderStatus } from "@prisma/client";
@@ -69,10 +69,21 @@ export default function VendorOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDeliveryStatus, setFilterDeliveryStatus] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "amount-desc" | "amount-asc">("date-desc");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+
   const [statusForm, setStatusForm] = useState({
     status: "" as MarketplaceOrderStatus,
     statusNotes: "",
@@ -82,16 +93,12 @@ export default function VendorOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, [filterStatus]);
+  }, []);
 
   const fetchOrders = async () => {
     try {
       setIsLoading(true);
-      const url = filterStatus === "all"
-        ? "/api/vendor/orders"
-        : `/api/vendor/orders?status=${filterStatus}`;
-
-      const response = await fetch(url);
+      const response = await fetch("/api/vendor/orders");
       const data = await response.json();
 
       if (data.ok) {
@@ -216,7 +223,106 @@ export default function VendorOrdersPage() {
     );
   };
 
-  const filteredOrders = orders;
+  // Filtered and sorted orders
+  const filteredOrders = useMemo(() => {
+    let filtered = [...orders];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((order) =>
+        order.id.toLowerCase().includes(query) ||
+        order.owner.name.toLowerCase().includes(query) ||
+        order.restaurant.name.toLowerCase().includes(query) ||
+        getOrderStatusLabel(order.status).toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((order) => order.status === filterStatus);
+    }
+
+    // Delivery status filter
+    if (filterDeliveryStatus !== "all") {
+      filtered = filtered.filter((order) => {
+        if (filterDeliveryStatus === "pending") {
+          return !order.actualDeliveryDate && order.status !== "DELIVERED";
+        } else if (filterDeliveryStatus === "delivered") {
+          return order.status === "DELIVERED" && order.actualDeliveryDate;
+        } else if (filterDeliveryStatus === "delayed") {
+          return order.expectedDeliveryDate &&
+                 !order.actualDeliveryDate &&
+                 new Date(order.expectedDeliveryDate) < new Date();
+        }
+        return true;
+      });
+    }
+
+    // Date range filter (order date)
+    if (filterDateFrom) {
+      filtered = filtered.filter((order) =>
+        new Date(order.createdAt) >= new Date(filterDateFrom)
+      );
+    }
+    if (filterDateTo) {
+      filtered = filtered.filter((order) =>
+        new Date(order.createdAt) <= new Date(filterDateTo)
+      );
+    }
+
+    // Amount range filter
+    if (filterMinAmount) {
+      filtered = filtered.filter((order) =>
+        order.totalAmount >= parseFloat(filterMinAmount)
+      );
+    }
+    if (filterMaxAmount) {
+      filtered = filtered.filter((order) =>
+        order.totalAmount <= parseFloat(filterMaxAmount)
+      );
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "date-asc":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "amount-desc":
+          return b.totalAmount - a.totalAmount;
+        case "amount-asc":
+          return a.totalAmount - b.totalAmount;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [orders, searchQuery, filterStatus, filterDeliveryStatus, filterDateFrom, filterDateTo, filterMinAmount, filterMaxAmount, sortBy]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterDeliveryStatus !== "all") count++;
+    if (filterDateFrom) count++;
+    if (filterDateTo) count++;
+    if (filterMinAmount) count++;
+    if (filterMaxAmount) count++;
+    return count;
+  }, [filterStatus, filterDeliveryStatus, filterDateFrom, filterDateTo, filterMinAmount, filterMaxAmount]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterStatus("all");
+    setFilterDeliveryStatus("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterMinAmount("");
+    setFilterMaxAmount("");
+  };
 
   return (
     <ClientOnly>
@@ -230,27 +336,239 @@ export default function VendorOrdersPage() {
           </div>
         </div>
 
-        <div className="flex gap-4 items-center">
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
-              <SelectItem value="PLACED">Placed</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="PROCESSING">Processing</SelectItem>
-              <SelectItem value="SHIPPED">Shipped</SelectItem>
-              <SelectItem value="DELIVERED">Delivered</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Search and Filter Controls */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by order ID, customer, restaurant, or status..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Sort */}
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <ArrowUpDown className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                  <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                  <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
+                  <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Filter Button */}
+              <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="relative">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filters
+                    {activeFiltersCount > 0 && (
+                      <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Filter Orders</DialogTitle>
+                    <DialogDescription>
+                      Apply filters to narrow down your orders
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4 py-4">
+                    {/* Order Status Filter */}
+                    <div className="space-y-2">
+                      <Label>Order Status</Label>
+                      <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="PLACED">Placed</SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                          <SelectItem value="PROCESSING">Processing</SelectItem>
+                          <SelectItem value="SHIPPED">Shipped</SelectItem>
+                          <SelectItem value="DELIVERED">Delivered</SelectItem>
+                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Delivery Status Filter */}
+                    <div className="space-y-2">
+                      <Label>Delivery Status</Label>
+                      <Select value={filterDeliveryStatus} onValueChange={setFilterDeliveryStatus}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Delivery Status</SelectItem>
+                          <SelectItem value="pending">Pending Delivery</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="delayed">Delayed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Order Date Range */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Order From</Label>
+                        <Input
+                          type="date"
+                          value={filterDateFrom}
+                          onChange={(e) => setFilterDateFrom(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Order To</Label>
+                        <Input
+                          type="date"
+                          value={filterDateTo}
+                          onChange={(e) => setFilterDateTo(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Amount Range */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Min Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={filterMinAmount}
+                          onChange={(e) => setFilterMinAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Max Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          placeholder="No limit"
+                          value={filterMaxAmount}
+                          onChange={(e) => setFilterMaxAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={clearFilters}>
+                      Clear All
+                    </Button>
+                    <Button onClick={() => setIsFilterDialogOpen(false)}>
+                      Apply Filters
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Active Filters Display */}
+            {(searchQuery || activeFiltersCount > 0) && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">Active:</span>
+                {searchQuery && (
+                  <Badge variant="secondary" className="gap-1">
+                    Search: {searchQuery}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setSearchQuery("")}
+                    />
+                  </Badge>
+                )}
+                {filterStatus !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Status: {getOrderStatusLabel(filterStatus as MarketplaceOrderStatus)}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterStatus("all")}
+                    />
+                  </Badge>
+                )}
+                {filterDeliveryStatus !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Delivery: {filterDeliveryStatus.charAt(0).toUpperCase() + filterDeliveryStatus.slice(1)}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterDeliveryStatus("all")}
+                    />
+                  </Badge>
+                )}
+                {filterDateFrom && (
+                  <Badge variant="secondary" className="gap-1">
+                    From: {filterDateFrom}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterDateFrom("")}
+                    />
+                  </Badge>
+                )}
+                {filterDateTo && (
+                  <Badge variant="secondary" className="gap-1">
+                    To: {filterDateTo}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterDateTo("")}
+                    />
+                  </Badge>
+                )}
+                {filterMinAmount && (
+                  <Badge variant="secondary" className="gap-1">
+                    Min: ₹{filterMinAmount}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterMinAmount("")}
+                    />
+                  </Badge>
+                )}
+                {filterMaxAmount && (
+                  <Badge variant="secondary" className="gap-1">
+                    Max: ₹{filterMaxAmount}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setFilterMaxAmount("")}
+                    />
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Results Count */}
+            <div className="mt-4 text-sm text-muted-foreground">
+              Showing {filteredOrders.length} of {orders.length} orders
+            </div>
+          </CardContent>
+        </Card>
 
         {isLoading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading orders...</p>
           </div>
+        ) : filteredOrders.length === 0 && orders.length > 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Search className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg text-muted-foreground">No orders match your filters</p>
+              <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria</p>
+              <Button className="mt-4" variant="outline" onClick={clearFilters}>
+                Clear All Filters
+              </Button>
+            </CardContent>
+          </Card>
         ) : filteredOrders.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">

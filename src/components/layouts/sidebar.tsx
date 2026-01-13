@@ -91,6 +91,8 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Subcategories", href: "/admin/subcategories", icon: Layers },
   { title: "Services", href: "/admin/services", icon: Wrench },
   { title: "Parts", href: "/admin/parts", icon: Tag },
+  { title: "Equipment Categories", href: "/admin/equipment-categories", icon: FolderOpen },
+  { title: "Equipment Types", href: "/admin/equipment-types", icon: Zap },
   { title: "Restaurant Requests", href: "/admin/restaurants/requests", icon: Building2 },
   { title: "Category Requests", href: "/admin/category-requests", icon: FileText },
   { title: "Vendors", href: "/admin/vendors", icon: Store },

@@ -11,14 +11,15 @@ const updateOrderSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireVendor();
+    const { id } = await params;
 
     const order = await db.marketplaceOrder.findFirst({
       where: {
-        id: params.id,
+        id,
         vendorId: session.id,
       },
       include: {
@@ -74,10 +75,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireVendor();
+    const { id } = await params;
     const body = await request.json();
 
     const validation = updateOrderSchema.safeParse(body);
@@ -91,7 +93,7 @@ export async function PATCH(
     // Verify order belongs to vendor
     const existingOrder = await db.marketplaceOrder.findFirst({
       where: {
-        id: params.id,
+        id,
         vendorId: session.id,
       },
     });
@@ -105,7 +107,7 @@ export async function PATCH(
 
     // Update order
     const order = await db.marketplaceOrder.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: validation.data.status,
       },

@@ -17,6 +17,7 @@ import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
 import { Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
 import { formatDate } from "@/lib/utils";
+import { ExportButton } from "@/components/export-button";
 
 interface Equipment {
   id: string;
@@ -221,9 +222,14 @@ export default function OwnerEquipmentPage() {
           <h1 className="text-3xl font-bold">My Equipment</h1>
           <p className="text-muted-foreground">Manage your kitchen equipment and appliances</p>
         </div>
-        <ClientOnly>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
+        <div className="flex gap-2">
+          <ExportButton
+            endpoint="/api/owner/exports/equipment"
+            filename={`equipment-${new Date().toISOString().split('T')[0]}.csv`}
+          />
+          <ClientOnly>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Equipment
@@ -369,6 +375,7 @@ export default function OwnerEquipmentPage() {
           </DialogContent>
         </Dialog>
         </ClientOnly>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

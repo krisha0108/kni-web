@@ -3,12 +3,7 @@ import { z } from "zod";
 // Expense Validation
 export const expenseSchema = z.object({
   restaurantId: z.string().min(1, "Restaurant is required"),
-  category: z.enum(
-    ["FOOD", "UTILITIES", "SALARIES", "MAINTENANCE", "RENT", "SUPPLIES", "MARKETING", "TRANSPORT", "OTHER"],
-    {
-      errorMap: () => ({ message: "Invalid category" }),
-    }
-  ),
+  category: z.enum(["FOOD", "UTILITIES", "SALARIES", "MAINTENANCE", "RENT", "SUPPLIES", "MARKETING", "TRANSPORT", "OTHER"]),
   amount: z.number().positive("Amount must be positive"),
   expenseDate: z.string().datetime("Invalid date format"),
   description: z.string().min(2, "Description must be at least 2 characters"),

@@ -85,72 +85,112 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify restaurant ownership
-    const restaurant = await db.restaurant.findFirst({
+    // Verify equipment ownership
+    const equipment = await db.equipment.findFirst({
       where: {
-        id: validation.data.restaurantId,
+        id: validation.data.equipmentId,
         ownerId: session.id,
-        status: "APPROVED",
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found or not approved" },
-        { status: 404 }
-      );
-    }
-
-    // Get plan details
-    const plan = await db.aMCPlan.findFirst({
-      where: {
-        id: validation.data.planId,
-        isActive: true,
         deletedAt: null,
       },
+      include: {
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+      },
     });
 
-    if (!plan) {
+    if (!equipment) {
       return NextResponse.json(
-        { ok: false, error: "AMC plan not found or inactive" },
+        { ok: false, error: "Equipment not found or you don't have access" },
         { status: 404 }
       );
     }
 
-    // Check if there's already an active subscription for this restaurant
+    if (equipment.restaurant.status !== "APPROVED") {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant must be approved to create AMC subscription" },
+        { status: 400 }
+      );
+    }
+
+    // Check if there's already an active subscription for this equipment
     const existingSubscription = await db.aMCSubscription.findFirst({
       where: {
-        restaurantId: validation.data.restaurantId,
+        equipmentId: validation.data.equipmentId,
         status: "ACTIVE",
       },
     });
 
     if (existingSubscription) {
       return NextResponse.json(
-        { ok: false, error: "This restaurant already has an active AMC subscription" },
+        { ok: false, error: "This equipment already has an active AMC subscription" },
         { status: 400 }
       );
     }
 
-    // Calculate end date based on plan duration
+    // Calculate end date based on duration
     const startDate = new Date(validation.data.startDate);
-    const endDate = calculateAMCEndDate(startDate, plan.duration as "MONTHLY" | "QUARTERLY" | "YEARLY");
+    const endDate = calculateAMCEndDate(startDate, validation.data.duration);
+
+    // Prepare subscription data
+    const subscriptionData: any = {
+      equipmentId: validation.data.equipmentId,
+      ownerId: session.id,
+      restaurantId: equipment.restaurantId,
+      duration: validation.data.duration,
+      serviceLimit: validation.data.serviceLimit,
+      totalAmount: validation.data.totalAmount,
+      startDate,
+      endDate,
+      status: "ACTIVE",
+      autoRenew: validation.data.autoRenew || false,
+      servicesUsed: 0,
+    };
+
+    // If using an admin plan template
+    if (validation.data.planId) {
+      const plan = await db.aMCPlan.findFirst({
+        where: {
+          id: validation.data.planId,
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+
+      if (!plan) {
+        return NextResponse.json(
+          { ok: false, error: "AMC plan not found or inactive" },
+          { status: 404 }
+        );
+      }
+
+      subscriptionData.planId = plan.id;
+      subscriptionData.planName = plan.name;
+      subscriptionData.planDescription = plan.description;
+      subscriptionData.featuresJson = plan.featuresJson || [];
+    } else {
+      // Custom plan
+      subscriptionData.planName = validation.data.planName || "Custom Plan";
+      subscriptionData.planDescription = validation.data.planDescription;
+      subscriptionData.featuresJson = validation.data.featuresJson || [];
+    }
 
     // Create subscription
     const subscription = await db.aMCSubscription.create({
-      data: {
-        planId: plan.id,
-        ownerId: session.id,
-        restaurantId: validation.data.restaurantId,
-        startDate,
-        endDate,
-        status: "ACTIVE",
-        autoRenew: validation.data.autoRenew || false,
-        servicesUsed: 0,
-        totalAmount: plan.price,
-      },
+      data: subscriptionData,
       include: {
         plan: true,
+        equipment: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+          },
+        },
         restaurant: {
           select: {
             id: true,

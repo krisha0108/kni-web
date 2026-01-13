@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Eye, Search } from "lucide-react";
+import { Plus, Eye, Search, Download } from "lucide-react";
 import { getStockStatus } from "@/lib/warehouse";
 import { formatPrice, formatDate } from "@/lib/utils";
 
@@ -151,6 +151,34 @@ export default function WarehouseInventoryPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch("/api/admin/exports/inventory");
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventory-export-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Success",
+        description: "Inventory exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export inventory",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -158,13 +186,18 @@ export default function WarehouseInventoryPage() {
           <h1 className="text-3xl font-bold">Warehouse Inventory</h1>
           <p className="text-muted-foreground">Manage part stock levels and thresholds</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Initialize Inventory
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button onClick={handleExport} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Initialize Inventory
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Initialize Inventory</DialogTitle>
@@ -223,6 +256,7 @@ export default function WarehouseInventoryPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

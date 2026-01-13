@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         duration: validation.data.duration as any,
         price: validation.data.price,
         serviceLimit: validation.data.serviceLimit,
-        featuresJson: validation.data.featuresJson || null,
+        featuresJson: validation.data.featuresJson || [],
         isActive: validation.data.isActive !== undefined ? validation.data.isActive : true,
       },
     });

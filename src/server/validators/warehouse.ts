@@ -14,12 +14,7 @@ export const warehouseInventoryUpdateSchema = z.object({
 // Stock Movement Validation
 export const stockMovementSchema = z.object({
   inventoryId: z.string().min(1, "Inventory is required"),
-  movementType: z.enum(
-    ["INWARD_PURCHASE", "INWARD_RETURN", "OUTWARD_USAGE", "OUTWARD_WASTAGE", "ADJUSTMENT"],
-    {
-      errorMap: () => ({ message: "Invalid movement type" }),
-    }
-  ),
+  movementType: z.enum(["INWARD_PURCHASE", "INWARD_RETURN", "OUTWARD_USAGE", "OUTWARD_WASTAGE", "ADJUSTMENT"]),
   quantity: z.number().int().positive("Quantity must be positive"),
   bookingId: z.string().optional(),
   notes: z.string().optional(),

@@ -444,7 +444,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Duration</Label>
-                    <p className="font-medium">{getAMCDurationLabel(activeAmc.duration)}</p>
+                    <p className="font-medium">{getAMCDurationLabel(activeAmc.duration as any)}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Amount</Label>
@@ -677,12 +677,12 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                     <div key={amc.id} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-sm">{amc.planName || "Custom Plan"}</p>
-                        <Badge variant={getAMCStatusColor(amc.status)}>
-                          {getAMCStatusLabel(amc.status)}
+                        <Badge variant={getAMCStatusColor(amc.status as any)}>
+                          {getAMCStatusLabel(amc.status as any)}
                         </Badge>
                       </div>
                       <div className="text-xs text-muted-foreground space-y-1">
-                        <p>{getAMCDurationLabel(amc.duration)}</p>
+                        <p>{getAMCDurationLabel(amc.duration as any)}</p>
                         <p>{formatDate(amc.startDate)} - {formatDate(amc.endDate)}</p>
                         <p>{amc.servicesUsed} / {amc.serviceLimit} services used</p>
                       </div>

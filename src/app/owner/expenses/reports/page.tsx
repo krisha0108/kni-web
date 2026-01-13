@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LineChart } from "@/components/ui/line-chart";
+import { PieChart } from "@/components/ui/pie-chart";
+import { BarChart } from "@/components/ui/bar-chart";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { getAllExpenseCategories, getExpenseCategoryLabel, getExpenseCategoryColor } from "@/lib/expense";
@@ -25,6 +28,7 @@ interface MonthlyReport {
 
 export default function ExpenseReportsPage() {
   const [report, setReport] = useState<MonthlyReport | null>(null);
+  const [trendData, setTrendData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -33,6 +37,7 @@ export default function ExpenseReportsPage() {
 
   useEffect(() => {
     fetchMonthlyReport();
+    fetchTrendData();
   }, [selectedYear, selectedMonth]);
 
   const fetchMonthlyReport = async () => {
@@ -53,6 +58,43 @@ export default function ExpenseReportsPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTrendData = async () => {
+    try {
+      const response = await fetch("/api/owner/expenses");
+      const data = await response.json();
+      if (data.ok) {
+        const expenses = data.data.expenses || [];
+
+        const last6Months = Array.from({ length: 6 }, (_, i) => {
+          const d = new Date();
+          d.setMonth(d.getMonth() - (5 - i));
+          return {
+            year: d.getFullYear(),
+            month: d.getMonth() + 1,
+            monthName: d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+          };
+        });
+
+        const monthlyTotals = last6Months.map(({ year, month, monthName }) => {
+          const monthExpenses = expenses.filter((exp: any) => {
+            const expDate = new Date(exp.date);
+            return expDate.getFullYear() === year && expDate.getMonth() + 1 === month;
+          });
+          const total = monthExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+          return {
+            month: monthName,
+            total: total / 100,
+            count: monthExpenses.length
+          };
+        });
+
+        setTrendData(monthlyTotals);
+      }
+    } catch (error) {
+      console.error("Failed to fetch trend data:", error);
     }
   };
 
@@ -197,6 +239,29 @@ export default function ExpenseReportsPage() {
                 </p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Trend Charts */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <LineChart
+              title="Expense Trend (Last 6 Months)"
+              description="Monthly expense totals over time"
+              data={trendData}
+              xKey="month"
+              lines={[
+                { dataKey: 'total', name: 'Total Expenses (₹)', color: '#ef4444' }
+              ]}
+              valueFormatter={(value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : value}
+            />
+
+            <PieChart
+              title="Current Month Category Distribution"
+              description="Breakdown by expense category"
+              data={topCategories}
+              dataKey="amount"
+              nameKey="label"
+              valueFormatter={(value) => `₹${((value as number) / 100).toLocaleString('en-IN')}`}
+            />
           </div>
 
           <Card>

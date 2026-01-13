@@ -109,7 +109,6 @@ export default function EngineerJobDetailPage() {
         setIsCompleteOpen(false);
         setWorkNotes("");
         setProofImageUrls([]);
-        setCurrentImageUrl("");
         fetchJob();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });

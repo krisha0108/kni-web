@@ -246,7 +246,7 @@ export async function notifyOwnerEngineerAssigned(
       bookingId,
       booking.restaurant.name,
       engineerName,
-      booking.engineerAssignment?.engineer.phone || ""
+      "" // Engineer phone not available in this context
     ).catch((error) => {
       console.error("Failed to send engineer assigned email:", error);
     });

@@ -131,7 +131,7 @@ export async function POST(
     let action: string;
     let reason: string | undefined;
     let completionNote: string | undefined;
-    let proofImageUrl: string | undefined;
+    let proofImageUrls: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -141,7 +141,7 @@ export async function POST(
       const file = formData.get("proofImage") as File | null;
       if (file) {
         const result = await saveUploadedFile(file, "engineer-proof");
-        proofImageUrl = result.url;
+        proofImageUrls = result.url;
       }
     } else {
       const body = await request.json();
@@ -197,7 +197,7 @@ export async function POST(
         data: {
           assignmentId: id,
           completionNote,
-          proofImageUrl: proofImageUrl || null,
+          ...(proofImageUrls && { proofImageUrls }),
         },
       });
       await db.engineerAssignment.update({

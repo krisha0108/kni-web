@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, Upload, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { ExportButton } from "@/components/export-button";
 
 interface Booking {
   id: string;
@@ -98,10 +99,16 @@ export default function OwnerBookingsPage() {
           <h1 className="text-3xl font-bold">My Bookings</h1>
           <p className="text-muted-foreground">View and manage your service bookings</p>
         </div>
-        <Button onClick={() => router.push("/owner/cart")}>
-          <Calendar className="mr-2 h-4 w-4" />
-          New Booking
-        </Button>
+        <div className="flex gap-2">
+          <ExportButton
+            endpoint="/api/owner/exports/bookings"
+            filename={`my-bookings-${new Date().toISOString().split('T')[0]}.csv`}
+          />
+          <Button onClick={() => router.push("/owner/cart")}>
+            <Calendar className="mr-2 h-4 w-4" />
+            New Booking
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -306,7 +306,7 @@ export default function AdminBookingDetailPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Scheduled Slot</p>
                       <p className="font-medium text-green-600">
-                        {formatDate(booking.adminAdjustedSlotStart || booking.slotStartDateTime)}
+                        {formatDate((booking.adminAdjustedSlotStart || booking.slotStartDateTime) as string)}
                       </p>
                     </div>
                   </>
@@ -453,7 +453,7 @@ export default function AdminBookingDetailPage() {
                       <div>
                         <p className="text-sm text-muted-foreground">Scheduled Slot</p>
                         <p className="font-medium text-green-600">
-                          {formatDate(booking.adminAdjustedSlotStart || booking.slotStartDateTime)}
+                          {formatDate((booking.adminAdjustedSlotStart || booking.slotStartDateTime) as string)}
                         </p>
                       </div>
                     )}

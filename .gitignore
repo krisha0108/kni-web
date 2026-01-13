@@ -48,6 +48,12 @@ tmpclaude-*
 *.log
 *.bat
 *.ps1
+*.tmp
+*.temp
+*~
+*.bak
+*.backup
+*.cwd
 test-*.js
 test-*.ts
 check-*.ts
@@ -62,3 +68,22 @@ IMPLEMENTATION*.md
 REQUIREMENTS*.md
 TESTING*.md
 PHASE-*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/

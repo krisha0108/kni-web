@@ -4,9 +4,7 @@ import { z } from "zod";
 export const amcPlanSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().optional(),
-  duration: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"], {
-    errorMap: () => ({ message: "Duration must be MONTHLY, QUARTERLY, or YEARLY" }),
-  }),
+  duration: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"]),
   price: z.number().int().positive("Price must be a positive number"),
   serviceLimit: z.number().int().positive("Service limit must be a positive number"),
   featuresJson: z.array(z.string()).optional(),
@@ -30,9 +28,7 @@ export const amcSubscriptionSchema = z.object({
   // Custom Plan Fields (required if planId not provided)
   planName: z.string().min(3, "Plan name must be at least 3 characters").optional(),
   planDescription: z.string().optional(),
-  duration: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"], {
-    errorMap: () => ({ message: "Duration must be MONTHLY, QUARTERLY, or YEARLY" }),
-  }),
+  duration: z.enum(["MONTHLY", "QUARTERLY", "YEARLY"]),
   serviceLimit: z.number().int().positive("Service limit must be a positive number"),
   featuresJson: z.array(z.string()).optional(),
   totalAmount: z.number().int().min(0, "Amount must be non-negative"), // in paise

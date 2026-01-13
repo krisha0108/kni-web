@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Download } from "lucide-react";
 
 type PayoutStatus = "PENDING" | "PAID" | "CANCELLED";
 
@@ -202,6 +203,34 @@ export default function AdminPayoutsPage() {
     return { totalAmount, paidAmount, pendingAmount, pendingCount };
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch("/api/admin/exports/payouts");
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payouts-export-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Success",
+        description: "Payouts exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export payouts",
+        variant: "destructive",
+      });
+    }
+  };
+
   const summary = calculateSummary();
 
   if (isLoading) {
@@ -223,6 +252,10 @@ export default function AdminPayoutsPage() {
             Manage engineer commission payouts
           </p>
         </div>
+        <Button onClick={handleExport} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}

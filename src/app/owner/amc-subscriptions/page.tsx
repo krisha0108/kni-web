@@ -17,6 +17,7 @@ import {
   isExpiringSoon,
 } from "@/lib/amc";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { ExportButton } from "@/components/export-button";
 
 interface AMCSubscription {
   id: string;
@@ -101,10 +102,16 @@ export default function OwnerAMCSubscriptionsPage() {
           <h1 className="text-3xl font-bold">My AMC Subscriptions</h1>
           <p className="text-muted-foreground">Manage your Annual Maintenance Contract subscriptions</p>
         </div>
-        <Button onClick={() => router.push("/owner/amc-plans")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Subscribe to Plan
-        </Button>
+        <div className="flex gap-2">
+          <ExportButton
+            endpoint="/api/owner/exports/amc-subscriptions"
+            filename={`amc-subscriptions-${new Date().toISOString().split('T')[0]}.csv`}
+          />
+          <Button onClick={() => router.push("/owner/amc-plans")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Subscribe to Plan
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

@@ -20,18 +20,18 @@ export default async function OwnerLayout({
   }
 
   return (
-    <DashboardLayout
-      sidebarItems={ownerSidebarItems}
-      sidebarTitle="KNI Owner"
-      user={{
-        name: session.name,
-        email: session.email,
-        role: session.role,
-      }}
-    >
-      <RestaurantProvider>
+    <RestaurantProvider>
+      <DashboardLayout
+        sidebarItems={ownerSidebarItems}
+        sidebarTitle="KNI Owner"
+        user={{
+          name: session.name,
+          email: session.email,
+          role: session.role,
+        }}
+      >
         {children}
-      </RestaurantProvider>
-    </DashboardLayout>
+      </DashboardLayout>
+    </RestaurantProvider>
   );
 }

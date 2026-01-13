@@ -33,25 +33,45 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const fetchRestaurants = async () => {
     try {
       const response = await fetch("/api/owner/restaurants/accessible");
+
+      if (!response.ok) {
+        console.error("Failed to fetch restaurants:", response.status, response.statusText);
+        setIsLoading(false);
+        return;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Expected JSON response but got:", contentType);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
-      if (data.ok) {
+      if (data.ok && data.data) {
         setRestaurants(data.data);
 
-        // Load selected restaurant from localStorage
-        const savedId = localStorage.getItem("selectedRestaurantId");
-        if (savedId) {
-          const saved = data.data.find((r: Restaurant) => r.restaurantId === savedId);
-          if (saved) {
-            setSelectedRestaurant(saved);
-            return;
+        // Load selected restaurant from localStorage (only on client)
+        if (typeof window !== "undefined") {
+          const savedId = localStorage.getItem("selectedRestaurantId");
+          if (savedId) {
+            const saved = data.data.find((r: Restaurant) => r.restaurantId === savedId);
+            if (saved) {
+              setSelectedRestaurant(saved);
+              setIsLoading(false);
+              return;
+            }
           }
-        }
 
-        // Auto-select first restaurant
-        if (data.data.length > 0) {
+          // Auto-select first restaurant
+          if (data.data.length > 0) {
+            setSelectedRestaurant(data.data[0]);
+            localStorage.setItem("selectedRestaurantId", data.data[0].restaurantId);
+          }
+        } else if (data.data.length > 0) {
+          // Server-side: just select first restaurant without localStorage
           setSelectedRestaurant(data.data[0]);
-          localStorage.setItem("selectedRestaurantId", data.data[0].restaurantId);
         }
       }
     } catch (error) {
@@ -67,7 +87,9 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
 
   const selectRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
-    localStorage.setItem("selectedRestaurantId", restaurant.restaurantId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedRestaurantId", restaurant.restaurantId);
+    }
   };
 
   const refreshRestaurants = async () => {

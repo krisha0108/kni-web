@@ -402,11 +402,12 @@ export async function notifyEngineerNewJob(
     // Send SMS (non-blocking)
     if (engineer.phone && assignment.booking.slotStartDateTime) {
       const booking = assignment.booking;
-      const slotDate = new Date(booking.slotStartDateTime).toLocaleDateString(
+      const slotDateTime = booking.slotStartDateTime!; // Non-null assertion safe here due to check above
+      const slotDate = new Date(slotDateTime).toLocaleDateString(
         "en-IN",
         { day: "numeric", month: "short", year: "numeric" }
       );
-      const slotTime = new Date(booking.slotStartDateTime).toLocaleTimeString(
+      const slotTime = new Date(slotDateTime).toLocaleTimeString(
         "en-IN",
         { hour: "2-digit", minute: "2-digit" }
       );

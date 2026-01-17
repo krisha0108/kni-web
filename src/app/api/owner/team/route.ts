@@ -6,7 +6,7 @@ import { inviteMemberSchema } from "@/server/validators/team";
 import { RestaurantRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { sendTeamInvitationEmail } from "@/lib/email";
+import { sendTeamInvitationEmail } from "@/lib/email/service";
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -16,17 +16,18 @@ const updateEntrySchema = z.object({
 // PATCH /api/owner/cashbook/[id] - Update cashbook entry
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
     const body = await request.json();
     const validated = updateEntrySchema.parse(body);
 
     // Check ownership
     const existing = await db.cashbookEntry.findFirst({
       where: {
-        id: params.id,
+        id,
         ownerId: session.id,
       },
     });
@@ -49,16 +50,8 @@ export async function PATCH(
     if (validated.entryDate) updateData.entryDate = new Date(validated.entryDate);
 
     const entry = await db.cashbookEntry.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
     });
 
     return NextResponse.json({
@@ -88,15 +81,16 @@ export async function PATCH(
 // DELETE /api/owner/cashbook/[id] - Delete cashbook entry
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
 
     // Check ownership
     const existing = await db.cashbookEntry.findFirst({
       where: {
-        id: params.id,
+        id,
         ownerId: session.id,
       },
     });
@@ -109,7 +103,7 @@ export async function DELETE(
     }
 
     await db.cashbookEntry.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

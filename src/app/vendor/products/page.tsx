@@ -50,6 +50,7 @@ interface Product {
   name: string;
   description?: string;
   price: number;
+  unit: string;
   stockQuantity: number;
   imageUrl?: string;
   isActive: boolean;
@@ -75,6 +76,7 @@ export default function VendorProductsPage() {
     name: "",
     description: "",
     price: "",
+    unit: "",
     stockQuantity: "",
     categoryId: "",
     imageUrl: "",
@@ -128,6 +130,7 @@ export default function VendorProductsPage() {
       name: "",
       description: "",
       price: "",
+      unit: "",
       stockQuantity: "",
       categoryId: "",
       imageUrl: "",
@@ -143,7 +146,8 @@ export default function VendorProductsPage() {
           name: formData.name,
           description: formData.description || undefined,
           price: parseInt(formData.price, 10),
-          stockQuantity: parseInt(formData.stockQuantity, 10),
+          unit: formData.unit,
+          stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
           categoryId: formData.categoryId,
           imageUrl: formData.imageUrl || undefined,
         }),
@@ -172,7 +176,8 @@ export default function VendorProductsPage() {
           name: formData.name,
           description: formData.description || undefined,
           price: parseInt(formData.price, 10),
-          stockQuantity: parseInt(formData.stockQuantity, 10),
+          unit: formData.unit,
+          stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
           categoryId: formData.categoryId,
           imageUrl: formData.imageUrl || undefined,
         }),
@@ -218,6 +223,7 @@ export default function VendorProductsPage() {
       name: product.name,
       description: product.description || "",
       price: product.price.toString(),
+      unit: product.unit,
       stockQuantity: product.stockQuantity.toString(),
       categoryId: product.category?.id || "",
       imageUrl: product.imageUrl || "",
@@ -286,15 +292,24 @@ export default function VendorProductsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Stock Quantity *</Label>
+                  <Label htmlFor="unit">Unit *</Label>
                   <Input
-                    id="stock"
-                    type="number"
-                    value={formData.stockQuantity}
-                    onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                    placeholder="10"
+                    id="unit"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    placeholder="kg, liter, piece, etc."
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock Quantity</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  value={formData.stockQuantity}
+                  onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                  placeholder="10"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
@@ -450,14 +465,23 @@ export default function VendorProductsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-stock">Stock Quantity *</Label>
+                <Label htmlFor="edit-unit">Unit *</Label>
                 <Input
-                  id="edit-stock"
-                  type="number"
-                  value={formData.stockQuantity}
-                  onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                  id="edit-unit"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="kg, liter, piece, etc."
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-stock">Stock Quantity</Label>
+              <Input
+                id="edit-stock"
+                type="number"
+                value={formData.stockQuantity}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>

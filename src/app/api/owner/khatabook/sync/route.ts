@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/permissions";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { syncAllPendingTransactions } from "@/server/khatabook/service";
 

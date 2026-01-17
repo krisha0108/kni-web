@@ -403,7 +403,7 @@ export async function syncTransactionToKhatabook(
         source: "KNI_SUPER_APP",
         entity_type: transaction.entityType,
         entity_id: transaction.entityId,
-        ...(transaction.metadata || {}),
+        ...(typeof transaction.metadata === 'object' && transaction.metadata ? transaction.metadata : {}),
       },
     };
 

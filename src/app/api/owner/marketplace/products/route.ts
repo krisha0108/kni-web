@@ -74,22 +74,29 @@ export async function GET(request: NextRequest) {
     });
 
     // Post-filter based on vendor coverage
+    // 4-point filter: approval + subscription + coverage + product active
     const filteredProducts = products.filter((product) => {
       const coverage = product.vendor.vendorCoverage;
 
-      // No coverage set = available to all
-      if (!coverage) return true;
+      // No coverage set = NOT visible (vendor must configure coverage)
+      if (!coverage) return false;
 
       // CITY_WIDE: check if restaurant city is in vendor's cities
       if (coverage.coverageType === "CITY_WIDE") {
         const cities = coverage.cities as string[] || [];
-        return cities.includes(restaurant.city);
+        // Must have at least one city configured
+        if (cities.length === 0) return false;
+        return cities.some(city =>
+          city.toLowerCase() === restaurant.city.toLowerCase()
+        );
       }
 
       // PINCODE_WISE: check if restaurant pincode is in vendor's pincodes
       if (coverage.coverageType === "PINCODE_WISE") {
         if (!restaurant.pincode) return false; // Restaurant must have pincode
         const pincodes = coverage.pincodes as string[] || [];
+        // Must have at least one pincode configured
+        if (pincodes.length === 0) return false;
         return pincodes.includes(restaurant.pincode);
       }
 

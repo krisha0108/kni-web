@@ -133,8 +133,9 @@ interface VendorAnalyticsData {
   };
 }
 
-const formatCurrency = (amount: number) => {
-  return `₹${amount.toLocaleString("en-IN", {
+const formatCurrency = (amountInPaise: number) => {
+  const amountInRupees = amountInPaise / 100;
+  return `₹${amountInRupees.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

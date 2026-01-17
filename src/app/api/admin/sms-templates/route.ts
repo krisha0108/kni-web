@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireAdmin } from "@/server/auth/permissions";
+import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const createTemplateSchema = z.object({
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "Invalid input",
-          details: validation.error.errors,
+          details: validation.error.issues,
         },
         { status: 400 }
       );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/middleware";
+import { requireAdmin } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -16,13 +16,14 @@ const updateTypeSchema = z.object({
 // GET /api/admin/equipment-types/[id] - Get single equipment type with templates
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const type = await db.equipmentType.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         category: true,
         serviceTemplates: {
@@ -61,17 +62,18 @@ export async function GET(
 // PATCH /api/admin/equipment-types/[id] - Update equipment type
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const body = await request.json();
     const validated = updateTypeSchema.parse(body);
 
     // Get current type to check category
     const currentType = await db.equipmentType.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!currentType) {
@@ -87,7 +89,7 @@ export async function PATCH(
         where: {
           categoryId: currentType.categoryId,
           name: validated.name,
-          NOT: { id: params.id },
+          NOT: { id },
         },
       });
 
@@ -100,7 +102,7 @@ export async function PATCH(
     }
 
     const type = await db.equipmentType.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...validated,
         imageUrl: validated.imageUrl === "" ? null : validated.imageUrl,
@@ -137,14 +139,15 @@ export async function PATCH(
 // DELETE /api/admin/equipment-types/[id] - Delete equipment type
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     // Check if type has equipment instances
     const type = await db.equipmentType.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -175,16 +178,16 @@ export async function DELETE(
 
     // Delete associated templates first
     await db.equipmentServiceTemplate.deleteMany({
-      where: { equipmentTypeId: params.id },
+      where: { equipmentTypeId: id },
     });
 
     await db.equipmentPartTemplate.deleteMany({
-      where: { equipmentTypeId: params.id },
+      where: { equipmentTypeId: id },
     });
 
     // Delete the type
     await db.equipmentType.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

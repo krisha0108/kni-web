@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireEngineer } from "@/server/auth/permissions";
+import { requireEngineer } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {

@@ -3,7 +3,8 @@ import { db } from "@/server/db";
 import { requireEngineer } from "@/server/auth/rbac";
 import { notifyOwnerJobCompleted, createNotificationForRole } from "@/server/notifications/service";
 import { saveUploadedFile } from "@/server/upload/localUpload";
-import { Role } from "@prisma/client";
+import { Role, NotificationType } from "@prisma/client";
+import { rejectionReasonSchema } from "@/lib/validations/rejection";
 
 export async function GET(
   request: NextRequest,
@@ -24,6 +25,35 @@ export async function GET(
               include: {
                 serviceItem: true,
                 partItem: true,
+              },
+            },
+            // Include equipment details for the engineer
+            equipment: {
+              include: {
+                equipmentType: {
+                  include: {
+                    category: { select: { id: true, name: true } },
+                  },
+                },
+                // Last 3 service bookings for service history context
+                serviceBookings: {
+                  where: { status: "COMPLETED" },
+                  orderBy: { createdAt: "desc" },
+                  take: 3,
+                  include: {
+                    engineerAssignments: {
+                      where: { status: "COMPLETED" },
+                      include: {
+                        workLog: {
+                          select: {
+                            completionNote: true,
+                            createdAt: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -93,17 +123,14 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      await db.engineerAssignment.update({
-        where: { id },
-        data: { status: "REJECTED", respondedAt: new Date() },
-      });
-      await createNotificationForRole(
-        Role.ADMIN,
-        "Engineer Rejected Job",
-        `${session.name} rejected job at ${assignment.booking.restaurant.name}`,
-        `/admin/bookings/${assignment.bookingId}`
+      // DEPRECATED: Use POST method with rejectionReason instead
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Use POST /api/engineer/jobs/:id with action 'reject' and rejectionReason field",
+        },
+        { status: 400 }
       );
-      return NextResponse.json({ ok: true });
     }
 
     // "start" action removed - engineer can complete directly after accepting
@@ -129,15 +156,29 @@ export async function POST(
     const contentType = request.headers.get("content-type") || "";
     
     let action: string;
-    let reason: string | undefined;
+    let rejectionReason: string | undefined;
+    let reason: string | undefined; // Deprecated: use rejectionReason
     let completionNote: string | undefined;
     let proofImageUrls: string | undefined;
+    let partsUsed: Array<{ partItemId: string; qty: number; priceSnapshot: number }> = [];
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       action = formData.get("action") as string;
+      rejectionReason = formData.get("rejectionReason") as string | undefined;
       reason = formData.get("reason") as string | undefined;
       completionNote = formData.get("completionNote") as string | undefined;
+      const partsUsedStr = formData.get("partsUsed") as string | null;
+      if (partsUsedStr) {
+        try {
+          partsUsed = JSON.parse(partsUsedStr);
+        } catch (e) {
+          return NextResponse.json(
+            { ok: false, error: "Invalid partsUsed format" },
+            { status: 400 }
+          );
+        }
+      }
       const file = formData.get("proofImage") as File | null;
       if (file) {
         const result = await saveUploadedFile(file, "engineer-proof");
@@ -146,8 +187,10 @@ export async function POST(
     } else {
       const body = await request.json();
       action = body.action;
+      rejectionReason = body.rejectionReason;
       reason = body.reason;
       completionNote = body.completionNote;
+      partsUsed = body.partsUsed || [];
     }
 
     const assignment = await db.engineerAssignment.findUnique({
@@ -172,9 +215,32 @@ export async function POST(
         data: { status: "ACCEPTED_BY_ENGINEER" },
       });
     } else if (action === "reject") {
+      // Support both old 'reason' and new 'rejectionReason' fields
+      const rejectionReasonValue = rejectionReason || reason;
+
+      if (!rejectionReasonValue) {
+        return NextResponse.json(
+          { ok: false, error: "Rejection reason is required" },
+          { status: 400 }
+        );
+      }
+
+      // Validate rejection reason
+      const reasonValidation = rejectionReasonSchema.safeParse(rejectionReasonValue);
+      if (!reasonValidation.success) {
+        return NextResponse.json(
+          { ok: false, error: reasonValidation.error.issues[0]?.message || "Invalid rejection reason" },
+          { status: 400 }
+        );
+      }
+
       await db.engineerAssignment.update({
         where: { id },
-        data: { status: "REJECTED", respondedAt: new Date() },
+        data: {
+          status: "REJECTED",
+          respondedAt: new Date(),
+          rejectionReason: reasonValidation.data,
+        },
       });
       await db.serviceBooking.update({
         where: { id: assignment.bookingId },
@@ -183,7 +249,8 @@ export async function POST(
       await createNotificationForRole(
         Role.ADMIN,
         "Engineer Rejected Job",
-        session.name + " rejected job at " + assignment.booking.restaurant.name + ". Reason: " + (reason || "No reason"),
+        session.name + " rejected job at " + assignment.booking.restaurant.name + ". Reason: " + reasonValidation.data,
+        NotificationType.BOOKING,
         "/admin/bookings/" + assignment.bookingId
       );
     } else if (action === "complete") {
@@ -193,21 +260,98 @@ export async function POST(
           { status: 400 }
         );
       }
-      await db.engineerWorkLog.create({
-        data: {
-          assignmentId: id,
-          completionNote,
-          ...(proofImageUrls && { proofImageUrls }),
-        },
+
+      // Start transaction for completion
+      await db.$transaction(async (tx) => {
+        // Get booking details with items for total cost calculation
+        const booking = await tx.serviceBooking.findUnique({
+          where: { id: assignment.bookingId },
+          include: {
+            restaurant: true,
+            owner: true,
+            items: {
+              include: {
+                serviceItem: true,
+                partItem: true,
+              },
+            },
+          },
+        });
+
+        if (!booking) {
+          throw new Error("Booking not found");
+        }
+
+        // Create work log
+        const workLog = await tx.engineerWorkLog.create({
+          data: {
+            assignmentId: id,
+            completionNote,
+            ...(proofImageUrls && { proofImageUrls }),
+          },
+        });
+
+        // Calculate parts cost and create JobPartUsed records
+        let totalPartsCost = 0;
+        if (partsUsed && partsUsed.length > 0) {
+          for (const part of partsUsed) {
+            await tx.jobPartUsed.create({
+              data: {
+                workLogId: workLog.id,
+                partItemId: part.partItemId,
+                qty: part.qty,
+                priceSnapshot: part.priceSnapshot,
+              },
+            });
+            totalPartsCost += part.priceSnapshot * part.qty;
+          }
+        }
+
+        // Calculate total expense (service booking amount + parts used)
+        const totalExpense = booking.totalAmount + totalPartsCost;
+
+        // AUTO-SYNC: Create Expense entry
+        await tx.expense.create({
+          data: {
+            ownerId: booking.ownerId,
+            restaurantId: booking.restaurantId,
+            category: "MAINTENANCE",
+            amount: totalExpense,
+            expenseDate: new Date(),
+            description: `Equipment service completed - ${completionNote.substring(0, 100)}${
+              partsUsed.length > 0 ? ` (+ ${partsUsed.length} parts used)` : ""
+            }`,
+          },
+        });
+
+        // AUTO-SYNC: Create Cashbook entry (expense = cash out)
+        await tx.cashbookEntry.create({
+          data: {
+            ownerId: booking.ownerId,
+            restaurantId: booking.restaurantId,
+            entryDate: new Date(),
+            entryType: "CASH_OUT", // Expense is cash out
+            amount: totalExpense,
+            paymentMode: "CASH", // Default to cash, ideally get from payment proof
+            description: `Equipment service payment - Booking #${booking.id.substring(0, 8)}`,
+            category: "MAINTENANCE",
+            createdBy: booking.ownerId, // Required field
+          },
+        });
+
+        // Update assignment and booking status
+        await tx.engineerAssignment.update({
+          where: { id },
+          data: { status: "COMPLETED", completedAt: new Date() },
+        });
+
+        await tx.serviceBooking.update({
+          where: { id: assignment.bookingId },
+          data: { status: "COMPLETED" },
+        });
       });
-      await db.engineerAssignment.update({
-        where: { id },
-        data: { status: "COMPLETED", completedAt: new Date() },
-      });
-      await db.serviceBooking.update({
-        where: { id: assignment.bookingId },
-        data: { status: "COMPLETED" },
-      });
+
+      // Send notification outside transaction
       await notifyOwnerJobCompleted(assignment.booking.ownerId, assignment.bookingId);
     }
 

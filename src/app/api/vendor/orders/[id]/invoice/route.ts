@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireVendor } from "@/server/auth/permissions";
+import { requireVendor } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { generateOrderInvoice } from "@/server/pdf/invoice-service";
 
@@ -49,7 +49,7 @@ export async function GET(
     const pdfBuffer = await generateOrderInvoice(orderId);
 
     // Return PDF with appropriate headers
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="order-invoice-${orderId.slice(-8)}.pdf"`,

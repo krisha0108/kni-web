@@ -31,7 +31,10 @@ import {
   Receipt,
   Bell,
   MapPin,
-  BarChart
+  BarChart,
+  UserCheck,
+  DollarSign,
+  BookOpen
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -116,6 +119,10 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "My AMC", href: "/owner/amc-subscriptions", icon: Shield },
   { title: "My Expenses", href: "/owner/expenses", icon: Receipt },
   { title: "Khayabook", href: "/owner/khayabook", icon: Wallet },
+  { title: "Staff Management", href: "/owner/staff", icon: Users },
+  { title: "Staff Attendance", href: "/owner/staff/attendance", icon: UserCheck },
+  { title: "Staff Salary", href: "/owner/staff/salary", icon: DollarSign },
+  { title: "Vendor Ledger", href: "/owner/khayabook/vendor-ledger", icon: BookOpen },
   { title: "Category Request", href: "/owner/category-request", icon: FileText },
   { title: "Service Feed", href: "/owner/feed", icon: FolderOpen },
   { title: "My Cart", href: "/owner/cart", icon: ShoppingCart },

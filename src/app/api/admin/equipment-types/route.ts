@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/middleware";
+import { requireAdmin } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 

@@ -8,7 +8,9 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.number().int().positive(),
   unit: z.string().min(1),
+  stockQuantity: z.number().int().min(0).optional(),
   categoryId: z.string().optional(),
+  imageUrl: z.string().url().optional().nullable(),
 });
 
 export async function GET() {
@@ -47,7 +49,12 @@ export async function POST(request: NextRequest) {
 
     const product = await db.vendorProduct.create({
       data: {
-        ...validation.data,
+        name: validation.data.name,
+        description: validation.data.description,
+        price: validation.data.price,
+        unit: validation.data.unit,
+        stockQuantity: validation.data.stockQuantity ?? 0,
+        imageUrl: validation.data.imageUrl,
         vendorId: session.id,
         categoryId: validation.data.categoryId || null,
         isActive: true,

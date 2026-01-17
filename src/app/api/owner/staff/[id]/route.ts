@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -16,14 +16,15 @@ const updateStaffSchema = z.object({
 // GET /api/owner/staff/[id] - Get single staff member
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
 
     const staff = await db.staff.findFirst({
       where: {
-        id: params.id,
+        id,
         ownerId: session.id,
       },
       include: {
@@ -65,17 +66,18 @@ export async function GET(
 // PATCH /api/owner/staff/[id] - Update staff member
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
     const body = await request.json();
     const validated = updateStaffSchema.parse(body);
 
     // Check ownership
     const existing = await db.staff.findFirst({
       where: {
-        id: params.id,
+        id,
         ownerId: session.id,
       },
     });
@@ -102,7 +104,7 @@ export async function PATCH(
     }
 
     const staff = await db.staff.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -133,15 +135,16 @@ export async function PATCH(
 // DELETE /api/owner/staff/[id] - Delete staff member
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
 
     // Check ownership
     const existing = await db.staff.findFirst({
       where: {
-        id: params.id,
+        id,
         ownerId: session.id,
       },
     });
@@ -155,7 +158,7 @@ export async function DELETE(
 
     // Instead of hard delete, mark as terminated
     await db.staff.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: "TERMINATED" },
     });
 

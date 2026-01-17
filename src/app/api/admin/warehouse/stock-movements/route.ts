@@ -34,13 +34,6 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
           booking: {
             select: {
               id: true,
@@ -137,13 +130,6 @@ export async function POST(request: NextRequest) {
                   name: true,
                 },
               },
-            },
-          },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
             },
           },
         },

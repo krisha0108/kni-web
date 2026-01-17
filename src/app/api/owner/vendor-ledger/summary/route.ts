@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/vendor-ledger/summary - Get vendor-wise summary

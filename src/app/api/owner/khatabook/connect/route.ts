@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/permissions";
+import { requireOwner } from "@/server/auth/rbac";
 import { generateAuthorizationUrl } from "@/server/khatabook/service";
 
 export async function GET(request: NextRequest) {

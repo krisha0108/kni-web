@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireVendor } from "@/server/auth/rbac";
-import { renderToStream } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { VendorAnalyticsDocument } from "@/lib/pdf/vendor-analytics-document";
 import { db } from "@/server/db";
 
@@ -66,6 +66,29 @@ export async function GET(request: NextRequest) {
       },
       select: { id: true, name: true, price: true, unit: true },
     });
+
+    // Calculate accurate revenue for each product
+    const productRevenueMap = new Map<string, number>();
+    for (const item of topProducts) {
+      const orderItems = await db.marketplaceOrderItem.findMany({
+        where: {
+          vendorProductId: item.vendorProductId,
+          order: {
+            vendorId: session.id,
+            createdAt: { gte: startDate },
+          },
+        },
+        select: {
+          qty: true,
+          priceSnapshot: true,
+        },
+      });
+      const totalRevenue = orderItems.reduce(
+        (sum, oi) => sum + oi.qty * oi.priceSnapshot,
+        0
+      );
+      productRevenueMap.set(item.vendorProductId, totalRevenue);
+    }
 
     const topCustomers = await db.marketplaceOrder.groupBy({
       by: ["restaurantId"],
@@ -138,7 +161,7 @@ export async function GET(request: NextRequest) {
           return {
             product: product || null,
             totalQuantity: item._sum?.qty || 0,
-            totalRevenue: (item._sum?.qty || 0) * (item._sum?.priceSnapshot || 0),
+            totalRevenue: productRevenueMap.get(item.vendorProductId) || 0,
             orderCount: Number(item._count?.orderId || 0),
           };
         }),
@@ -163,15 +186,15 @@ export async function GET(request: NextRequest) {
     };
 
     // Generate PDF
-    const stream = await renderToStream(
-      VendorAnalyticsDocument({ data: analyticsData })
-    );
+    const pdfDoc = pdf(VendorAnalyticsDocument({ data: analyticsData }));
+    const blob = await pdfDoc.toBlob();
+    const buffer = await blob.arrayBuffer();
 
     // Create filename
     const filename = `vendor-analytics-${vendor.name.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF as download
-    return new NextResponse(stream as any, {
+    return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,

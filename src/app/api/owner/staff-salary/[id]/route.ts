@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -16,17 +16,18 @@ const updateSalarySchema = z.object({
 // PATCH /api/owner/staff-salary/[id] - Record payment or update salary
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
     const body = await request.json();
     const action = request.nextUrl.searchParams.get("action"); // "payment" or "update"
 
     // Check ownership
     const existing = await db.staffSalary.findFirst({
       where: {
-        id: params.id,
+        id,
         staff: {
           ownerId: session.id,
         },
@@ -52,10 +53,10 @@ export async function PATCH(
         );
       }
 
-      const newStatus = newTotalPaid >= existing.totalPayable ? "PAID" : "PARTIAL";
+      const newStatus = newTotalPaid >= existing.totalPayable ? "PAID" : "PARTIALLY_PAID";
 
       const updated = await db.staffSalary.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           totalPaid: newTotalPaid,
           status: newStatus,
@@ -102,11 +103,11 @@ export async function PATCH(
       if (existing.totalPaid >= updateData.totalPayable) {
         updateData.status = "PAID";
       } else if (existing.totalPaid > 0) {
-        updateData.status = "PARTIAL";
+        updateData.status = "PARTIALLY_PAID";
       }
 
       const updated = await db.staffSalary.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         include: {
           staff: {
@@ -148,15 +149,16 @@ export async function PATCH(
 // DELETE /api/owner/staff-salary/[id] - Delete salary record
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireOwner();
+    const { id } = await params;
 
     // Check ownership
     const existing = await db.staffSalary.findFirst({
       where: {
-        id: params.id,
+        id,
         staff: {
           ownerId: session.id,
         },
@@ -179,7 +181,7 @@ export async function DELETE(
     }
 
     await db.staffSalary.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

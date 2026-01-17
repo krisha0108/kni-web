@@ -16,10 +16,40 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Calendar, Clock, Phone, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, Phone, CheckCircle, Loader2, Cpu, History, AlertTriangle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
+
+interface ServiceHistory {
+  id: string;
+  createdAt: string;
+  engineerAssignments: {
+    workLog?: {
+      completionNote: string;
+      createdAt: string;
+    };
+  }[];
+}
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  installLocation: string | null;
+  purchaseDate: string;
+  warrantyEndDate: string | null;
+  notes: string | null;
+  equipmentType?: {
+    id: string;
+    name: string;
+    category: { id: string; name: string };
+  };
+  serviceBookings: ServiceHistory[];
+}
 
 interface Job {
   id: string;
@@ -32,9 +62,11 @@ interface Job {
     scheduledTimeSlot?: string;
     preferredDate: string;
     preferredTimeSlot: string;
+    problemDescription?: string;
     notes?: string;
     restaurant: { id: string; name: string; address: string; city: string };
     owner: { id: string; name: string; phone: string };
+    equipment?: Equipment;
     items: Array<{
       id: string;
       quantity: number;
@@ -225,6 +257,115 @@ export default function EngineerJobDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Equipment Information */}
+      {job.booking.equipment && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cpu className="h-5 w-5" />
+              Equipment Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Equipment</p>
+                <p className="font-medium">{job.booking.equipment.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="font-medium">
+                  {job.booking.equipment.equipmentType?.name || job.booking.equipment.category}
+                </p>
+              </div>
+              {job.booking.equipment.brand && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Brand</p>
+                  <p className="font-medium">{job.booking.equipment.brand}</p>
+                </div>
+              )}
+              {job.booking.equipment.model && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Model</p>
+                  <p className="font-medium">{job.booking.equipment.model}</p>
+                </div>
+              )}
+              {job.booking.equipment.serialNumber && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Serial No.</p>
+                  <p className="font-medium font-mono text-sm">{job.booking.equipment.serialNumber}</p>
+                </div>
+              )}
+              {job.booking.equipment.installLocation && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Location</p>
+                  <p className="font-medium">{job.booking.equipment.installLocation}</p>
+                </div>
+              )}
+            </div>
+
+            {job.booking.equipment.notes && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">Equipment Notes</p>
+                    <p className="text-sm text-yellow-700">{job.booking.equipment.notes}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Previous Service History */}
+            {job.booking.equipment.serviceBookings && job.booking.equipment.serviceBookings.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Recent Service History
+                </p>
+                <div className="space-y-2">
+                  {job.booking.equipment.serviceBookings.map((service, index) => {
+                    const workLog = service.engineerAssignments[0]?.workLog;
+                    return (
+                      <div key={service.id} className="p-3 bg-muted/50 rounded-lg text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-muted-foreground">
+                            Service #{job.booking.equipment!.serviceBookings.length - index}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(workLog?.createdAt || service.createdAt)}
+                          </span>
+                        </div>
+                        {workLog && (
+                          <p className="text-muted-foreground line-clamp-2">
+                            {workLog.completionNote}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Problem Description */}
+      {job.booking.problemDescription && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Problem Description
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">{job.booking.problemDescription}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {job.booking.notes && (
         <Card>

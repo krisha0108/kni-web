@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -9,7 +9,7 @@ const bulkAttendanceSchema = z.object({
   records: z.array(
     z.object({
       staffId: z.string(),
-      status: z.enum(["PRESENT", "ABSENT", "HALF_DAY", "LEAVE", "HOLIDAY"]),
+      status: z.enum(["PRESENT", "ABSENT", "HALF_DAY", "LEAVE", "WEEKLY_OFF"]),
       checkInTime: z.string().optional(),
       checkOutTime: z.string().optional(),
       workHours: z.number().optional(),

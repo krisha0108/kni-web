@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
         totalPayable: basicSalary,
         totalPaid: 0,
         status: "PENDING" as const,
+        generatedBy: session.id,
       };
     });
 

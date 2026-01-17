@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/finance-reports - Get comprehensive finance report
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     const pendingSalary = totalSalaryPayable - totalSalaryPaid;
 
     // 4. Equipment Expenses (from bookings)
-    const bookings = await db.booking.findMany({
+    const bookings = await db.serviceBooking.findMany({
       where: {
         restaurantId,
         restaurant: {

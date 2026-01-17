@@ -102,15 +102,81 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    const order = await db.marketplaceOrder.create({
-      data: {
-        ownerId: session.id,
-        vendorId,
-        restaurantId,
-        status: "PLACED",
-        totalAmount,
-        items: { create: orderItems },
-      },
+    // Use transaction to create order and vendor ledger entry atomically
+    const order = await db.$transaction(async (tx) => {
+      // Create the order
+      const newOrder = await tx.marketplaceOrder.create({
+        data: {
+          ownerId: session.id,
+          vendorId,
+          restaurantId,
+          status: "PLACED",
+          totalAmount,
+          items: { create: orderItems },
+        },
+        include: {
+          vendor: true,
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      // Get vendor details for ledger entry
+      const vendor = await tx.user.findUnique({
+        where: { id: vendorId },
+        select: { name: true, phone: true },
+      });
+
+      // Get previous vendor ledger balance
+      const previousEntries = await tx.vendorLedger.findMany({
+        where: {
+          restaurantId,
+          ownerId: session.id,
+          vendorName: vendor?.name || "Unknown Vendor",
+        },
+        orderBy: {
+          entryDate: "desc",
+        },
+        take: 1,
+      });
+
+      const previousBalance = previousEntries[0]?.balanceAfter || 0;
+      const newBalance = previousBalance + totalAmount;
+
+      // AUTO-SYNC: Create vendor ledger entry (PURCHASE increases balance owed to vendor)
+      await tx.vendorLedger.create({
+        data: {
+          ownerId: session.id,
+          restaurantId,
+          vendorName: vendor?.name || "Unknown Vendor",
+          vendorPhone: vendor?.phone || null,
+          entryType: "PURCHASE",
+          amount: totalAmount,
+          description: `Marketplace order - ${newOrder.items.length} items`,
+          billNumber: `MKT-${newOrder.id.substring(0, 8)}`,
+          billDate: new Date(),
+          balanceAfter: newBalance,
+          entryDate: new Date(),
+          createdBy: session.id,
+        },
+      });
+
+      // AUTO-SYNC: Create Expense entry
+      await tx.expense.create({
+        data: {
+          ownerId: session.id,
+          restaurantId,
+          category: "SUPPLIES",
+          amount: totalAmount,
+          expenseDate: new Date(),
+          description: `Marketplace order - ${newOrder.items.length} items from ${vendor?.name}`,
+        },
+      });
+
+      return newOrder;
     });
 
     return NextResponse.json({ ok: true, data: order });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -49,14 +49,6 @@ export async function GET(request: NextRequest) {
 
     const entries = await db.cashbookEntry.findMany({
       where,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
       orderBy: [
         { entryDate: "desc" },
         { createdAt: "desc" },
@@ -112,14 +104,6 @@ export async function POST(request: NextRequest) {
         referenceNo: validated.referenceNo,
         entryDate: new Date(validated.entryDate),
         createdBy: session.id,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     });
 

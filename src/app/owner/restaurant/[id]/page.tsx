@@ -2,12 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ClickableImage } from "@/components/ui/clickable-image";
+import { ExternalLinkButton } from "@/components/ui/external-link-button";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText, ExternalLink } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText } from "lucide-react";
 
 export default async function RestaurantDetailPage({
   params,
@@ -87,11 +89,10 @@ export default async function RestaurantDetailPage({
             <div className="space-y-2">
               <p className="text-sm font-medium">Restaurant Image</p>
               <div className="relative h-48 w-full rounded-lg overflow-hidden border">
-                <img
+                <ClickableImage
                   src={restaurant.restaurantImageUrl}
                   alt={restaurant.name}
                   className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => window.open(restaurant.restaurantImageUrl!, "_blank")}
                 />
               </div>
               <p className="text-xs text-muted-foreground">Click image to view full size</p>
@@ -148,24 +149,18 @@ export default async function RestaurantDetailPage({
                 {restaurant.fssaiCertificateUrl && (
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">FSSAI Certificate</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(restaurant.fssaiCertificateUrl!, "_blank")}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
+                    <ExternalLinkButton href={restaurant.fssaiCertificateUrl}>
                       View Certificate
-                    </Button>
+                    </ExternalLinkButton>
                   </div>
                 )}
               </div>
               {restaurant.fssaiCertificateUrl && (
                 <div className="relative h-32 w-full rounded-lg overflow-hidden border">
-                  <img
+                  <ClickableImage
                     src={restaurant.fssaiCertificateUrl}
                     alt="FSSAI Certificate"
                     className="w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => window.open(restaurant.fssaiCertificateUrl!, "_blank")}
                   />
                 </div>
               )}

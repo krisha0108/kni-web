@@ -8,10 +8,12 @@ import {
   notifyEngineerNewJob,
 } from "@/server/notifications/service";
 import { z } from "zod";
+import { rejectionReasonSchema } from "@/lib/validations/rejection";
 
 const actionSchema = z.object({
   action: z.enum(["verify-payment", "reject-payment", "adjust-slot", "assign-engineer"]),
-  reason: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  reason: z.string().optional(), // Deprecated: use rejectionReason instead
   engineerId: z.string().optional(),
   slotStart: z.string().optional(),
   slotEnd: z.string().optional(),
@@ -90,9 +92,17 @@ export async function PATCH(
     }
 
     if (action === "verify_payment") {
+      // Prevent re-verification
+      if (booking.paymentProof?.status === "VERIFIED") {
+        return NextResponse.json(
+          { ok: false, error: "Payment is already verified" },
+          { status: 400 }
+        );
+      }
+
       await db.paymentProof.update({
         where: { bookingId: id },
-        data: { status: "VERIFIED", verifiedAt: new Date() },
+        data: { status: "VERIFIED", verifiedAt: new Date(), rejectionReason: null, adminNote: null },
       });
       await db.serviceBooking.update({
         where: { id },
@@ -103,16 +113,15 @@ export async function PATCH(
     }
 
     if (action === "reject_payment") {
-      await db.paymentProof.update({
-        where: { bookingId: id },
-        data: { status: "REJECTED" },
-      });
-      await db.serviceBooking.update({
-        where: { id },
-        data: { status: "PAYMENT_REJECTED" },
-      });
-      await notifyOwnerPaymentRejected(booking.ownerId, id, "Payment proof rejected");
-      return NextResponse.json({ ok: true });
+      // DEPRECATED: This action format is deprecated. Use POST with "reject-payment" action instead.
+      // For backward compatibility, we'll require a rejection reason via query param or body
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "This endpoint is deprecated. Use POST /api/admin/bookings/:id with action 'reject-payment' and rejectionReason field",
+        },
+        { status: 400 }
+      );
     }
 
     if (action === "assign_engineer") {
@@ -258,9 +267,17 @@ export async function POST(
     }
 
     if (action === "verify-payment") {
+      // Prevent re-verification
+      if (booking.paymentProof?.status === "VERIFIED") {
+        return NextResponse.json(
+          { ok: false, error: "Payment is already verified" },
+          { status: 400 }
+        );
+      }
+
       await db.paymentProof.update({
         where: { bookingId: id },
-        data: { status: "VERIFIED", verifiedAt: new Date() },
+        data: { status: "VERIFIED", verifiedAt: new Date(), rejectionReason: null, adminNote: null },
       });
       await db.serviceBooking.update({
         where: { id },
@@ -268,21 +285,46 @@ export async function POST(
       });
       await notifyOwnerPaymentVerified(booking.ownerId, id);
     } else if (action === "reject-payment") {
-      if (!reason) {
+      // Prevent re-rejection
+      if (booking.paymentProof?.status === "REJECTED") {
+        return NextResponse.json(
+          { ok: false, error: "Payment is already rejected" },
+          { status: 400 }
+        );
+      }
+
+      // Support both old 'reason' and new 'rejectionReason' fields
+      const rejectionReasonValue = validation.data.rejectionReason || validation.data.reason;
+
+      if (!rejectionReasonValue) {
         return NextResponse.json(
           { ok: false, error: "Rejection reason is required" },
           { status: 400 }
         );
       }
+
+      // Validate rejection reason
+      const reasonValidation = rejectionReasonSchema.safeParse(rejectionReasonValue);
+      if (!reasonValidation.success) {
+        return NextResponse.json(
+          { ok: false, error: reasonValidation.error.issues[0]?.message || "Invalid rejection reason" },
+          { status: 400 }
+        );
+      }
+
       await db.paymentProof.update({
         where: { bookingId: id },
-        data: { status: "REJECTED", adminNote: reason },
+        data: {
+          status: "REJECTED",
+          rejectionReason: reasonValidation.data,
+          adminNote: reasonValidation.data, // Keep for backward compatibility
+        },
       });
       await db.serviceBooking.update({
         where: { id },
         data: { status: "PAYMENT_REJECTED" },
       });
-      await notifyOwnerPaymentRejected(booking.ownerId, id, reason);
+      await notifyOwnerPaymentRejected(booking.ownerId, id, reasonValidation.data);
     } else if (action === "adjust-slot") {
       if (!slotStart) {
         return NextResponse.json(

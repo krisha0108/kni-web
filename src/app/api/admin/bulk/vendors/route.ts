@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/permissions";
+import { requireAdmin } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { VendorApprovalStatus } from "@prisma/client";
 import { z } from "zod";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "Invalid input",
-          details: validation.error.errors,
+          details: validation.error.issues,
         },
         { status: 400 }
       );

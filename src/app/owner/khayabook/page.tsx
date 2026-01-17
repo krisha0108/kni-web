@@ -279,7 +279,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/vendors")}
+              onClick={() => router.push("/owner/khayabook/vendor-ledger")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Store className="h-5 w-5" />
@@ -293,7 +293,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/staff")}
+              onClick={() => router.push("/owner/staff")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5" />
@@ -307,7 +307,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/attendance")}
+              onClick={() => router.push("/owner/staff/attendance")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="h-5 w-5" />
@@ -321,7 +321,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/salary")}
+              onClick={() => router.push("/owner/staff/salary")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-5 w-5" />

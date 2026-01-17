@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Calendar, User, CheckCircle, XCircle, UserPlus } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { RejectionReasonInput } from "@/components/rejection-reason-input";
 
 interface Booking {
   id: string;
@@ -79,6 +80,10 @@ export default function AdminBookingDetailPage() {
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedEngineers, setSelectedEngineers] = useState<string[]>([]);
@@ -137,27 +142,62 @@ export default function AdminBookingDetailPage() {
     fetchEngineers();
   }, [bookingId]);
 
-  const handleVerifyPayment = async (approve: boolean) => {
+  const handleVerifyPayment = async () => {
     setIsVerifying(true);
     try {
       const response = await fetch("/api/admin/bookings/" + bookingId, {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: approve ? "verify_payment" : "reject_payment",
+          action: "verify-payment",
         }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: approve ? "Payment verified" : "Payment rejected" });
+        toast({ title: "Success", description: "Payment verified successfully" });
         fetchBooking();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to verify payment", variant: "destructive" });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    // Validate rejection reason
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      setRejectionError("Rejection reason must be at least 10 characters");
+      return;
+    }
+
+    setIsRejecting(true);
+    setRejectionError("");
+
+    try {
+      const response = await fetch("/api/admin/bookings/" + bookingId, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject-payment",
+          rejectionReason: rejectionReason.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Payment rejected successfully" });
+        setIsRejectDialogOpen(false);
+        setRejectionReason("");
+        fetchBooking();
+      } else {
+        setRejectionError(data.error || "Failed to reject payment");
+      }
+    } catch {
+      setRejectionError("Failed to reject payment");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -386,17 +426,17 @@ export default function AdminBookingDetailPage() {
                     <div className="flex gap-2">
                       <Button
                         className="flex-1"
-                        onClick={() => handleVerifyPayment(true)}
-                        disabled={isVerifying}
+                        onClick={handleVerifyPayment}
+                        disabled={isVerifying || isRejecting}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
-                        Verify
+                        {isVerifying ? "Verifying..." : "Verify"}
                       </Button>
                       <Button
                         variant="destructive"
                         className="flex-1"
-                        onClick={() => handleVerifyPayment(false)}
-                        disabled={isVerifying}
+                        onClick={() => setIsRejectDialogOpen(true)}
+                        disabled={isVerifying || isRejecting}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
                         Reject
@@ -621,6 +661,51 @@ export default function AdminBookingDetailPage() {
             </Button>
             <Button onClick={handleAssignEngineer} disabled={isAssigning}>
               {isAssigning ? "Assigning..." : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Rejection Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Payment Proof</DialogTitle>
+            <DialogDescription>
+              Please provide a detailed reason for rejecting this payment proof. This will be sent to the restaurant owner.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <RejectionReasonInput
+              value={rejectionReason}
+              onChange={(value) => {
+                setRejectionReason(value);
+                setRejectionError("");
+              }}
+              category="PAYMENT_PROOF"
+              error={rejectionError}
+              required
+              showTemplates
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRejectDialogOpen(false);
+                setRejectionReason("");
+                setRejectionError("");
+              }}
+              disabled={isRejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectPayment}
+              disabled={isRejecting || rejectionReason.trim().length < 10}
+            >
+              {isRejecting ? "Rejecting..." : "Confirm Rejection"}
             </Button>
           </DialogFooter>
         </DialogContent>

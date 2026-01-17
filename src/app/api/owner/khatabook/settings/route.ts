@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/permissions";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest) {
         {
           ok: false,
           error: "Invalid input",
-          details: validation.error.errors,
+          details: validation.error.issues,
         },
         { status: 400 }
       );

@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    // Get product details for top products
+    // Get product details for top products and calculate revenue from individual items
     const topProductDetails = await Promise.all(
       topProducts.map(async (item) => {
         const product = await db.vendorProduct.findUnique({
@@ -103,10 +103,32 @@ export async function GET(request: NextRequest) {
             unit: true,
           },
         });
+
+        // Get all order items for this product to calculate accurate revenue
+        const orderItems = await db.marketplaceOrderItem.findMany({
+          where: {
+            vendorProductId: item.vendorProductId,
+            order: {
+              vendorId: session.id,
+              createdAt: { gte: startDate },
+            },
+          },
+          select: {
+            qty: true,
+            priceSnapshot: true,
+          },
+        });
+
+        // Calculate total revenue: sum of (qty * priceSnapshot) for each order item
+        const totalRevenue = orderItems.reduce(
+          (sum, oi) => sum + oi.qty * oi.priceSnapshot,
+          0
+        );
+
         return {
           product,
           totalQuantity: item._sum.qty || 0,
-          totalRevenue: (item._sum.qty || 0) * (item._sum.priceSnapshot || 0),
+          totalRevenue,
           orderCount: Number(item._count.id),
         };
       })
@@ -159,27 +181,41 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // Daily order trend (last 7 days)
-    const dailyOrderTrendRaw = await db.$queryRaw<
-      Array<{ date: Date; count: bigint; revenue: number }>
-    >`
-      SELECT
-        DATE(createdAt) as date,
-        COUNT(*) as count,
-        SUM(totalAmount) as revenue
-      FROM MarketplaceOrder
-      WHERE vendorId = ${session.id}
-        AND createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      GROUP BY DATE(createdAt)
-      ORDER BY date DESC
-    `;
+    // Daily order trend (last 7 days) - using Prisma instead of raw SQL for compatibility
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 7);
 
-    // Convert BigInt to Number
-    const dailyOrderTrend = dailyOrderTrendRaw.map(item => ({
-      date: item.date,
-      count: Number(item.count),
-      revenue: item.revenue,
-    }));
+    const recentOrdersForTrend = await db.marketplaceOrder.findMany({
+      where: {
+        vendorId: session.id,
+        createdAt: { gte: last7Days },
+      },
+      select: {
+        createdAt: true,
+        totalAmount: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Group by date manually
+    const trendMap = new Map<string, { count: number; revenue: number }>();
+    recentOrdersForTrend.forEach((order) => {
+      const dateKey = order.createdAt.toISOString().split('T')[0];
+      const existing = trendMap.get(dateKey) || { count: 0, revenue: 0 };
+      trendMap.set(dateKey, {
+        count: existing.count + 1,
+        revenue: existing.revenue + order.totalAmount,
+      });
+    });
+
+    // Convert to array and sort
+    const dailyOrderTrend = Array.from(trendMap.entries())
+      .map(([dateStr, data]) => ({
+        date: new Date(dateStr),
+        count: data.count,
+        revenue: data.revenue,
+      }))
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
 
     // Coverage stats
     const coverageStats = coverageInfo

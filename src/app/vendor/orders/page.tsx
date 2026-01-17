@@ -15,6 +15,7 @@ import { Package, MapPin, User, Phone, Mail, Calendar, X, Clock, History, Search
 import { formatPrice } from "@/lib/utils";
 import { getOrderStatusColor, getOrderStatusLabel, getNextStatuses, canUpdateStatus } from "@/lib/order-status";
 import { MarketplaceOrderStatus } from "@prisma/client";
+import { CancellationReasonInput } from "@/components/rejection-reason-input";
 
 interface OrderItem {
   id: string;
@@ -87,8 +88,10 @@ export default function VendorOrdersPage() {
   const [statusForm, setStatusForm] = useState({
     status: "" as MarketplaceOrderStatus,
     statusNotes: "",
+    cancellationReason: "",
     expectedDeliveryDate: "",
   });
+  const [cancellationError, setCancellationError] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -155,8 +158,10 @@ export default function VendorOrdersPage() {
     setStatusForm({
       status: nextStatuses[0] || order.status,
       statusNotes: "",
+      cancellationReason: "",
       expectedDeliveryDate: "",
     });
+    setCancellationError("");
     setIsStatusDialogOpen(true);
   };
 
@@ -165,15 +170,27 @@ export default function VendorOrdersPage() {
     setStatusForm({
       status: "" as MarketplaceOrderStatus,
       statusNotes: "",
+      cancellationReason: "",
       expectedDeliveryDate: "",
     });
+    setCancellationError("");
   };
 
   const updateOrderStatus = async () => {
     if (!selectedOrder) return;
 
+    // Validate cancellation reason if status is CANCELLED
+    if (statusForm.status === "CANCELLED") {
+      if (!statusForm.cancellationReason || statusForm.cancellationReason.trim().length < 10) {
+        setCancellationError("Cancellation reason must be at least 10 characters");
+        return;
+      }
+    }
+
     try {
       setIsUpdating(true);
+      setCancellationError("");
+
       const response = await fetch(`/api/vendor/orders/${selectedOrder.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -198,11 +215,15 @@ export default function VendorOrdersPage() {
           }
         }
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update order status",
-          variant: "destructive",
-        });
+        if (statusForm.status === "CANCELLED" && data.error) {
+          setCancellationError(data.error);
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to update order status",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -900,6 +921,22 @@ export default function VendorOrdersPage() {
                     rows={3}
                   />
                 </div>
+
+                {statusForm.status === "CANCELLED" && (
+                  <div className="space-y-2">
+                    <CancellationReasonInput
+                      value={statusForm.cancellationReason}
+                      onChange={(value) => {
+                        setStatusForm({ ...statusForm, cancellationReason: value });
+                        setCancellationError("");
+                      }}
+                      category="ORDER_CANCELLATION"
+                      error={cancellationError}
+                      required
+                      showTemplates
+                    />
+                  </div>
+                )}
 
                 {(statusForm.status === "SHIPPED" || statusForm.status === "PROCESSING") && (
                   <div className="space-y-2">

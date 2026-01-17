@@ -1,64 +1,166 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ============================================
+# KNI Super App - Consolidated .gitignore
+# For Web (Next.js) + Mobile Apps (React Native)
+# ============================================
 
-# dependencies
-/node_modules
+# ============================================
+# COMMON - All Projects
+# ============================================
+
+# Dependencies
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
+!.yarn/sdks
 !.yarn/versions
 
-# testing
+# Environment Variables
+.env*
+
+# Testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Debug & Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# vercel
-.vercel
+# ============================================
+# WEB APP (Next.js) - KNI-Super-App
+# ============================================
 
-# typescript
-*.tsbuildinfo
+# Next.js
+/.next/
+/out/
 next-env.d.ts
 
-# uploaded files (local storage)
+# Production
+/build
+
+# TypeScript
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Uploaded files (local storage)
 /public/uploads
 
-# temporary files
+# Misc
+*.pem
+
+# ============================================
+# MOBILE APPS (React Native) - kni-app & ServiceEngineerApp
+# ============================================
+
+# iOS/Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+**/.xcode.env.local
+
+# Android/IntelliJ
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+.kotlin/
+
+# Keystore Files (ServiceEngineerApp)
+*.keystore
+!debug.keystore
+release-key.keystore
+keystore.properties
+
+# React Native
+*.jsbundle
+.metro-health-check*
+
+# fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Ruby / CocoaPods
+**/Pods/
+/vendor/bundle/
+
+# ============================================
+# EDITOR & IDE FILES
+# ============================================
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea/
+
+# Vim
+*.swp
+*.swo
+
+# Other Editors
+.project
+.classpath
+.settings/
+
+# ============================================
+# TEMPORARY & TEST FILES
+# ============================================
+
+# Claude Code temporary files
 tmpclaude-*
-*.log
+
+# Script files
 *.bat
 *.ps1
+
+# Temporary files
 *.tmp
 *.temp
 *~
 *.bak
 *.backup
 *.cwd
+
+# Test files
 test-*.js
 test-*.ts
 check-*.ts
 fix-*.js
 wrap-*.js
+
+# Documentation files (generated)
 *-COMPLETE.md
 *-FIX.md
 *-FEATURE.md
@@ -68,22 +170,3 @@ IMPLEMENTATION*.md
 REQUIREMENTS*.md
 TESTING*.md
 PHASE-*.md
-
-# OS files
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Editor files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea/
-*.swp
-*.swo
-*~
-.project
-.classpath
-.settings/

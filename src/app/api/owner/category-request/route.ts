@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
 import { createNotificationForRole } from "@/server/notifications/service";
-import { Role } from "@prisma/client";
+import { Role, NotificationType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       Role.ADMIN,
       "New Category Request",
       `${session.name} has requested a new category: "${categoryName}"`,
+      NotificationType.SYSTEM,
       "/admin/category-requests"
     );
 

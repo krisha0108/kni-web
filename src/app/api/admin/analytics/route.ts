@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/permissions";
+import { requireAdmin } from "@/server/auth/rbac";
 import {
   predictMonthlyRevenue,
   analyzeChurnRisk,

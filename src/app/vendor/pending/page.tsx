@@ -4,7 +4,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
 import { redirect } from "next/navigation";
-import { Clock, XCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, XCircle, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { RequestReviewButton } from "./request-review-button";
 
 export default async function VendorPendingPage() {
   const session = await getSession();
@@ -74,12 +75,24 @@ export default async function VendorPendingPage() {
             </Alert>
           )}
 
-          {status === "REJECTED" && vendorProfile?.approvalNote && (
-            <Alert variant="destructive">
-              <XCircle className="h-4 w-4" />
-              <AlertTitle>Rejection Reason</AlertTitle>
-              <AlertDescription>{vendorProfile.approvalNote}</AlertDescription>
-            </Alert>
+          {status === "REJECTED" && (
+            <>
+              {(vendorProfile?.rejectionReason || vendorProfile?.approvalNote) && (
+                <Alert variant="destructive">
+                  <XCircle className="h-4 w-4" />
+                  <AlertTitle>Rejection Reason</AlertTitle>
+                  <AlertDescription>
+                    {vendorProfile.rejectionReason || vendorProfile.approvalNote}
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground mb-3">
+                  If you have addressed the issues mentioned above, you can request a re-review of your application.
+                </p>
+                <RequestReviewButton />
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

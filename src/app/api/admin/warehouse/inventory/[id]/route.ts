@@ -31,15 +31,6 @@ export async function GET(
         stockMovements: {
           orderBy: { createdAt: "desc" },
           take: 10,
-          include: {
-            creator: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
         },
       },
     });

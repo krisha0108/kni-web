@@ -253,7 +253,8 @@ model VendorProfile {
   id                 String                    @id @default(cuid())
   userId             String                    @unique
   approvalStatus     VendorApprovalStatus      @default(PENDING)
-  approvalNote       String?
+  approvalNote       String?                   @db.Text
+  rejectionReason    String?                   @db.Text // Mandatory when approvalStatus is REJECTED
   subscriptionStatus VendorSubscriptionStatus?
   trialEndsAt        DateTime?
   activeUntil        DateTime?
@@ -387,6 +388,7 @@ model PartItem {
   cartItems    CartItem[]
   bookingItems ServiceBookingItem[]
   inventory    WarehouseInventory?
+  jobPartsUsed JobPartUsed[]
 
   @@index([categoryId])
   @@index([subCategoryId])
@@ -532,17 +534,22 @@ model ServiceBooking {
   id                     String               @id @default(cuid())
   ownerId                String
   restaurantId           String
+  equipmentId            String?              // Link to specific equipment being serviced
   slotStartDateTime      DateTime?
   slotEndDateTime        DateTime?
   adminAdjustedSlotStart DateTime?
   adminAdjustedSlotEnd   DateTime?
   status                 ServiceBookingStatus @default(DRAFT)
   totalAmount            Int
+  problemDescription     String?              @db.Text // Description of the issue/problem
+  problemImages          Json?                // Array of problem image URLs
+  cancellationReason     String?              @db.Text // Mandatory when status is CANCELLED
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
   owner               User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   restaurant          Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  equipment           Equipment?           @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
   items               ServiceBookingItem[]
   paymentProof        PaymentProof?
   engineerAssignments EngineerAssignment[]
@@ -552,6 +559,7 @@ model ServiceBooking {
 
   @@index([ownerId])
   @@index([restaurantId])
+  @@index([equipmentId])
   @@index([status])
   @@index([slotStartDateTime])
 }
@@ -573,14 +581,15 @@ model ServiceBookingItem {
 }
 
 model PaymentProof {
-  id            String             @id @default(cuid())
-  bookingId     String             @unique
-  ownerId       String
-  screenshotUrl String
-  status        PaymentProofStatus @default(UPLOADED)
-  adminNote     String?
-  createdAt     DateTime           @default(now())
-  verifiedAt    DateTime?
+  id              String             @id @default(cuid())
+  bookingId       String             @unique
+  ownerId         String
+  screenshotUrl   String
+  status          PaymentProofStatus @default(UPLOADED)
+  adminNote       String?            @db.Text
+  rejectionReason String?            @db.Text // Mandatory when status is REJECTED
+  createdAt       DateTime           @default(now())
+  verifiedAt      DateTime?
 
   booking ServiceBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   owner   User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -597,7 +606,8 @@ model EngineerAssignment {
   assignedAt       DateTime                 @default(now())
   respondedAt      DateTime?
   completedAt      DateTime?
-  commissionAmount Int? // Commission in paise (earned when completed)
+  rejectionReason  String?                  @db.Text // Mandatory when status is REJECTED
+  commissionAmount Int?                     // Commission in paise (earned when completed)
   commissionRate   Int                      @default(20) // Commission percentage (default 20%)
 
   booking  ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
@@ -620,6 +630,23 @@ model EngineerWorkLog {
   createdAt      DateTime @default(now())
 
   assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  partsUsed  JobPartUsed[]
+}
+
+// Parts used during job completion
+model JobPartUsed {
+  id           String   @id @default(cuid())
+  workLogId    String
+  partItemId   String
+  qty          Int
+  priceSnapshot Int     // Price at time of use (in paise)
+  createdAt    DateTime @default(now())
+
+  workLog  EngineerWorkLog @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+  partItem PartItem        @relation(fields: [partItemId], references: [id])
+
+  @@index([workLogId])
+  @@index([partItemId])
 }
 
 // ========================================
@@ -650,18 +677,19 @@ model VendorProduct {
 }
 
 model MarketplaceOrder {
-  id              String                 @id @default(cuid())
-  ownerId         String
-  vendorId        String
-  restaurantId    String
-  status          MarketplaceOrderStatus @default(PLACED)
-  totalAmount     Int
-  statusNotes     String?                @db.Text
+  id                   String                 @id @default(cuid())
+  ownerId              String
+  vendorId             String
+  restaurantId         String
+  status               MarketplaceOrderStatus @default(PLACED)
+  totalAmount          Int
+  statusNotes          String?                @db.Text
+  cancellationReason   String?                @db.Text // Mandatory when status is CANCELLED
   expectedDeliveryDate DateTime?
   actualDeliveryDate   DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  statusUpdatedAt DateTime               @default(now())
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  statusUpdatedAt      DateTime               @default(now())
 
   owner         User                   @relation("OwnerOrders", fields: [ownerId], references: [id], onDelete: Cascade)
   vendor        User                   @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Cascade)
@@ -921,6 +949,7 @@ model Equipment {
   restaurant      Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   equipmentType   EquipmentType?    @relation(fields: [equipmentTypeId], references: [id], onDelete: SetNull)
   amcSubscription AMCSubscription[]
+  serviceBookings ServiceBooking[]  // Service history for this equipment
 
   @@index([ownerId])
   @@index([restaurantId])

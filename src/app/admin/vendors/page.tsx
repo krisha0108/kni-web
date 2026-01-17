@@ -19,10 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { RejectionReasonInput } from "@/components/rejection-reason-input";
 
 interface Vendor {
   id: string;
@@ -42,6 +51,11 @@ export default function AdminVendorsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
   const { toast } = useToast();
 
   const fetchVendors = async () => {
@@ -86,22 +100,48 @@ export default function AdminVendorsPage() {
     }
   };
 
-  const handleReject = async (vendorId: string) => {
+  const openRejectDialog = (vendorId: string) => {
+    setSelectedVendorId(vendorId);
+    setIsRejectDialogOpen(true);
+    setRejectionReason("");
+    setRejectionError("");
+  };
+
+  const handleReject = async () => {
+    if (!selectedVendorId) return;
+
+    // Validate rejection reason
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      setRejectionError("Rejection reason must be at least 10 characters");
+      return;
+    }
+
+    setIsRejecting(true);
+    setRejectionError("");
+
     try {
-      const response = await fetch(`/api/admin/vendors/${vendorId}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/admin/vendors/${selectedVendorId}`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approvalStatus: "REJECTED", approvalNote: "Rejected by admin" }),
+        body: JSON.stringify({
+          action: "reject",
+          rejectionReason: rejectionReason.trim(),
+        }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Vendor rejected" });
+        toast({ title: "Success", description: "Vendor rejected successfully" });
+        setIsRejectDialogOpen(false);
+        setSelectedVendorId(null);
+        setRejectionReason("");
         fetchVendors();
       } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
+        setRejectionError(data.error || "Failed to reject vendor");
       }
     } catch {
-      toast({ title: "Error", description: "Failed to reject vendor", variant: "destructive" });
+      setRejectionError("Failed to reject vendor");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -199,13 +239,15 @@ export default function AdminVendorsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleApprove(vendor.id)}
+                          title="Approve vendor"
                         >
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleReject(vendor.id)}
+                          onClick={() => openRejectDialog(vendor.id)}
+                          title="Reject vendor"
                         >
                           <XCircle className="h-4 w-4 text-red-600" />
                         </Button>
@@ -218,6 +260,52 @@ export default function AdminVendorsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Vendor Rejection Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Vendor Application</DialogTitle>
+            <DialogDescription>
+              Please provide a detailed reason for rejecting this vendor application. This will be sent to the vendor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <RejectionReasonInput
+              value={rejectionReason}
+              onChange={(value) => {
+                setRejectionReason(value);
+                setRejectionError("");
+              }}
+              category="VENDOR_REJECTION"
+              error={rejectionError}
+              required
+              showTemplates
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRejectDialogOpen(false);
+                setSelectedVendorId(null);
+                setRejectionReason("");
+                setRejectionError("");
+              }}
+              disabled={isRejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={isRejecting || rejectionReason.trim().length < 10}
+            >
+              {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

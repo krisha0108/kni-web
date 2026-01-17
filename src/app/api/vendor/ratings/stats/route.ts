@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireVendor } from "@/server/auth/permissions";
+import { requireVendor } from "@/server/auth/rbac";
 import { getVendorStats } from "@/server/ratings/service";
 
 export async function GET(request: NextRequest) {

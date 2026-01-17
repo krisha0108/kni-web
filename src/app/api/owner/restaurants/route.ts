@@ -4,13 +4,20 @@ import { requireOwner } from "@/server/auth/rbac";
 import { notifyAdminsNewRestaurantRequest } from "@/server/notifications/service";
 import { z } from "zod";
 
+// Helper to validate image URLs (accepts full URLs or relative paths like /uploads/...)
+const imageUrlSchema = z.string().refine(
+  (val) => !val || val.startsWith("/") || val.startsWith("http://") || val.startsWith("https://"),
+  { message: "Invalid image URL" }
+);
+
 const createRestaurantSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   city: z.string().min(2, "City must be at least 2 characters"),
-  restaurantImageUrl: z.string().url("Invalid image URL").optional(),
+  pincode: z.string().min(6, "Pincode must be 6 digits").max(6, "Pincode must be 6 digits").optional(),
+  restaurantImageUrl: imageUrlSchema.optional().or(z.literal("")),
   fssaiNumber: z.string().min(14, "FSSAI number must be 14 digits").max(14, "FSSAI number must be 14 digits"),
-  fssaiCertificateUrl: z.string().url("Invalid certificate URL"),
+  fssaiCertificateUrl: imageUrlSchema,
 });
 
 export async function GET() {
@@ -57,7 +64,8 @@ export async function POST(request: NextRequest) {
         name: validation.data.name,
         address: validation.data.address,
         city: validation.data.city,
-        restaurantImageUrl: validation.data.restaurantImageUrl,
+        pincode: validation.data.pincode,
+        restaurantImageUrl: validation.data.restaurantImageUrl || null,
         fssaiNumber: validation.data.fssaiNumber,
         fssaiCertificateUrl: validation.data.fssaiCertificateUrl,
         ownerId: session.id,

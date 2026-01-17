@@ -194,6 +194,8 @@ export default function OwnerMarketplacePage() {
               productId: item.product.id,
               qty: item.quantity,
             })),
+            deliveryAddress: deliveryAddress || undefined,
+            notes: deliveryNotes || undefined,
           }),
         })
       );

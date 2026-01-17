@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/middleware";
+import { requireOwner } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
         totalPayable,
         totalPaid: 0,
         status: "PENDING",
+        generatedBy: session.id,
       },
       include: {
         staff: {

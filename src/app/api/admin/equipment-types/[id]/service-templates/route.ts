@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/middleware";
+import { requireAdmin } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -27,13 +27,14 @@ const updateServiceTemplateSchema = z.object({
 // GET /api/admin/equipment-types/[id]/service-templates - List service templates
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const templates = await db.equipmentServiceTemplate.findMany({
-      where: { equipmentTypeId: params.id },
+      where: { equipmentTypeId: id },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
 
@@ -52,17 +53,18 @@ export async function GET(
 // POST /api/admin/equipment-types/[id]/service-templates - Create service template
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const body = await request.json();
     const validated = createServiceTemplateSchema.parse(body);
 
     // Check if equipment type exists
     const equipmentType = await db.equipmentType.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!equipmentType) {
@@ -75,7 +77,7 @@ export async function POST(
     const template = await db.equipmentServiceTemplate.create({
       data: {
         ...validated,
-        equipmentTypeId: params.id,
+        equipmentTypeId: id,
       },
     });
 
@@ -100,10 +102,11 @@ export async function POST(
 // PATCH /api/admin/equipment-types/[id]/service-templates - Update service template
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const body = await request.json();
     const validated = updateServiceTemplateSchema.parse(body);
@@ -148,10 +151,11 @@ export async function PATCH(
 // DELETE /api/admin/equipment-types/[id]/service-templates - Delete service template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const templateId = request.nextUrl.searchParams.get("templateId");
     if (!templateId) {

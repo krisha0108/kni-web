@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwner } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
-import { renderToStream } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { OwnerAnalyticsDocument } from "@/lib/pdf/owner-analytics-document";
 import { db } from "@/server/db";
 
@@ -179,15 +179,15 @@ export async function GET(request: NextRequest) {
     };
 
     // Generate PDF
-    const stream = await renderToStream(
-      OwnerAnalyticsDocument({ data: analyticsData })
-    );
+    const pdfDoc = pdf(OwnerAnalyticsDocument({ data: analyticsData }));
+    const blob = await pdfDoc.toBlob();
+    const buffer = await blob.arrayBuffer();
 
     // Create filename
     const filename = `analytics-${restaurant.name.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF as download
-    return new NextResponse(stream as any, {
+    return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,

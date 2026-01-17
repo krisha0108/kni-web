@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/permissions";
+import { requireOwner } from "@/server/auth/rbac";
 import { disconnectKhatabook } from "@/server/khatabook/service";
 
 export async function POST(request: NextRequest) {

@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Calendar, Clock, Phone, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
+import { RejectionReasonInput } from "@/components/rejection-reason-input";
 
 interface Job {
   id: string;
@@ -49,7 +58,12 @@ export default function EngineerJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
-  const { toast } = useToast();
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const { toast} = useToast();
   const router = useRouter();
 
   const fetchJobs = async () => {
@@ -94,22 +108,48 @@ export default function EngineerJobsPage() {
     }
   };
 
-  const handleReject = async (jobId: string) => {
+  const openRejectDialog = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setIsRejectDialogOpen(true);
+    setRejectionReason("");
+    setRejectionError("");
+  };
+
+  const handleReject = async () => {
+    if (!selectedJobId) return;
+
+    // Validate rejection reason
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      setRejectionError("Rejection reason must be at least 10 characters");
+      return;
+    }
+
+    setIsRejecting(true);
+    setRejectionError("");
+
     try {
-      const response = await fetch("/api/engineer/jobs/" + jobId, {
-        method: "PATCH",
+      const response = await fetch("/api/engineer/jobs/" + selectedJobId, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reject" }),
+        body: JSON.stringify({
+          action: "reject",
+          rejectionReason: rejectionReason.trim(),
+        }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Job rejected" });
+        toast({ title: "Success", description: "Job rejected successfully" });
+        setIsRejectDialogOpen(false);
+        setSelectedJobId(null);
+        setRejectionReason("");
         fetchJobs();
       } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
+        setRejectionError(data.error || "Failed to reject job");
       }
     } catch {
-      toast({ title: "Error", description: "Failed to reject job", variant: "destructive" });
+      setRejectionError("Failed to reject job");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -178,7 +218,7 @@ export default function EngineerJobsPage() {
               <Button className="flex-1" onClick={() => handleAccept(job.id)}>
                 Accept
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => handleReject(job.id)}>
+              <Button variant="outline" className="flex-1" onClick={() => openRejectDialog(job.id)}>
                 Reject
               </Button>
             </>
@@ -271,6 +311,52 @@ export default function EngineerJobsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Job Rejection Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Job Assignment</DialogTitle>
+            <DialogDescription>
+              Please provide a detailed reason for rejecting this job assignment. This will be sent to the admin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <RejectionReasonInput
+              value={rejectionReason}
+              onChange={(value) => {
+                setRejectionReason(value);
+                setRejectionError("");
+              }}
+              category="ENGINEER_ASSIGNMENT"
+              error={rejectionError}
+              required
+              showTemplates
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRejectDialogOpen(false);
+                setSelectedJobId(null);
+                setRejectionReason("");
+                setRejectionError("");
+              }}
+              disabled={isRejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={isRejecting || rejectionReason.trim().length < 10}
+            >
+              {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

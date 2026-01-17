@@ -6,7 +6,8 @@ import { z } from "zod";
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  price: z.number().int().min(0).optional(),
+  price: z.number().int().positive().optional(), // Must be > 0 to prevent free products
+  unit: z.string().min(1).optional(),
   stockQuantity: z.number().int().min(0).optional(),
   categoryId: z.string().optional(),
   imageUrl: z.string().url().optional().nullable(),

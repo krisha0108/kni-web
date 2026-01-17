@@ -4,6 +4,7 @@ import { requireVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { MarketplaceOrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { cancellationReasonSchema } from "@/lib/validations/rejection";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -15,6 +16,7 @@ const updateStatusSchema = z.object({
     "CANCELLED",
   ]),
   statusNotes: z.string().optional(),
+  cancellationReason: z.string().optional(), // Required when status is CANCELLED
   expectedDeliveryDate: z.string().optional(),
   actualDeliveryDate: z.string().optional(),
 });
@@ -61,8 +63,26 @@ export async function PATCH(
       );
     }
 
-    const { status, statusNotes, expectedDeliveryDate, actualDeliveryDate } =
+    const { status, statusNotes, cancellationReason, expectedDeliveryDate, actualDeliveryDate } =
       validation.data;
+
+    // Validate cancellation reason if status is CANCELLED
+    if (status === "CANCELLED") {
+      if (!cancellationReason) {
+        return NextResponse.json(
+          { ok: false, error: "Cancellation reason is required when cancelling an order" },
+          { status: 400 }
+        );
+      }
+
+      const reasonValidation = cancellationReasonSchema.safeParse(cancellationReason);
+      if (!reasonValidation.success) {
+        return NextResponse.json(
+          { ok: false, error: reasonValidation.error.issues[0]?.message || "Invalid cancellation reason" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Validate status transition
     const validTransitions: Record<
@@ -98,6 +118,7 @@ export async function PATCH(
         data: {
           status: newStatus,
           statusNotes,
+          cancellationReason: newStatus === "CANCELLED" ? cancellationReason : undefined,
           expectedDeliveryDate: expectedDeliveryDate
             ? new Date(expectedDeliveryDate)
             : undefined,

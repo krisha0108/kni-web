@@ -3,10 +3,12 @@ import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { notifyVendorApproved, notifyVendorRejected } from "@/server/notifications/service";
 import { z } from "zod";
+import { rejectionReasonSchema } from "@/lib/validations/rejection";
 
 const actionSchema = z.object({
   action: z.enum(["approve", "reject", "activate", "block", "expire"]),
-  reason: z.string().optional(),
+  reason: z.string().optional(), // Deprecated: use rejectionReason instead
+  rejectionReason: z.string().optional(),
   trialDays: z.number().optional(),
   activeUntil: z.string().optional(),
 });
@@ -29,7 +31,7 @@ export async function POST(
       );
     }
 
-    const { action, reason, trialDays, activeUntil } = validation.data;
+    const { action, reason, rejectionReason, trialDays, activeUntil } = validation.data;
 
     const user = await db.user.findUnique({
       where: { id },
@@ -44,6 +46,14 @@ export async function POST(
     }
 
     if (action === "approve") {
+      // Prevent re-approval
+      if (user.vendorProfile.approvalStatus === "APPROVED") {
+        return NextResponse.json(
+          { ok: false, error: "Vendor is already approved" },
+          { status: 400 }
+        );
+      }
+
       const days = trialDays || 14;
       await db.vendorProfile.update({
         where: { userId: id },
@@ -51,24 +61,48 @@ export async function POST(
           approvalStatus: "APPROVED",
           subscriptionStatus: "TRIAL",
           trialEndsAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+          rejectionReason: null, // Clear rejection reason on approval
+          approvalNote: null, // Clear approval note as well
         },
       });
       await notifyVendorApproved(id);
     } else if (action === "reject") {
-      if (!reason) {
+      // Prevent re-rejection
+      if (user.vendorProfile.approvalStatus === "REJECTED") {
+        return NextResponse.json(
+          { ok: false, error: "Vendor is already rejected" },
+          { status: 400 }
+        );
+      }
+
+      // Support both old 'reason' and new 'rejectionReason' fields
+      const rejectionReasonValue = rejectionReason || reason;
+
+      if (!rejectionReasonValue) {
         return NextResponse.json(
           { ok: false, error: "Rejection reason is required" },
           { status: 400 }
         );
       }
+
+      // Validate rejection reason
+      const reasonValidation = rejectionReasonSchema.safeParse(rejectionReasonValue);
+      if (!reasonValidation.success) {
+        return NextResponse.json(
+          { ok: false, error: reasonValidation.error.issues[0]?.message || "Invalid rejection reason" },
+          { status: 400 }
+        );
+      }
+
       await db.vendorProfile.update({
         where: { userId: id },
         data: {
           approvalStatus: "REJECTED",
-          approvalNote: reason,
+          rejectionReason: reasonValidation.data,
+          approvalNote: reasonValidation.data, // Keep for backward compatibility
         },
       });
-      await notifyVendorRejected(id, reason);
+      await notifyVendorRejected(id, reasonValidation.data);
     } else if (action === "activate") {
       if (!activeUntil) {
         return NextResponse.json(

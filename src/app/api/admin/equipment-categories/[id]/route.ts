@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth/middleware";
+import { requireAdmin } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -14,13 +14,14 @@ const updateCategorySchema = z.object({
 // GET /api/admin/equipment-categories/[id] - Get single category
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const category = await db.equipmentCategory.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         equipmentTypes: {
           include: {
@@ -59,10 +60,11 @@ export async function GET(
 // PATCH /api/admin/equipment-categories/[id] - Update category
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     const body = await request.json();
     const validated = updateCategorySchema.parse(body);
@@ -72,7 +74,7 @@ export async function PATCH(
       const existing = await db.equipmentCategory.findFirst({
         where: {
           name: validated.name,
-          NOT: { id: params.id },
+          NOT: { id },
         },
       });
 
@@ -85,7 +87,7 @@ export async function PATCH(
     }
 
     const category = await db.equipmentCategory.update({
-      where: { id: params.id },
+      where: { id },
       data: validated,
     });
 
@@ -116,14 +118,15 @@ export async function PATCH(
 // DELETE /api/admin/equipment-categories/[id] - Delete category
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAdmin();
+    const { id } = await params;
 
     // Check if category has equipment types
     const category = await db.equipmentCategory.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { equipmentTypes: true },
@@ -149,7 +152,7 @@ export async function DELETE(
     }
 
     await db.equipmentCategory.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

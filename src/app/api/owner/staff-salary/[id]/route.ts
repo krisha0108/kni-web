@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -19,7 +19,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
     const body = await request.json();
     const action = request.nextUrl.searchParams.get("action"); // "payment" or "update"
@@ -152,7 +152,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
 
     // Check ownership

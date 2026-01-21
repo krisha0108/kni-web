@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ const createStaffSchema = z.object({
 // GET /api/owner/staff - List staff members
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const status = request.nextUrl.searchParams.get("status");
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 // POST /api/owner/staff - Create staff member
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = createStaffSchema.parse(body);
 

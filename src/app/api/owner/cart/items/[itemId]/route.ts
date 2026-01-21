@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const updateQuantitySchema = z.object({
@@ -12,7 +12,7 @@ export async function PATCH(
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { itemId } = await params;
 
     const body = await request.json();
@@ -60,7 +60,7 @@ export async function DELETE(
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { itemId } = await params;
 
     // Verify item belongs to user's cart

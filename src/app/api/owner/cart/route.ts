@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwnerWithApprovedRestaurant } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const addItemSchema = z.object({
@@ -10,9 +10,9 @@ const addItemSchema = z.object({
   qty: z.number().int().positive(),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwnerWithApprovedRestaurant();
+    const session = await requireOwnerMobile(request);
 
     const restaurant = await db.restaurant.findFirst({
       where: { ownerId: session.id, status: "APPROVED" },
@@ -67,7 +67,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwnerWithApprovedRestaurant();
+    const session = await requireOwnerMobile(request);
 
     const body = await request.json();
     const validation = addItemSchema.safeParse(body);
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await requireOwnerWithApprovedRestaurant();
+    const session = await requireOwnerMobile(request);
 
     const searchParams = request.nextUrl.searchParams;
     const itemId = searchParams.get("itemId");

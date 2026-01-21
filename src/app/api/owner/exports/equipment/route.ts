@@ -34,6 +34,11 @@ export async function GET() {
           select: {
             name: true
           }
+        },
+        category: {
+          select: {
+            name: true
+          }
         }
       },
       orderBy: {
@@ -56,7 +61,7 @@ export async function GET() {
     const exportData = equipment.map(eq => ({
       id: eq.id,
       name: eq.name,
-      category: eq.category,
+      category: eq.category?.name || 'N/A',
       restaurantName: eq.restaurant?.name || 'N/A',
       status: eq.status,
       purchaseDate: eq.purchaseDate,

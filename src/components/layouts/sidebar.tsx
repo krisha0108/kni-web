@@ -26,7 +26,6 @@ import {
   CreditCard,
   Wallet,
   Zap,
-  Shield,
   Warehouse,
   Receipt,
   Bell,
@@ -34,7 +33,12 @@ import {
   BarChart,
   UserCheck,
   DollarSign,
-  BookOpen
+  BookOpen,
+  Image,
+  MessageSquare,
+  Truck,
+  PieChart,
+  FileCheck,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -94,19 +98,18 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Subcategories", href: "/admin/subcategories", icon: Layers },
   { title: "Services", href: "/admin/services", icon: Wrench },
   { title: "Parts", href: "/admin/parts", icon: Tag },
-  { title: "Equipment Categories", href: "/admin/equipment-categories", icon: FolderOpen },
-  { title: "Equipment Types", href: "/admin/equipment-types", icon: Zap },
   { title: "Restaurant Requests", href: "/admin/restaurants/requests", icon: Building2 },
   { title: "Category Requests", href: "/admin/category-requests", icon: FileText },
+  { title: "Part Requests", href: "/admin/part-requests", icon: Package },
   { title: "Vendors", href: "/admin/vendors", icon: Store },
+  { title: "Marketplace Products", href: "/admin/marketplace/products", icon: ShoppingBag },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
   { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
-  { title: "AMC Plans", href: "/admin/amc-plans", icon: Shield },
-  { title: "AMC Subscriptions", href: "/admin/amc-subscriptions", icon: FileText },
   { title: "Warehouse", href: "/admin/warehouse", icon: Warehouse },
   { title: "Payouts", href: "/admin/payouts", icon: Wallet },
   { title: "Payment Settings", href: "/admin/payment-settings", icon: CreditCard },
-  { title: "Notifications", href: "/settings/notifications", icon: Bell },
+  { title: "Content Management", href: "/admin/content", icon: Image },
+  { title: "Notifications", href: "/admin/notifications", icon: Bell },
 ];
 
 export const ownerSidebarItems: SidebarItem[] = [
@@ -115,10 +118,9 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "My Restaurants", href: "/owner/restaurants", icon: Building2 },
   { title: "Team Management", href: "/owner/team", icon: Users },
   { title: "My Equipment", href: "/owner/equipment", icon: Zap },
-  { title: "AMC Plans", href: "/owner/amc-plans", icon: Shield },
-  { title: "My AMC", href: "/owner/amc-subscriptions", icon: Shield },
   { title: "My Expenses", href: "/owner/expenses", icon: Receipt },
-  { title: "Khayabook", href: "/owner/khayabook", icon: Wallet },
+  { title: "Spending Reports", href: "/owner/spending-reports", icon: PieChart },
+  { title: "Khatabook", href: "/owner/khayabook", icon: Wallet },
   { title: "Staff Management", href: "/owner/staff", icon: Users },
   { title: "Staff Attendance", href: "/owner/staff/attendance", icon: UserCheck },
   { title: "Staff Salary", href: "/owner/staff/salary", icon: DollarSign },
@@ -126,11 +128,17 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "Category Request", href: "/owner/category-request", icon: FileText },
   { title: "Service Feed", href: "/owner/feed", icon: FolderOpen },
   { title: "My Cart", href: "/owner/cart", icon: ShoppingCart },
+  // { title: "New Service Request", href: "/owner/service-request", icon: Wrench }, // TODO: Coming soon
   { title: "Slot Booking", href: "/owner/slot-booking", icon: Calendar },
   { title: "My Bookings", href: "/owner/bookings", icon: ClipboardList },
+  { title: "Pending Approvals", href: "/owner/pending-approvals", icon: FileCheck },
+  { title: "Service History", href: "/owner/service-history", icon: Clock },
   { title: "Marketplace", href: "/owner/marketplace", icon: ShoppingBag },
   { title: "My Orders", href: "/owner/marketplace/orders", icon: Package },
-  { title: "Notifications", href: "/settings/notifications", icon: Bell },
+  { title: "Order Tracking", href: "/owner/order-tracking", icon: Truck },
+  { title: "Support", href: "/owner/support", icon: MessageSquare },
+  { title: "Notifications", href: "/owner/notifications", icon: Bell },
+  { title: "Profile", href: "/owner/profile", icon: Settings },
 ];
 
 export const vendorSidebarItems: SidebarItem[] = [
@@ -140,7 +148,7 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
   { title: "Coverage Settings", href: "/vendor/coverage", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
-  { title: "Notifications", href: "/settings/notifications", icon: Bell },
+  { title: "Notifications", href: "/vendor/notifications", icon: Bell },
 ];
 
 export const engineerSidebarItems: SidebarItem[] = [
@@ -148,5 +156,5 @@ export const engineerSidebarItems: SidebarItem[] = [
   { title: "My Jobs", href: "/engineer/jobs", icon: ClipboardList },
   { title: "Completed", href: "/engineer/completed", icon: CheckCircle },
   { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
-  { title: "Notifications", href: "/settings/notifications", icon: Bell },
+  { title: "Notifications", href: "/engineer/notifications", icon: Bell },
 ];

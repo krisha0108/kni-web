@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireVendor } from "@/server/auth/rbac";
+import { requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { MarketplaceOrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
@@ -26,7 +26,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireVendor();
+    const session = await requireApprovedVendor();
     const { id: orderId } = await params;
 
     // Verify the order belongs to this vendor
@@ -218,7 +218,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireVendor();
+    const session = await requireApprovedVendor();
     const { id: orderId } = await params;
 
     // Verify the order belongs to this vendor

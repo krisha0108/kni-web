@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { amcSubscriptionSchema } from "@/server/validators/amc";
 import { calculateAMCEndDate } from "@/lib/amc";
 
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId } = await params;
 
     // Verify equipment ownership
@@ -66,7 +66,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId } = await params;
 
     const body = await request.json();

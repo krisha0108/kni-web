@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 import { notifyOwnerJobCompleted, createNotificationForRole } from "@/server/notifications/service";
 import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     const assignment = await db.engineerAssignment.findUnique({
@@ -30,11 +30,8 @@ export async function GET(
             // Include equipment details for the engineer
             equipment: {
               include: {
-                equipmentType: {
-                  include: {
-                    category: { select: { id: true, name: true } },
-                  },
-                },
+                category: { select: { id: true, name: true } },
+                subCategory: { select: { id: true, name: true } },
                 // Last 3 service bookings for service history context
                 serviceBookings: {
                   where: { status: "COMPLETED" },
@@ -84,7 +81,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     const body = await request.json();
@@ -150,17 +147,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     const contentType = request.headers.get("content-type") || "";
-    
+
     let action: string;
     let rejectionReason: string | undefined;
     let reason: string | undefined; // Deprecated: use rejectionReason
     let completionNote: string | undefined;
-    let proofImageUrls: string | undefined;
+    let proofImageUrls: string[] = [];
     let partsUsed: Array<{ partItemId: string; qty: number; priceSnapshot: number }> = [];
+    let timeSpentSeconds: number | undefined;
+    let workNotes: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -168,6 +167,11 @@ export async function POST(
       rejectionReason = formData.get("rejectionReason") as string | undefined;
       reason = formData.get("reason") as string | undefined;
       completionNote = formData.get("completionNote") as string | undefined;
+      workNotes = formData.get("workNotes") as string | undefined;
+      const timeSpentStr = formData.get("timeSpentSeconds") as string | null;
+      if (timeSpentStr) {
+        timeSpentSeconds = parseInt(timeSpentStr, 10);
+      }
       const partsUsedStr = formData.get("partsUsed") as string | null;
       if (partsUsedStr) {
         try {
@@ -179,10 +183,28 @@ export async function POST(
           );
         }
       }
+      const proofImageUrlsStr = formData.get("proofImageUrls") as string | null;
+      if (proofImageUrlsStr) {
+        try {
+          proofImageUrls = JSON.parse(proofImageUrlsStr);
+        } catch (e) {
+          // Ignore parse error
+        }
+      }
+      // Handle single file upload (proofImage - singular)
       const file = formData.get("proofImage") as File | null;
       if (file) {
         const result = await saveUploadedFile(file, "engineer-proof");
-        proofImageUrls = result.url;
+        proofImageUrls.push(result.url);
+      }
+
+      // Handle multiple file uploads (proofImages - plural, used by mobile app)
+      const proofImages = formData.getAll("proofImages");
+      for (const proofImage of proofImages) {
+        if (proofImage instanceof File) {
+          const result = await saveUploadedFile(proofImage, "engineer-proof");
+          proofImageUrls.push(result.url);
+        }
       }
     } else {
       const body = await request.json();
@@ -190,7 +212,15 @@ export async function POST(
       rejectionReason = body.rejectionReason;
       reason = body.reason;
       completionNote = body.completionNote;
+      workNotes = body.workNotes;
       partsUsed = body.partsUsed || [];
+      timeSpentSeconds = body.timeSpentSeconds;
+      // Accept proofImageUrls as array from JSON
+      if (Array.isArray(body.proofImageUrls)) {
+        proofImageUrls = body.proofImageUrls;
+      } else if (typeof body.proofImageUrls === "string") {
+        proofImageUrls = [body.proofImageUrls];
+      }
     }
 
     const assignment = await db.engineerAssignment.findUnique({
@@ -254,6 +284,14 @@ export async function POST(
         "/admin/bookings/" + assignment.bookingId
       );
     } else if (action === "complete") {
+      // Check if job is in accepted or in_progress status
+      if (assignment.status !== "ACCEPTED" && assignment.status !== "IN_PROGRESS") {
+        return NextResponse.json(
+          { ok: false, error: "Job must be accepted before completing" },
+          { status: 400 }
+        );
+      }
+
       if (!completionNote) {
         return NextResponse.json(
           { ok: false, error: "Completion note is required" },
@@ -282,28 +320,68 @@ export async function POST(
           throw new Error("Booking not found");
         }
 
-        // Create work log
-        const workLog = await tx.engineerWorkLog.create({
-          data: {
-            assignmentId: id,
-            completionNote,
-            ...(proofImageUrls && { proofImageUrls }),
-          },
+        // Extract part names for display (before creating JobPartUsed records)
+        const partsUsedNames = partsUsed.map((p) => p.partItemId);
+
+        // Check if work log already exists (from starting work)
+        const existingWorkLog = await tx.engineerWorkLog.findUnique({
+          where: { assignmentId: id },
         });
+
+        let workLog;
+        if (existingWorkLog) {
+          // Update existing work log with completion data
+          workLog = await tx.engineerWorkLog.update({
+            where: { id: existingWorkLog.id },
+            data: {
+              completionNote,
+              workNotes: workNotes || null,
+              proofImageUrls: proofImageUrls.length > 0 ? proofImageUrls : undefined,
+              timeSpentSeconds: timeSpentSeconds || null,
+              partsUsedNames: partsUsedNames.length > 0 ? partsUsedNames : undefined,
+              completedAt: new Date(),
+            },
+          });
+        } else {
+          // Create new work log with all tracking data
+          workLog = await tx.engineerWorkLog.create({
+            data: {
+              assignmentId: id,
+              completionNote,
+              workNotes: workNotes || null,
+              proofImageUrls: proofImageUrls.length > 0 ? proofImageUrls : undefined,
+              timeSpentSeconds: timeSpentSeconds || null,
+              partsUsedNames: partsUsedNames.length > 0 ? partsUsedNames : undefined,
+              completedAt: new Date(),
+            },
+          });
+        }
 
         // Calculate parts cost and create JobPartUsed records
         let totalPartsCost = 0;
         if (partsUsed && partsUsed.length > 0) {
           for (const part of partsUsed) {
-            await tx.jobPartUsed.create({
-              data: {
-                workLogId: workLog.id,
-                partItemId: part.partItemId,
-                qty: part.qty,
-                priceSnapshot: part.priceSnapshot,
-              },
+            // Validate partItemId exists before creating record
+            const partItem = await tx.partItem.findUnique({
+              where: { id: part.partItemId },
             });
-            totalPartsCost += part.priceSnapshot * part.qty;
+
+            if (partItem) {
+              // Use actual price from database if not provided
+              const priceToUse = part.priceSnapshot > 0 ? part.priceSnapshot : partItem.price;
+
+              await tx.jobPartUsed.create({
+                data: {
+                  workLogId: workLog.id,
+                  partItemId: part.partItemId,
+                  qty: part.qty,
+                  priceSnapshot: priceToUse,
+                },
+              });
+              totalPartsCost += priceToUse * part.qty;
+            } else {
+              console.warn(`Invalid partItemId: ${part.partItemId} - skipping`);
+            }
           }
         }
 

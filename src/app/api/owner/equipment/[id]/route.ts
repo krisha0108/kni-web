@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 
 // GET /api/owner/equipment/[id] - Get individual equipment details with service history
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId } = await params;
 
     const equipment = await db.equipment.findFirst({
@@ -25,19 +25,16 @@ export async function GET(
             status: true,
           },
         },
-        equipmentType: {
-          include: {
-            category: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            serviceTemplates: {
-              where: { isActive: true },
-              orderBy: [{ isCommon: "desc" }, { sortOrder: "asc" }],
-              take: 10,
-            },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         // Service history - bookings linked to this equipment

@@ -298,7 +298,7 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
                       {movement.quantity}
                     </TableCell>
                     <TableCell className="font-mono">{movement.balanceAfter}</TableCell>
-                    <TableCell>{movement.creator.name}</TableCell>
+                    <TableCell>{movement.creator?.name || "System"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {movement.notes || "-"}
                     </TableCell>

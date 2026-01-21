@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
@@ -14,7 +14,7 @@ const equipmentBookingSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
 
     const validation = equipmentBookingSchema.safeParse(body);
@@ -70,26 +70,26 @@ export async function POST(request: NextRequest) {
     let bookingItems: any[] = [];
 
     if (serviceTemplateIds && serviceTemplateIds.length > 0) {
-      const serviceTemplates = await db.serviceTemplate.findMany({
+      const serviceItems = await db.serviceItem.findMany({
         where: { id: { in: serviceTemplateIds }, isActive: true },
       });
 
-      if (serviceTemplates.length !== serviceTemplateIds.length) {
+      if (serviceItems.length !== serviceTemplateIds.length) {
         return NextResponse.json(
-          { ok: false, error: "Some service templates not found or inactive" },
+          { ok: false, error: "Some service items not found or inactive" },
           { status: 400 }
         );
       }
 
-      totalAmount = serviceTemplates.reduce((sum, template) => {
-        return sum + (template.estimatedPrice || 0);
+      totalAmount = serviceItems.reduce((sum, item) => {
+        return sum + (item.price || 0);
       }, 0);
 
-      bookingItems = serviceTemplates.map((template) => ({
+      bookingItems = serviceItems.map((item) => ({
         itemType: "SERVICE" as const,
-        serviceItemId: template.id,
+        serviceItemId: item.id,
         qty: 1,
-        priceSnapshot: template.estimatedPrice || 0,
+        priceSnapshot: item.price || 0,
       }));
     }
 

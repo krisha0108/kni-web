@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const period = request.nextUrl.searchParams.get("period") || "30"; // days
 

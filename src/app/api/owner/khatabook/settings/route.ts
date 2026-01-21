@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -9,7 +9,7 @@ const updateSettingsSchema = z.object({
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     const body = await request.json();
     const validation = updateSettingsSchema.safeParse(body);

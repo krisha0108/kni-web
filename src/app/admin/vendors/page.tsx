@@ -84,9 +84,9 @@ export default function AdminVendorsPage() {
   const handleApprove = async (vendorId: string) => {
     try {
       const response = await fetch(`/api/admin/vendors/${vendorId}`, {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approvalStatus: "APPROVED" }),
+        body: JSON.stringify({ action: "approve" }),
       });
       const data = await response.json();
       if (data.ok) {

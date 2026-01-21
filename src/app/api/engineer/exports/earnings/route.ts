@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/server/db'
-import { getSession } from '@/server/auth/session'
+import { getMobileSession } from '@/server/auth/mobile-session'
 import { convertToCSV, ExportColumn } from '@/lib/export'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession()
+    const session = await getMobileSession(request)
     if (!session || session.role !== 'ENGINEER') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

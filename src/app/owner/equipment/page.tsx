@@ -21,14 +21,30 @@ import { formatDate } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
 import { useRestaurant } from "@/contexts/restaurant-context";
 
+interface Category {
+  id: string;
+  name: string;
+  subCategories?: SubCategory[];
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
 interface Equipment {
   id: string;
   name: string;
-  category: string;
+  brand: string | null;
+  model: string | null;
   serialNumber: string | null;
   purchaseDate: string;
   warrantyEndDate: string | null;
+  installLocation: string | null;
   status: string;
+  category: { id: string; name: string } | null;
+  subCategory: { id: string; name: string } | null;
   restaurant: {
     id: string;
     name: string;
@@ -57,21 +73,26 @@ export default function OwnerEquipmentPage() {
   const [formData, setFormData] = useState({
     restaurantId: "",
     name: "",
-    category: "",
+    categoryId: "",
+    subCategoryId: "",
+    brand: "",
+    model: "",
     purchaseDate: "",
     warrantyEndDate: "",
     serialNumber: "",
+    installLocation: "",
     notes: "",
     billImageUrl: "",
     warrantyCardUrl: "",
     photoUrls: [] as string[],
   });
 
-  const [categories, setCategories] = useState<Array<{ id: string; name: string; category: { id: string; name: string } }>>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   useEffect(() => {
+    fetchCategories();
     if (selectedRestaurant) {
-      fetchCategories();
       fetchEquipment();
     }
   }, [selectedRestaurant]);
@@ -83,15 +104,26 @@ export default function OwnerEquipmentPage() {
     }
   }, [selectedRestaurant]);
 
+  // Update subcategories when category changes
+  useEffect(() => {
+    if (formData.categoryId) {
+      const selectedCategory = categories.find(c => c.id === formData.categoryId);
+      setSubCategories(selectedCategory?.subCategories || []);
+      setFormData(prev => ({ ...prev, subCategoryId: "" })); // Reset subcategory
+    } else {
+      setSubCategories([]);
+    }
+  }, [formData.categoryId, categories]);
+
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/public/subcategories");
+      const response = await fetch("/api/public/categories");
       const data = await response.json();
       if (data.ok && data.data) {
         setCategories(data.data || []);
       }
     } catch (error) {
-      console.error("Error fetching equipment categories:", error);
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -124,7 +156,7 @@ export default function OwnerEquipmentPage() {
 
   const handleCreate = async () => {
     try {
-      if (!formData.restaurantId || !formData.name || !formData.category || !formData.purchaseDate) {
+      if (!formData.restaurantId || !formData.name || !formData.categoryId || !formData.purchaseDate) {
         toast({
           title: "Error",
           description: "Please fill in all required fields",
@@ -136,9 +168,13 @@ export default function OwnerEquipmentPage() {
       const payload: any = {
         restaurantId: formData.restaurantId,
         name: formData.name,
-        category: formData.category,
+        categoryId: formData.categoryId,
+        subCategoryId: formData.subCategoryId || undefined,
+        brand: formData.brand || undefined,
+        model: formData.model || undefined,
         purchaseDate: new Date(formData.purchaseDate).toISOString(),
         serialNumber: formData.serialNumber || undefined,
+        installLocation: formData.installLocation || undefined,
         notes: formData.notes || undefined,
         billImageUrl: formData.billImageUrl || undefined,
         warrantyCardUrl: formData.warrantyCardUrl || undefined,
@@ -163,12 +199,16 @@ export default function OwnerEquipmentPage() {
         });
         setIsCreateOpen(false);
         setFormData({
-          restaurantId: "",
+          restaurantId: selectedRestaurant?.restaurantId || "",
           name: "",
-          category: "",
+          categoryId: "",
+          subCategoryId: "",
+          brand: "",
+          model: "",
           purchaseDate: "",
           warrantyEndDate: "",
           serialNumber: "",
+          installLocation: "",
           notes: "",
           billImageUrl: "",
           warrantyCardUrl: "",
@@ -230,7 +270,9 @@ export default function OwnerEquipmentPage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((item) =>
         item.name.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query) ||
+        (item.category?.name || "").toLowerCase().includes(query) ||
+        (item.subCategory?.name || "").toLowerCase().includes(query) ||
+        (item.brand || "").toLowerCase().includes(query) ||
         (item.serialNumber && item.serialNumber.toLowerCase().includes(query)) ||
         getEquipmentStatusLabel(item.status).toLowerCase().includes(query)
       );
@@ -362,7 +404,7 @@ export default function OwnerEquipmentPage() {
               <div className="space-y-2">
                 <Label>Category *</Label>
                 <ClientOnly>
-                  <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                  <Select value={formData.categoryId} onValueChange={(v) => setFormData({ ...formData, categoryId: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -373,19 +415,55 @@ export default function OwnerEquipmentPage() {
                         </div>
                       ) : (
                         categories.map((c) => (
-                          <SelectItem key={c.id} value={c.name}>
-                            {c.category.name} - {c.name}
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
                           </SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
                 </ClientOnly>
-                {categories.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    No equipment categories available. Please contact admin.
-                  </p>
-                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Subcategory</Label>
+                <ClientOnly>
+                  <Select
+                    value={formData.subCategoryId}
+                    onValueChange={(v) => setFormData({ ...formData, subCategoryId: v })}
+                    disabled={!formData.categoryId || subCategories.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.categoryId ? "Select subcategory" : "Select category first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subCategories.map((sc) => (
+                        <SelectItem key={sc.id} value={sc.id}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </ClientOnly>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Brand</Label>
+                  <Input
+                    value={formData.brand}
+                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                    placeholder="e.g., Samsung"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Model</Label>
+                  <Input
+                    value={formData.model}
+                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                    placeholder="e.g., XYZ-123"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -394,6 +472,15 @@ export default function OwnerEquipmentPage() {
                   value={formData.serialNumber}
                   onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
                   placeholder="ABC123456"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Install Location</Label>
+                <Input
+                  value={formData.installLocation}
+                  onChange={(e) => setFormData({ ...formData, installLocation: e.target.value })}
+                  placeholder="e.g., Main Kitchen"
                 />
               </div>
 
@@ -475,7 +562,7 @@ export default function OwnerEquipmentPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, category, serial number, or status..."
+                placeholder="Search by name, category, brand, serial number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -650,8 +737,8 @@ export default function OwnerEquipmentPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Brand</TableHead>
               <TableHead>Serial Number</TableHead>
-              <TableHead>Restaurant</TableHead>
               <TableHead>Purchase Date</TableHead>
               <TableHead>Warranty Status</TableHead>
               <TableHead>Status</TableHead>
@@ -689,11 +776,18 @@ export default function OwnerEquipmentPage() {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p>{item.category?.name || "-"}</p>
+                        {item.subCategory && (
+                          <p className="text-xs text-muted-foreground">{item.subCategory.name}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.brand || "-"}</TableCell>
                     <TableCell className="font-mono text-sm">
                       {item.serialNumber || "-"}
                     </TableCell>
-                    <TableCell>{item.restaurant.name}</TableCell>
                     <TableCell>{formatDate(item.purchaseDate)}</TableCell>
                     <TableCell>
                       <Badge variant={warrantyStatus.color === "green" ? "success" : warrantyStatus.color === "yellow" ? "warning" : warrantyStatus.color === "red" ? "destructive" : "secondary"}>

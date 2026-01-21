@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/server/auth/session";
+import { NextRequest, NextResponse } from "next/server";
+import { getMobileSession } from "@/server/auth/mobile-session";
 import { getRoleDashboardUrl } from "@/server/auth/rbac";
 
-export async function GET() {
+/**
+ * GET /api/auth/me
+ * Get current user session
+ * Supports both cookie-based (web) and token-based (mobile) authentication
+ */
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getMobileSession(request);
 
     if (!session) {
       return NextResponse.json(

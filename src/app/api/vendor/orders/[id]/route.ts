@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireVendor } from "@/server/auth/rbac";
+import { requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { createNotification } from "@/server/notifications/service";
 
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireVendor();
+    const session = await requireApprovedVendor();
     const { id } = await params;
 
     const order = await db.marketplaceOrder.findFirst({
@@ -78,7 +78,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireVendor();
+    const session = await requireApprovedVendor();
     const { id } = await params;
     const body = await request.json();
 

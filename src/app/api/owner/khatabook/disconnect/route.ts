@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { disconnectKhatabook } from "@/server/khatabook/service";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     // Disconnect Khatabook
     await disconnectKhatabook(session.id);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -20,7 +20,7 @@ const bulkAttendanceSchema = z.object({
 // POST /api/owner/staff-attendance/bulk - Mark attendance for multiple staff
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = bulkAttendanceSchema.parse(body);
 

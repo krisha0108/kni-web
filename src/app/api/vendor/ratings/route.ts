@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireVendor } from "@/server/auth/rbac";
+import { requireApprovedVendor } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireVendor();
+    const session = await requireApprovedVendor();
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");

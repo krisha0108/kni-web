@@ -1,9 +1,26 @@
 import { Role } from "@prisma/client";
+import { NextRequest } from "next/server";
 import { getSession, type SessionUser } from "./session";
+import { getMobileSession } from "./mobile-session";
 
 export async function requireRole(...allowedRoles: Role[]): Promise<SessionUser> {
   const session = await getSession();
-  
+
+  if (!session) {
+    throw new Error("Unauthorized: Not logged in");
+  }
+
+  if (!allowedRoles.includes(session.role)) {
+    throw new Error(`Forbidden: Role ${session.role} not allowed`);
+  }
+
+  return session;
+}
+
+// Mobile-compatible version that accepts request for Bearer token support
+export async function requireRoleMobile(request: NextRequest, ...allowedRoles: Role[]): Promise<SessionUser> {
+  const session = await getMobileSession(request);
+
   if (!session) {
     throw new Error("Unauthorized: Not logged in");
   }
@@ -29,6 +46,23 @@ export async function requireVendor(): Promise<SessionUser> {
 
 export async function requireEngineer(): Promise<SessionUser> {
   return requireRole(Role.ENGINEER);
+}
+
+// Mobile-compatible versions
+export async function requireAdminMobile(request: NextRequest): Promise<SessionUser> {
+  return requireRoleMobile(request, Role.ADMIN);
+}
+
+export async function requireOwnerMobile(request: NextRequest): Promise<SessionUser> {
+  return requireRoleMobile(request, Role.OWNER);
+}
+
+export async function requireVendorMobile(request: NextRequest): Promise<SessionUser> {
+  return requireRoleMobile(request, Role.VENDOR);
+}
+
+export async function requireEngineerMobile(request: NextRequest): Promise<SessionUser> {
+  return requireRoleMobile(request, Role.ENGINEER);
 }
 
 export async function requireApprovedVendor(): Promise<SessionUser> {

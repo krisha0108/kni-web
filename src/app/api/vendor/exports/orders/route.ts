@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/server/db'
-import { getSession } from '@/server/auth/session'
+import { requireApprovedVendor } from '@/server/auth/rbac'
 import { convertToCSV, ExportColumn } from '@/lib/export'
 
 export async function GET() {
   try {
-    const session = await getSession()
-    if (!session || session.role !== 'VENDOR') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = session
+    const session = await requireApprovedVendor()
 
     const orders = await db.marketplaceOrder.findMany({
-      where: { vendorId: user.id },
+      where: { vendorId: session.id },
       include: {
         owner: { select: { name: true } },
         restaurant: { select: { name: true } },

@@ -29,7 +29,6 @@ interface AnalyticsData {
     bookings: { count: number; revenue: number };
     expenses: { count: number; total: number };
     equipment: { count: number };
-    amcSubscriptions: { count: number; value: number };
     marketplaceOrders: { count: number; total: number };
     netRevenue: number;
   };
@@ -222,22 +221,6 @@ export default function OwnerDashboardPage() {
 
       {/* Additional Stats */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AMC Subscriptions</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.amcSubscriptions.count}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total Value: {formatPrice(analyticsData.summary.amcSubscriptions.value)}
-            </p>
-            <Button size="sm" variant="outline" asChild className="mt-2">
-              <Link href="/owner/amc-subscriptions">View All</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Marketplace Orders</CardTitle>

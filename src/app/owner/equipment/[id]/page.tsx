@@ -508,9 +508,9 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Equipment Info */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-6">
+        {/* Equipment Info */}
+        <div className="space-y-6">
           {/* Equipment Details */}
           <Card>
             <CardHeader>
@@ -702,122 +702,27 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Column - AMC Management */}
-        <div className="space-y-6">
-          {/* Active AMC Card */}
-          {activeAmc ? (
-            <Card>
-              <CardHeader>
+          {/* AMC Subscriptions */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  Active AMC
+                  <Shield className="h-5 w-5" />
+                  AMC Subscriptions
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground">Plan Name</Label>
-                  <p className="font-medium">{activeAmc.planName || "Custom Plan"}</p>
-                </div>
-                {activeAmc.planDescription && (
-                  <div>
-                    <Label className="text-muted-foreground">Description</Label>
-                    <p className="text-sm">{activeAmc.planDescription}</p>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground">Duration</Label>
-                    <p className="font-medium">{getAMCDurationLabel(activeAmc.duration as any)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Amount</Label>
-                    <p className="font-medium">₹{(activeAmc.totalAmount / 100).toFixed(2)}</p>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Period</Label>
-                  <p className="text-sm">
-                    {formatDate(activeAmc.startDate)} - {formatDate(activeAmc.endDate)}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground mb-2 block">Service Usage</Label>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>{activeAmc.servicesUsed} used</span>
-                      <span>{activeAmc.serviceLimit - activeAmc.servicesUsed} remaining</span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{ width: `${(activeAmc.servicesUsed / activeAmc.serviceLimit) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      {activeAmc.servicesUsed} / {activeAmc.serviceLimit} services
-                    </p>
-                  </div>
-                </div>
-                {activeAmc.featuresJson && activeAmc.featuresJson.length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground mb-2 block">Features</Label>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      {activeAmc.featuresJson.map((feature, index) => (
-                        <li key={index}>{feature}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground">Auto-Renew</Label>
-                    <Badge variant={activeAmc.autoRenew ? "success" : "secondary"}>
-                      {activeAmc.autoRenew ? "On" : "Off"}
-                    </Badge>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleToggleAutoRenew(activeAmc.id, activeAmc.autoRenew)}
-                  >
-                    Toggle
-                  </Button>
-                </div>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => handleCancelAmc(activeAmc.id)}
-                >
-                  Cancel AMC
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <XCircle className="h-5 w-5 text-muted-foreground" />
-                  No Active AMC
-                </CardTitle>
-                <CardDescription>
-                  Create a maintenance plan for this equipment
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
                 <Dialog open={isCreateAmcOpen} onOpenChange={setIsCreateAmcOpen}>
                   <DialogTrigger asChild>
-                    <Button className="w-full">
+                    <Button size="sm">
                       <Plus className="mr-2 h-4 w-4" />
-                      Create AMC Plan
+                      Create AMC
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Create AMC Plan</DialogTitle>
+                      <DialogTitle>Create AMC Subscription</DialogTitle>
                       <DialogDescription>
-                        Set up a custom maintenance plan for {equipment.name}
+                        Create a maintenance contract for this equipment
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -826,40 +731,36 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                         <Input
                           value={amcFormData.planName}
                           onChange={(e) => setAmcFormData({ ...amcFormData, planName: e.target.value })}
-                          placeholder="e.g., Monthly Oven Maintenance"
+                          placeholder="e.g., Annual Maintenance"
                         />
                       </div>
-
                       <div className="space-y-2">
                         <Label>Description</Label>
                         <Textarea
                           value={amcFormData.planDescription}
                           onChange={(e) => setAmcFormData({ ...amcFormData, planDescription: e.target.value })}
-                          placeholder="Describe what's included in this maintenance plan"
-                          rows={3}
+                          placeholder="Describe what's included..."
+                          rows={2}
                         />
                       </div>
-
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Duration *</Label>
-                          <ClientOnly>
-                            <Select
-                              value={amcFormData.duration}
-                              onValueChange={(v) => setAmcFormData({ ...amcFormData, duration: v })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="MONTHLY">Monthly (1 month)</SelectItem>
-                                <SelectItem value="QUARTERLY">Quarterly (3 months)</SelectItem>
-                                <SelectItem value="YEARLY">Yearly (12 months)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </ClientOnly>
+                          <Select
+                            value={amcFormData.duration}
+                            onValueChange={(value) => setAmcFormData({ ...amcFormData, duration: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MONTHLY">Monthly (1 Month)</SelectItem>
+                              <SelectItem value="QUARTERLY">Quarterly (3 Months)</SelectItem>
+                              <SelectItem value="HALF_YEARLY">Half Yearly (6 Months)</SelectItem>
+                              <SelectItem value="YEARLY">Yearly (12 Months)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-
                         <div className="space-y-2">
                           <Label>Service Limit *</Label>
                           <Input
@@ -867,23 +768,30 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                             min="1"
                             value={amcFormData.serviceLimit}
                             onChange={(e) => setAmcFormData({ ...amcFormData, serviceLimit: parseInt(e.target.value) || 1 })}
-                            placeholder="Number of services"
                           />
                         </div>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Plan Cost (₹) *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={amcFormData.totalAmount}
-                          onChange={(e) => setAmcFormData({ ...amcFormData, totalAmount: parseFloat(e.target.value) || 0 })}
-                          placeholder="0.00"
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Amount (₹) *</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={amcFormData.totalAmount}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, totalAmount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Start Date *</Label>
+                          <Input
+                            type="date"
+                            value={amcFormData.startDate}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, startDate: e.target.value })}
+                          />
+                        </div>
                       </div>
-
                       <div className="space-y-2">
                         <Label>Features</Label>
                         <div className="flex gap-2">
@@ -891,38 +799,26 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                             value={featureInput}
                             onChange={(e) => setFeatureInput(e.target.value)}
                             placeholder="Add a feature"
-                            onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddFeature())}
+                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddFeature())}
                           />
-                          <Button type="button" onClick={handleAddFeature}>Add</Button>
+                          <Button type="button" onClick={handleAddFeature} size="icon">
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
                         {amcFormData.featuresJson.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {amcFormData.featuresJson.map((feature, index) => (
                               <Badge key={index} variant="secondary" className="gap-1">
                                 {feature}
-                                <button
-                                  onClick={() => handleRemoveFeature(index)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  ×
+                                <button onClick={() => handleRemoveFeature(index)} className="ml-1 hover:text-destructive">
+                                  <XCircle className="h-3 w-3" />
                                 </button>
                               </Badge>
                             ))}
                           </div>
                         )}
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Start Date *</Label>
-                        <Input
-                          type="date"
-                          value={amcFormData.startDate}
-                          onChange={(e) => setAmcFormData({ ...amcFormData, startDate: e.target.value })}
-                          min={new Date().toISOString().split("T")[0]}
-                        />
-                      </div>
-
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
                           id="autoRenew"
@@ -930,53 +826,121 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           onChange={(e) => setAmcFormData({ ...amcFormData, autoRenew: e.target.checked })}
                           className="rounded"
                         />
-                        <Label htmlFor="autoRenew" className="cursor-pointer">
-                          Enable auto-renewal
-                        </Label>
+                        <Label htmlFor="autoRenew" className="text-sm">Enable auto-renewal</Label>
                       </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setIsCreateAmcOpen(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateAmc}>Create AMC Plan</Button>
+                      <Button onClick={handleCreateAmc}>Create AMC</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* AMC History */}
-          {amcSubscriptions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  AMC History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {amcSubscriptions.map((amc) => (
-                    <div key={amc.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-sm">{amc.planName || "Custom Plan"}</p>
-                        <Badge variant={getAMCStatusColor(amc.status as any)}>
-                          {getAMCStatusLabel(amc.status as any)}
-                        </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {amcSubscriptions.length > 0 ? (
+                <div className="space-y-4">
+                  {amcSubscriptions.map((amc) => {
+                    const daysRemaining = Math.ceil((new Date(amc.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    const usagePercent = (amc.servicesUsed / amc.serviceLimit) * 100;
+                    return (
+                      <div
+                        key={amc.id}
+                        className={`border rounded-lg p-4 ${amc.status === "ACTIVE" ? "border-l-4 border-l-green-500" : ""}`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-semibold">{amc.planName || "Custom Plan"}</p>
+                            {amc.planDescription && (
+                              <p className="text-sm text-muted-foreground">{amc.planDescription}</p>
+                            )}
+                          </div>
+                          <Badge variant={amc.status === "ACTIVE" ? "success" : amc.status === "EXPIRED" ? "destructive" : "secondary"}>
+                            {amc.status}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                          <div>
+                            <p className="text-muted-foreground">Duration</p>
+                            <p className="font-medium">{getAMCDurationLabel(amc.duration as any)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Amount</p>
+                            <p className="font-medium">₹{(amc.totalAmount / 100).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Period</p>
+                            <p className="font-medium">{formatDate(amc.startDate)} - {formatDate(amc.endDate)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Auto-Renew</p>
+                            <p className="font-medium">{amc.autoRenew ? "Yes" : "No"}</p>
+                          </div>
+                        </div>
+                        {amc.status === "ACTIVE" && (
+                          <>
+                            <div className="mb-3">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-muted-foreground">Service Usage</span>
+                                <span className="font-medium">{amc.servicesUsed} / {amc.serviceLimit}</span>
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full ${usagePercent >= 100 ? "bg-destructive" : usagePercent >= 80 ? "bg-yellow-500" : "bg-green-500"}`}
+                                  style={{ width: `${Math.min(100, usagePercent)}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {amc.serviceLimit - amc.servicesUsed} services remaining • {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleToggleAutoRenew(amc.id, amc.autoRenew)}
+                              >
+                                {amc.autoRenew ? "Disable Auto-Renew" : "Enable Auto-Renew"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleCancelAmc(amc.id)}
+                              >
+                                Cancel AMC
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                        {amc.featuresJson && amc.featuresJson.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-sm font-medium mb-2">Features</p>
+                            <div className="flex flex-wrap gap-2">
+                              {amc.featuresJson.map((feature, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />
+                                  {feature}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <p>{getAMCDurationLabel(amc.duration as any)}</p>
-                        <p>{formatDate(amc.startDate)} - {formatDate(amc.endDate)}</p>
-                        <p>{amc.servicesUsed} / {amc.serviceLimit} services used</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No AMC subscriptions yet</p>
+                  <p className="text-sm mt-1">Create a maintenance plan to protect this equipment</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { amcSubscriptionUpdateSchema } from "@/server/validators/amc";
 
 // GET /api/owner/equipment/[id]/amc/[amcId] - Get specific AMC subscription
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; amcId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId, amcId } = await params;
 
     const subscription = await db.aMCSubscription.findFirst({
@@ -70,7 +70,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; amcId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId, amcId } = await params;
 
     const body = await request.json();
@@ -145,7 +145,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; amcId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id: equipmentId, amcId } = await params;
 
     // Verify ownership

@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session
-    await createSession(user.id);
+    // Create session and get token for mobile
+    const token = await createSession(user.id);
 
     return NextResponse.json({
       ok: true,
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         },
         restaurants: user.restaurants,
         hasApprovedRestaurant: user.restaurants.length > 0,
+        token, // Token for mobile apps
       },
     });
   } catch (error) {

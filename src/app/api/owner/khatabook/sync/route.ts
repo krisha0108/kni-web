@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { syncAllPendingTransactions } from "@/server/khatabook/service";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     // Get user's Khatabook connection
     const connection = await db.khatabookConnection.findUnique({

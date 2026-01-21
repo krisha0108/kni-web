@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/vendor-ledger/summary - Get vendor-wise summary
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
     if (!restaurantId) {

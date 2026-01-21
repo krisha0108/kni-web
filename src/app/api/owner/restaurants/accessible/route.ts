@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { NextRequest, NextResponse } from "next/server";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { getUserRestaurants } from "@/server/auth/restaurant-rbac";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     const restaurants = await getUserRestaurants(session.id);
 

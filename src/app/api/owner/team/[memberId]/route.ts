@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { updateRoleSchema } from "@/server/validators/team";
 import { RestaurantRole } from "@prisma/client";
@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { memberId } = await params;
     const body = await request.json();
     const validation = updateRoleSchema.safeParse(body);
@@ -67,7 +67,7 @@ export async function DELETE(
   { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { memberId } = await params;
 
     // Get member to check restaurant

@@ -132,8 +132,8 @@ export default function StockMovementsPage() {
                   <TableCell className="font-mono">{movement.balanceAfter}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{movement.creator.name}</p>
-                      <p className="text-xs text-muted-foreground">{movement.creator.email}</p>
+                      <p className="font-medium">{movement.creator?.name || "System"}</p>
+                      <p className="text-xs text-muted-foreground">{movement.creator?.email || "-"}</p>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

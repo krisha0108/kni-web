@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { createNotificationForRole } from "@/server/notifications/service";
 import { Role, NotificationType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     const body = await request.json();
     const { categoryName, description, reason } = body;
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     const categoryRequests = await db.categoryRequest.findMany({
       where: {

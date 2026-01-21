@@ -42,45 +42,65 @@ import {
 import { ClientOnly } from "@/components/client-only";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Search, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, Store } from "lucide-react";
 import { formatPrice, formatDate } from "@/lib/utils";
 
-interface Product {
+interface AdminProduct {
   id: string;
   name: string;
-  description?: string;
-  price: number;
+  imageUrl: string | null;
   unit: string;
+  description: string | null;
+}
+
+interface VendorProduct {
+  id: string;
+  vendorId: string;
+  productId: string;
+  price: number;
+  description: string | null;
   stockQuantity: number;
-  imageUrl?: string;
+  deliveryTime: string | null;
   isActive: boolean;
   createdAt: string;
-  category?: { id: string; name: string } | null;
+  updatedAt: string;
+  // From admin product
+  name: string;
+  imageUrl: string | null;
+  unit: string;
+  productDescription: string | null;
 }
 
-interface Category {
-  id: string;
-  name: string;
-}
+const DELIVERY_OPTIONS = [
+  { value: "Same day", label: "Same day" },
+  { value: "1-2 days", label: "1-2 days" },
+  { value: "2-3 days", label: "2-3 days" },
+  { value: "3-5 days", label: "3-5 days" },
+  { value: "1 week", label: "1 week" },
+];
 
 export default function VendorProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
+  const [selectedAdminProduct, setSelectedAdminProduct] = useState<AdminProduct | null>(null);
+  const [availableSearch, setAvailableSearch] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state for pricing
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
     price: "",
-    unit: "",
+    description: "",
     stockQuantity: "",
-    categoryId: "",
-    imageUrl: "",
+    deliveryTime: "",
+    isActive: true,
   });
+
   const { toast } = useToast();
 
   const fetchProducts = async () => {
@@ -92,7 +112,7 @@ export default function VendorProductsPage() {
       const response = await fetch("/api/vendor/products?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setProducts(data.data.items || data.data);
+        setProducts(data.data || []);
       }
     } catch (error) {
       toast({
@@ -105,15 +125,18 @@ export default function VendorProductsPage() {
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchAvailableProducts = async () => {
     try {
-      const response = await fetch("/api/public/categories");
+      const params = new URLSearchParams();
+      if (availableSearch) params.append("search", availableSearch);
+
+      const response = await fetch("/api/vendor/products/available?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setCategories(data.data);
+        setAvailableProducts(data.data || []);
       }
-    } catch {
-      // Ignore
+    } catch (error) {
+      console.error("Failed to fetch available products:", error);
     }
   };
 
@@ -122,69 +145,81 @@ export default function VendorProductsPage() {
   }, [search]);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (isAddPriceOpen) {
+      fetchAvailableProducts();
+    }
+  }, [isAddPriceOpen, availableSearch]);
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      description: "",
       price: "",
-      unit: "",
+      description: "",
       stockQuantity: "",
-      categoryId: "",
-      imageUrl: "",
+      deliveryTime: "",
+      isActive: true,
     });
+    setSelectedAdminProduct(null);
   };
 
-  const handleCreate = async () => {
+  const handleAddPricing = async () => {
+    if (!selectedAdminProduct) {
+      toast({ title: "Error", description: "Please select a product", variant: "destructive" });
+      return;
+    }
+    if (!formData.price) {
+      toast({ title: "Error", description: "Price is required", variant: "destructive" });
+      return;
+    }
+
     try {
+      setIsSaving(true);
       const response = await fetch("/api/vendor/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
-          description: formData.description || undefined,
+          productId: selectedAdminProduct.id,
           price: parseInt(formData.price, 10),
-          unit: formData.unit,
+          description: formData.description || undefined,
           stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
-          categoryId: formData.categoryId,
-          imageUrl: formData.imageUrl || undefined,
+          deliveryTime: formData.deliveryTime || undefined,
+          isActive: formData.isActive,
         }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Product created" });
-        setIsCreateOpen(false);
+        toast({ title: "Success", description: "Pricing added successfully" });
+        setIsAddPriceOpen(false);
         resetForm();
         fetchProducts();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to create product", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to add pricing", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleEdit = async () => {
     if (!selectedProduct) return;
+
     try {
+      setIsSaving(true);
       const response = await fetch("/api/vendor/products/" + selectedProduct.id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
-          description: formData.description || undefined,
           price: parseInt(formData.price, 10),
-          unit: formData.unit,
+          description: formData.description || null,
           stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
-          categoryId: formData.categoryId,
-          imageUrl: formData.imageUrl || undefined,
+          deliveryTime: formData.deliveryTime || null,
+          isActive: formData.isActive,
         }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Product updated" });
+        toast({ title: "Success", description: "Pricing updated successfully" });
         setIsEditOpen(false);
         setSelectedProduct(null);
         resetForm();
@@ -193,7 +228,9 @@ export default function VendorProductsPage() {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to update product", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to update pricing", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -205,7 +242,7 @@ export default function VendorProductsPage() {
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Product deleted" });
+        toast({ title: "Success", description: "Product listing removed" });
         setIsDeleteOpen(false);
         setSelectedProduct(null);
         fetchProducts();
@@ -213,20 +250,18 @@ export default function VendorProductsPage() {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to delete product", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to remove product listing", variant: "destructive" });
     }
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = (product: VendorProduct) => {
     setSelectedProduct(product);
     setFormData({
-      name: product.name,
-      description: product.description || "",
       price: product.price.toString(),
-      unit: product.unit,
+      description: product.description || "",
       stockQuantity: product.stockQuantity.toString(),
-      categoryId: product.category?.id || "",
-      imageUrl: product.imageUrl || "",
+      deliveryTime: product.deliveryTime || "",
+      isActive: product.isActive,
     });
     setIsEditOpen(true);
   };
@@ -236,106 +271,192 @@ export default function VendorProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
+          <p className="text-muted-foreground">
+            Set your prices for marketplace products
+          </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
+        <Dialog open={isAddPriceOpen} onOpenChange={(open) => {
+          setIsAddPriceOpen(open);
+          if (!open) {
+            resetForm();
+            setAvailableSearch("");
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Product
+              Add Pricing
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Add Product</DialogTitle>
-              <DialogDescription>Add a new product to your catalog</DialogDescription>
+              <DialogTitle>Add Product Pricing</DialogTitle>
+              <DialogDescription>
+                Select a product from the catalog and set your price
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Product name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <ClientOnly>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                </ClientOnly>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (paise) *</Label>
+
+            {!selectedAdminProduct ? (
+              <div className="space-y-4 py-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="100000"
+                    placeholder="Search available products..."
+                    value={availableSearch}
+                    onChange={(e) => setAvailableSearch(e.target.value)}
+                    className="pl-10"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit *</Label>
-                  <Input
-                    id="unit"
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    placeholder="kg, liter, piece, etc."
-                  />
+                <div className="max-h-[300px] overflow-y-auto border rounded-lg">
+                  {availableProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                      <Package className="h-8 w-8 mb-2" />
+                      <p>No products available to add</p>
+                      <p className="text-sm">You've already added pricing for all products</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {availableProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="flex items-center gap-4 p-3 hover:bg-muted/50 cursor-pointer"
+                          onClick={() => setSelectedAdminProduct(product)}
+                        >
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="h-12 w-12 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {product.unit}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline">Select</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock Quantity</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  value={formData.stockQuantity}
-                  onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                  placeholder="10"
-                />
+            ) : (
+              <div className="space-y-4 py-4">
+                {/* Selected Product Info */}
+                <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                  {selectedAdminProduct.imageUrl ? (
+                    <img
+                      src={selectedAdminProduct.imageUrl}
+                      alt={selectedAdminProduct.name}
+                      className="h-16 w-16 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded bg-muted flex items-center justify-center">
+                      <Package className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="font-medium text-lg">{selectedAdminProduct.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {selectedAdminProduct.unit}
+                    </div>
+                    {selectedAdminProduct.description && (
+                      <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {selectedAdminProduct.description}
+                      </div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedAdminProduct(null)}>
+                    Change
+                  </Button>
+                </div>
+
+                {/* Pricing Form */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Your Price (paise) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="e.g., 10000 = ₹100"
+                    />
+                    {formData.price && (
+                      <p className="text-xs text-muted-foreground">
+                        = {formatPrice(parseInt(formData.price) || 0)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="stock">Stock Quantity</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      value={formData.stockQuantity}
+                      onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryTime">Delivery Time</Label>
+                  <ClientOnly>
+                    <Select
+                      value={formData.deliveryTime}
+                      onValueChange={(value) => setFormData({ ...formData, deliveryTime: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select delivery time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DELIVERY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </ClientOnly>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Your Description (optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Add your own description or special notes..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="isActive">Active (visible in marketplace)</Label>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Product description"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
-                <Input
-                  id="imageUrl"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
+            )}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <Button variant="outline" onClick={() => setIsAddPriceOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate}>Create</Button>
+              {selectedAdminProduct && (
+                <Button onClick={handleAddPricing} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Add Pricing"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -345,7 +466,7 @@ export default function VendorProductsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search products..."
+            placeholder="Search your products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -359,37 +480,61 @@ export default function VendorProductsPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 border rounded-lg">
-          <Package className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg text-muted-foreground">No products found</p>
-          <p className="text-sm text-muted-foreground">Add your first product to get started</p>
+          <Store className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground">No products listed yet</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add pricing for products to start selling
+          </p>
+          <Button onClick={() => setIsAddPriceOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Pricing
+          </Button>
         </div>
       ) : (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Your Price</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead>Delivery</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category?.name || "Uncategorized"}</TableCell>
-                  <TableCell>{formatPrice(product.price)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-10 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          per {product.unit}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{formatPrice(product.price)}</TableCell>
                   <TableCell>{product.stockQuantity}</TableCell>
+                  <TableCell>{product.deliveryTime || "-"}</TableCell>
                   <TableCell>
                     <Badge variant={product.isActive ? "success" : "secondary"}>
                       {product.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(product.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button
@@ -419,93 +564,118 @@ export default function VendorProductsPage() {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open);
+        if (!open) {
+          setSelectedProduct(null);
+          resetForm();
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>Update product details</DialogDescription>
+            <DialogTitle>Edit Pricing</DialogTitle>
+            <DialogDescription>Update your price and stock for this product</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">Category *</Label>
-              <ClientOnly>
-                <Select
-                value={formData.categoryId}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+          {selectedProduct && (
+            <div className="space-y-4 py-4">
+              {/* Product Info (read-only) */}
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                {selectedProduct.imageUrl ? (
+                  <img
+                    src={selectedProduct.imageUrl}
+                    alt={selectedProduct.name}
+                    className="h-12 w-12 rounded object-cover"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
+                    <Package className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-medium">{selectedProduct.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedProduct.unit}
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price">Your Price (paise) *</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  />
+                  {formData.price && (
+                    <p className="text-xs text-muted-foreground">
+                      = {formatPrice(parseInt(formData.price) || 0)}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-stock">Stock Quantity</Label>
+                  <Input
+                    id="edit-stock"
+                    type="number"
+                    value={formData.stockQuantity}
+                    onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-deliveryTime">Delivery Time</Label>
+                <ClientOnly>
+                  <Select
+                    value={formData.deliveryTime || "__none__"}
+                    onValueChange={(value) => setFormData({ ...formData, deliveryTime: value === "__none__" ? "" : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select delivery time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Not specified</SelectItem>
+                      {DELIVERY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </ClientOnly>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (paise) *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-unit">Unit *</Label>
-                <Input
-                  id="edit-unit"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="kg, liter, piece, etc."
+                <Label htmlFor="edit-description">Your Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="edit-isActive">Active (visible in marketplace)</Label>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-stock">Stock Quantity</Label>
-              <Input
-                id="edit-stock"
-                type="number"
-                value={formData.stockQuantity}
-                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-imageUrl">Image URL</Label>
-              <Input
-                id="edit-imageUrl"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              />
-            </div>
-          </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit}>Save</Button>
+            <Button onClick={handleEdit} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -514,14 +684,15 @@ export default function VendorProductsPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogTitle>Remove Product Listing</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;{selectedProduct?.name}&quot;? This action cannot be undone.
+              Are you sure you want to remove your pricing for &quot;{selectedProduct?.name}&quot;?
+              This will remove the product from your listings but not from the marketplace catalog.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -394,7 +394,7 @@ export async function syncTransactionToKhatabook(
     const khatabookData = {
       business_id: transaction.connection.businessId,
       type: transaction.amount > 0 ? "CREDIT" : "DEBIT", // Positive = revenue, Negative = expense
-      amount: Math.abs(transaction.amount / 100), // Convert paise to rupees
+      amount: Math.abs(transaction.amount),
       description: transaction.description,
       customer_name: transaction.customerName || "KNI Super App",
       date: transaction.date.toISOString().split("T")[0], // YYYY-MM-DD

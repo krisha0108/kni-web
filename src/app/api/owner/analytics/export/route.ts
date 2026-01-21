@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { pdf } from "@react-pdf/renderer";
 import { OwnerAnalyticsDocument } from "@/lib/pdf/owner-analytics-document";
@@ -7,7 +7,7 @@ import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const period = request.nextUrl.searchParams.get("period") || "30";
 

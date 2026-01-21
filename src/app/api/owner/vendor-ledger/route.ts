@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -21,7 +21,7 @@ const createEntrySchema = z.object({
 // GET /api/owner/vendor-ledger - List vendor ledger entries
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const vendorName = request.nextUrl.searchParams.get("vendorName");
     const startDate = request.nextUrl.searchParams.get("startDate");
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 // POST /api/owner/vendor-ledger - Create vendor ledger entry
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = createEntrySchema.parse(body);
 

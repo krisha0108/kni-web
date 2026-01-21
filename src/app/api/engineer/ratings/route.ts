@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");

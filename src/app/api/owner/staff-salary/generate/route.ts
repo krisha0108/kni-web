@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -12,7 +12,7 @@ const generateSalarySchema = z.object({
 // POST /api/owner/staff-salary/generate - Generate salary for all staff for a month
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = generateSalarySchema.parse(body);
 

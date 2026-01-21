@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -21,7 +21,7 @@ const updatePaymentSchema = z.object({
 // GET /api/owner/staff-salary - Get salary records
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const staffId = request.nextUrl.searchParams.get("staffId");
     const month = request.nextUrl.searchParams.get("month");
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 // POST /api/owner/staff-salary - Create salary record
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = createSalarySchema.parse(body);
 

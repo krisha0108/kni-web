@@ -3,17 +3,72 @@ import { db } from "@/server/db";
 import { requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 
-const updateProductSchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  price: z.number().int().positive().optional(), // Must be > 0 to prevent free products
-  unit: z.string().min(1).optional(),
+// Vendors can only update their pricing info, not the product itself
+const updateVendorProductSchema = z.object({
+  price: z.number().int().positive().optional(),
+  description: z.string().optional().nullable(),
   stockQuantity: z.number().int().min(0).optional(),
-  categoryId: z.string().optional(),
-  imageUrl: z.string().url().optional().nullable(),
+  deliveryTime: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
 });
 
+// GET /api/vendor/products/[id] - Get single vendor product with admin product info
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireApprovedVendor();
+    const { id } = await params;
+
+    const vendorProduct = await db.vendorProduct.findFirst({
+      where: {
+        id,
+        vendorId: session.id,
+        deletedAt: null,
+      },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!vendorProduct) {
+      return NextResponse.json(
+        { ok: false, error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    // Transform for frontend
+    const result = {
+      id: vendorProduct.id,
+      vendorId: vendorProduct.vendorId,
+      productId: vendorProduct.productId,
+      price: vendorProduct.price,
+      description: vendorProduct.description,
+      stockQuantity: vendorProduct.stockQuantity,
+      deliveryTime: vendorProduct.deliveryTime,
+      isActive: vendorProduct.isActive,
+      createdAt: vendorProduct.createdAt,
+      updatedAt: vendorProduct.updatedAt,
+      // Product info from admin
+      name: vendorProduct.product?.name ?? "",
+      imageUrl: vendorProduct.product?.imageUrl ?? null,
+      unit: vendorProduct.product?.unit ?? "",
+      productDescription: vendorProduct.product?.description ?? null,
+    };
+
+    return NextResponse.json({ ok: true, data: result });
+  } catch (error) {
+    console.error("Get vendor product error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/vendor/products/[id] - Update vendor's pricing for a product
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,7 +78,7 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const validation = updateProductSchema.safeParse(body);
+    const validation = updateVendorProductSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
@@ -34,7 +89,7 @@ export async function PATCH(
 
     // Verify product belongs to this vendor
     const existing = await db.vendorProduct.findFirst({
-      where: { id, vendorId: session.id },
+      where: { id, vendorId: session.id, deletedAt: null },
     });
 
     if (!existing) {
@@ -44,18 +99,41 @@ export async function PATCH(
       );
     }
 
-    const product = await db.vendorProduct.update({
+    const { price, description, stockQuantity, deliveryTime, isActive } = validation.data;
+
+    const vendorProduct = await db.vendorProduct.update({
       where: { id },
       data: {
-        ...validation.data,
+        ...(price !== undefined ? { price } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(stockQuantity !== undefined ? { stockQuantity } : {}),
+        ...(deliveryTime !== undefined ? { deliveryTime } : {}),
+        ...(isActive !== undefined ? { isActive } : {}),
         updatedAt: new Date(),
       },
       include: {
-        category: { select: { id: true, name: true } },
+        product: true,
       },
     });
 
-    return NextResponse.json({ ok: true, data: product });
+    // Transform for frontend
+    const result = {
+      id: vendorProduct.id,
+      vendorId: vendorProduct.vendorId,
+      productId: vendorProduct.productId,
+      price: vendorProduct.price,
+      description: vendorProduct.description,
+      stockQuantity: vendorProduct.stockQuantity,
+      deliveryTime: vendorProduct.deliveryTime,
+      isActive: vendorProduct.isActive,
+      createdAt: vendorProduct.createdAt,
+      updatedAt: vendorProduct.updatedAt,
+      name: vendorProduct.product?.name ?? "",
+      imageUrl: vendorProduct.product?.imageUrl ?? null,
+      unit: vendorProduct.product?.unit ?? "",
+    };
+
+    return NextResponse.json({ ok: true, data: result });
   } catch (error) {
     console.error("Update vendor product error:", error);
     return NextResponse.json(
@@ -65,6 +143,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/vendor/products/[id] - Remove vendor's listing for a product
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -75,7 +154,7 @@ export async function DELETE(
 
     // Verify product belongs to this vendor
     const existing = await db.vendorProduct.findFirst({
-      where: { id, vendorId: session.id },
+      where: { id, vendorId: session.id, deletedAt: null },
     });
 
     if (!existing) {
@@ -85,6 +164,7 @@ export async function DELETE(
       );
     }
 
+    // Soft delete the vendor's listing
     await db.vendorProduct.update({
       where: { id },
       data: {
@@ -93,7 +173,7 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, message: "Product listing removed" });
   } catch (error) {
     console.error("Delete vendor product error:", error);
     return NextResponse.json(

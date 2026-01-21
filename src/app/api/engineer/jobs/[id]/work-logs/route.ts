@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 import { saveUploadedFile } from "@/server/upload/localUpload";
 
 /**
@@ -16,7 +16,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     const contentType = request.headers.get("content-type") || "";
@@ -33,7 +33,7 @@ export async function POST(
       const images = formData.getAll("images");
       for (const image of images) {
         if (image instanceof File) {
-          const result = await saveUploadedFile(image, "work-logs");
+          const result = await saveUploadedFile(image, "engineer-proof");
           imageUrls.push(result.url);
         }
       }
@@ -150,7 +150,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     const assignment = await db.engineerAssignment.findFirst({

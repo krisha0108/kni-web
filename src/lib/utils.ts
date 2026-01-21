@@ -5,9 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amountInPaise: number | undefined | null): string {
+export function formatCurrency(amount: number | undefined | null): string {
   // Handle invalid or missing values
-  if (amountInPaise === undefined || amountInPaise === null || isNaN(amountInPaise)) {
+  if (amount === undefined || amount === null || isNaN(amount)) {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
@@ -19,12 +19,12 @@ export function formatCurrency(amountInPaise: number | undefined | null): string
     style: "currency",
     currency: "INR",
     minimumFractionDigits: 2,
-  }).format(amountInPaise / 100);
+  }).format(amount);
 }
 
-// Alias for formatCurrency to match the README documentation
-export function formatPrice(amountInPaise: number | undefined | null): string {
-  return formatCurrency(amountInPaise);
+// Alias for formatCurrency
+export function formatPrice(amount: number | undefined | null): string {
+  return formatCurrency(amount);
 }
 
 export function formatDate(date: Date | string): string {

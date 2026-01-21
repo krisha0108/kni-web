@@ -68,6 +68,12 @@ export async function predictEquipmentMaintenance(restaurantId: string) {
       status: { in: ["AVAILABLE", "IN_USE"] },
     },
     include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       amcSubscription: {
         where: { status: "ACTIVE" },
         take: 1,

@@ -1,41 +1,24 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { getSession } from '@/server/auth/session';
+import { requireApprovedVendor } from '@/server/auth/rbac';
 
 export async function GET() {
   try {
-    const session = await getSession();
-
-    if (!session || session.role !== 'VENDOR') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = session;
+    const session = await requireApprovedVendor();
 
     const vendorProfile = await db.vendorProfile.findUnique({
-      where: { userId: user.id },
+      where: { userId: session.id },
     });
-
-    // If not approved, redirect to pending page
-    if (vendorProfile?.approvalStatus !== "APPROVED") {
-      return NextResponse.json({ redirect: "/vendor/pending" });
-    }
-
-    // If subscription expired or blocked, redirect to subscription page
-    if (vendorProfile?.subscriptionStatus === "EXPIRED" ||
-        vendorProfile?.subscriptionStatus === "BLOCKED") {
-      return NextResponse.json({ redirect: "/vendor/subscription" });
-    }
 
     const [products, orders, ordersWithDetails, topProducts] = await Promise.all([
       db.vendorProduct.count({
-        where: { vendorId: user.id, isActive: true, deletedAt: null },
+        where: { vendorId: session.id, isActive: true, deletedAt: null },
       }),
       db.marketplaceOrder.count({
-        where: { vendorId: user.id },
+        where: { vendorId: session.id },
       }),
       db.marketplaceOrder.findMany({
-        where: { vendorId: user.id },
+        where: { vendorId: session.id },
         include: {
           items: {
             include: {
@@ -49,7 +32,7 @@ export async function GET() {
         by: ['vendorProductId'],
         where: {
           order: {
-            vendorId: user.id
+            vendorId: session.id
           }
         },
         _sum: {
@@ -109,7 +92,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       data: {
-        userName: user.name,
+        userName: session.name,
         products,
         orders,
         totalRevenue: totalRevenue / 100,
@@ -119,9 +102,19 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Vendor dashboard error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data';
+
+    // Return appropriate redirect info for unapproved or blocked vendors
+    if (errorMessage.includes('not approved')) {
+      return NextResponse.json({ ok: false, redirect: '/vendor/pending', error: errorMessage }, { status: 403 });
+    }
+    if (errorMessage.includes('expired') || errorMessage.includes('blocked')) {
+      return NextResponse.json({ ok: false, redirect: '/vendor/subscription', error: errorMessage }, { status: 403 });
+    }
+
     return NextResponse.json(
-      { ok: false, error: 'Failed to load dashboard data' },
-      { status: 500 }
+      { ok: false, error: errorMessage },
+      { status: errorMessage.includes('Unauthorized') ? 401 : 500 }
     );
   }
 }

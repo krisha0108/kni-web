@@ -45,7 +45,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createSession(user.id);
+    // Block login for vendors who are not approved yet
+    if (user.role === "VENDOR" && user.vendorProfile) {
+      if (user.vendorProfile.approvalStatus === "PENDING") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your vendor account is pending approval. Please wait for admin approval before logging in.",
+            code: "VENDOR_PENDING_APPROVAL"
+          },
+          { status: 403 }
+        );
+      }
+      if (user.vendorProfile.approvalStatus === "REJECTED") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your vendor account has been rejected. Please contact support for more information.",
+            code: "VENDOR_REJECTED"
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Create session and get the token
+    const sessionToken = await createSession(user.id);
 
     const sessionData = {
       id: user.id,
@@ -69,6 +94,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           role: user.role,
         },
+        token: sessionToken, // Return token for mobile apps
         redirectUrl,
       },
     });

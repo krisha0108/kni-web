@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadImage } from "@/lib/cloudinary";
 import { saveToLocalStorage } from "@/lib/local-storage";
-import { getSession } from "@/server/auth/session";
+import { getMobileSession } from "@/server/auth/mobile-session";
 
 // Check if Cloudinary is configured
 const isCloudinaryConfigured =
@@ -12,8 +12,8 @@ const isCloudinaryConfigured =
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify user is authenticated
-    const session = await getSession();
+    // Verify user is authenticated (supports both web and mobile)
+    const session = await getMobileSession(req);
     if (!session) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      url: result.url, // For mobile app compatibility
       data: result,
     });
   } catch (error) {

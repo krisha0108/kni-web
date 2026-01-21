@@ -102,7 +102,7 @@ export default function VendorLedgerPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
 
-  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState("__all__");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -157,7 +157,7 @@ export default function VendorLedgerPage() {
         restaurantId: selectedRestaurant.restaurantId,
       });
 
-      if (selectedVendor) params.append("vendorName", selectedVendor);
+      if (selectedVendor && selectedVendor !== "__all__") params.append("vendorName", selectedVendor);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
@@ -463,7 +463,7 @@ export default function VendorLedgerPage() {
                       <SelectValue placeholder="All Vendors" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Vendors</SelectItem>
+                      <SelectItem value="__all__">All Vendors</SelectItem>
                       {vendors.map((vendor) => (
                         <SelectItem key={vendor.vendorName} value={vendor.vendorName}>
                           {vendor.vendorName}
@@ -489,11 +489,11 @@ export default function VendorLedgerPage() {
                     <Search className="mr-2 h-4 w-4" />
                     Filter
                   </Button>
-                  {(selectedVendor || startDate || endDate) && (
+                  {(selectedVendor !== "__all__" || startDate || endDate) && (
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setSelectedVendor("");
+                        setSelectedVendor("__all__");
                         setStartDate("");
                         setEndDate("");
                         setTimeout(fetchEntries, 100);

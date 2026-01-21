@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 import { getEngineerStats } from "@/server/ratings/service";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
 
     const stats = await getEngineerStats(session.id);
 

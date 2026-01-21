@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { notifyAdminsNewRestaurantRequest } from "@/server/notifications/service";
 import { z } from "zod";
 
@@ -20,9 +20,9 @@ const createRestaurantSchema = z.object({
   fssaiCertificateUrl: imageUrlSchema,
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     // Return all restaurants for this owner
     const restaurants = await db.restaurant.findMany({
@@ -47,7 +47,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
 
     const body = await request.json();
     const validation = createRestaurantSchema.safeParse(body);

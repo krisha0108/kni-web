@@ -19,8 +19,8 @@ const COMPANY_INFO = {
 /**
  * Format currency in INR
  */
-function formatCurrency(amountInPaise: number): string {
-  return `₹${(amountInPaise / 100).toLocaleString("en-IN", {
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -343,8 +343,8 @@ export async function generateOrderInvoice(orderId: string): Promise<Buffer> {
   doc.font("Helvetica").fontSize(10);
 
   order.items.forEach((item) => {
-    const productName = item.product.name;
-    const unit = item.product.unit;
+    const productName = item.product.name || "Unknown Product";
+    const unit = item.product.unit || "unit";
     const qty = item.qty;
     const price = item.priceSnapshot;
     const amount = qty * price;

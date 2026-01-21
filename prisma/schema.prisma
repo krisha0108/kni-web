@@ -47,6 +47,7 @@ enum ServiceBookingStatus {
   PAYMENT_REJECTED
   ENGINEER_ASSIGNED
   ACCEPTED_BY_ENGINEER
+  IN_PROGRESS // Engineer has started work
   REJECTED_BY_ENGINEER
   COMPLETED
   CANCELLED
@@ -55,6 +56,7 @@ enum ServiceBookingStatus {
 enum EngineerAssignmentStatus {
   PENDING
   ACCEPTED
+  IN_PROGRESS // Engineer has started work
   REJECTED
   COMPLETED
 }
@@ -219,6 +221,11 @@ model User {
   cashbookEntries          CashbookEntry[]
   vendorLedger             VendorLedger[]
   staff                    Staff[]
+  supportTickets           SupportTicket[]       @relation("SupportTicketOwner")
+  supportTicketThreads     SupportTicketThread[] @relation("SupportTicketThreadUser")
+  partRequestsAsEngineer   PartRequest[]         @relation("EngineerPartRequests")
+  partRequestsAsAdmin      PartRequest[]         @relation("AdminPartRequests")
+  marketplaceProducts      MarketplaceProduct[]  @relation("MarketplaceProductCreator")
 
   @@index([email])
   @@index([role])
@@ -327,7 +334,9 @@ model Category {
   serviceItems         ServiceItem[]
   partItems            PartItem[]
   restaurantCategories RestaurantCategory[]
-  vendorProducts       VendorProduct[]
+  marketplaceProducts  MarketplaceProduct[]
+  vendorProducts       VendorProduct[]       // Legacy relation for migration
+  equipment            Equipment[]
 
   @@index([isActive])
 }
@@ -344,6 +353,7 @@ model SubCategory {
   category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   serviceItems ServiceItem[]
   partItems    PartItem[]
+  equipment    Equipment[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -389,6 +399,7 @@ model PartItem {
   bookingItems ServiceBookingItem[]
   inventory    WarehouseInventory?
   jobPartsUsed JobPartUsed[]
+  partRequests PartRequest[]
 
   @@index([categoryId])
   @@index([subCategoryId])
@@ -431,6 +442,7 @@ model Restaurant {
   staff             Staff[]
   staffAttendance   StaffAttendance[]
   staffSalaries     StaffSalary[]
+  supportTickets    SupportTicket[]
 
   @@index([ownerId])
   @@index([status])
@@ -610,11 +622,12 @@ model EngineerAssignment {
   commissionAmount Int?                     // Commission in paise (earned when completed)
   commissionRate   Int                      @default(20) // Commission percentage (default 20%)
 
-  booking  ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  engineer User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
-  workLog  EngineerWorkLog?
-  payout   Payout?
-  rating   EngineerRating?
+  booking      ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  engineer     User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+  workLog      EngineerWorkLog?
+  payout       Payout?
+  rating       EngineerRating?
+  partRequests PartRequest[]
 
   @@unique([bookingId, engineerId])
   @@index([bookingId])
@@ -623,11 +636,16 @@ model EngineerAssignment {
 }
 
 model EngineerWorkLog {
-  id             String   @id @default(cuid())
-  assignmentId   String   @unique
-  completionNote String
-  proofImageUrls Json? // Array of image URLs (max 5)
-  createdAt      DateTime @default(now())
+  id               String    @id @default(cuid())
+  assignmentId     String    @unique
+  completionNote   String    @db.Text
+  proofImageUrls   Json? // Array of image URLs (max 5)
+  startedAt        DateTime? // When engineer started work
+  completedAt      DateTime  @default(now()) // When work was completed
+  timeSpentSeconds Int? // Time spent in seconds (from timer)
+  partsUsedNames   Json? // Array of part names used (for display)
+  workNotes        String?   @db.Text // Additional work notes
+  createdAt        DateTime  @default(now())
 
   assignment EngineerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   partsUsed  JobPartUsed[]
@@ -653,25 +671,56 @@ model JobPartUsed {
 // G) MARKETPLACE
 // ========================================
 
+// Admin-controlled master product catalog
+model MarketplaceProduct {
+  id          String    @id @default(cuid())
+  name        String
+  imageUrl    String?
+  categoryId  String?
+  unit        String    // kg, ltr, piece, etc.
+  description String?   @db.Text  // Admin can provide default description
+  isActive    Boolean   @default(true)
+  createdBy   String    // Admin user ID
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  creator        User            @relation("MarketplaceProductCreator", fields: [createdBy], references: [id])
+  vendorProducts VendorProduct[]
+
+  @@index([isActive])
+  @@index([categoryId])
+  @@index([createdBy])
+}
+
+// Vendor-controlled pricing for admin products
 model VendorProduct {
   id            String    @id @default(cuid())
   vendorId      String
+  productId     String?   // FK to MarketplaceProduct (nullable for migration)
+  // Legacy fields - kept for migration, to be removed later
+  name          String?
   categoryId    String?
-  name          String
-  description   String?
-  price         Int // in paise
-  unit          String // kg, ltr, piece, etc.
+  unit          String?
+  imageUrl      String?
+  // End legacy fields
+  price         Int       // in paise (vendor sets this)
+  description   String?   @db.Text  // Vendor can customize description
   stockQuantity Int       @default(0)
+  deliveryTime  String?   // e.g., "2-3 days", "Same day"
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
   vendor     User                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  product    MarketplaceProduct?    @relation(fields: [productId], references: [id], onDelete: Cascade)
   category   Category?              @relation(fields: [categoryId], references: [id])
   orderItems MarketplaceOrderItem[]
 
   @@index([vendorId])
+  @@index([productId])
   @@index([isActive])
   @@index([categoryId])
 }
@@ -838,98 +887,16 @@ enum ExpenseCategory {
 }
 
 // ========================================
-// K) EQUIPMENT CATALOG (Hierarchical Structure)
+// K) EQUIPMENT (Uses Category/SubCategory from Catalog)
 // ========================================
-
-model EquipmentCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  icon        String?  // Icon name or emoji
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  equipmentTypes EquipmentType[]
-
-  @@index([isActive])
-  @@index([sortOrder])
-}
-
-model EquipmentType {
-  id                  String   @id @default(cuid())
-  categoryId          String
-  name                String
-  description         String?  @db.Text
-  brand               String?  // Common brands (comma separated)
-  avgLifespanMonths   Int?     // Average lifespan
-  avgWarrantyMonths   Int?     // Typical warranty period
-  imageUrl            String?
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  category           EquipmentCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  equipmentInstances Equipment[]
-  serviceTemplates   EquipmentServiceTemplate[]
-  partTemplates      EquipmentPartTemplate[]
-
-  @@unique([categoryId, name])
-  @@index([categoryId])
-  @@index([isActive])
-}
-
-model EquipmentServiceTemplate {
-  id              String   @id @default(cuid())
-  equipmentTypeId String
-  name            String
-  description     String?  @db.Text
-  estimatedPrice  Int?     // in paise (optional baseline)
-  duration        Int?     // estimated duration in minutes
-  frequency       String?  // "Monthly", "Quarterly", "Annual", "As-needed"
-  isCommon        Boolean  @default(false) // Mark common/recommended services
-  sortOrder       Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  equipmentType EquipmentType @relation(fields: [equipmentTypeId], references: [id], onDelete: Cascade)
-
-  @@unique([equipmentTypeId, name])
-  @@index([equipmentTypeId])
-  @@index([isActive])
-  @@index([isCommon])
-}
-
-model EquipmentPartTemplate {
-  id              String   @id @default(cuid())
-  equipmentTypeId String
-  name            String
-  partNumber      String?  // Manufacturer part number
-  description     String?  @db.Text
-  estimatedPrice  Int?     // in paise (optional baseline)
-  isCommon        Boolean  @default(false) // Mark commonly replaced parts
-  sortOrder       Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  equipmentType EquipmentType @relation(fields: [equipmentTypeId], references: [id], onDelete: Cascade)
-
-  @@unique([equipmentTypeId, name])
-  @@index([equipmentTypeId])
-  @@index([isActive])
-  @@index([isCommon])
-}
 
 model Equipment {
   id              String          @id @default(cuid())
   ownerId         String
   restaurantId    String
-  equipmentTypeId String?         // Link to EquipmentType (nullable for backward compatibility)
+  categoryId      String?         // Link to Category
+  subCategoryId   String?         // Link to SubCategory
   name            String          // User-given label/nickname
-  category        String          // DEPRECATED: keeping for backward compatibility
   brand           String?         // Specific brand
   model           String?         // Model number
   purchaseDate    DateTime
@@ -947,13 +914,15 @@ model Equipment {
 
   owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   restaurant      Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  equipmentType   EquipmentType?    @relation(fields: [equipmentTypeId], references: [id], onDelete: SetNull)
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategory     SubCategory?      @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
   amcSubscription AMCSubscription[]
   serviceBookings ServiceBooking[]  // Service history for this equipment
 
   @@index([ownerId])
   @@index([restaurantId])
-  @@index([equipmentTypeId])
+  @@index([categoryId])
+  @@index([subCategoryId])
   @@index([status])
   @@index([warrantyEndDate])
 }
@@ -1236,6 +1205,7 @@ enum AttendanceStatus {
   HALF_DAY
   LEAVE
   WEEKLY_OFF
+  HOLIDAY
 }
 
 model StaffAttendance {
@@ -1604,4 +1574,208 @@ model EngineerStats {
 
   @@index([averageRating])
   @@index([totalRatings])
+}
+
+// ========================================
+// MOBILE APP CONTENT MANAGEMENT
+// ========================================
+
+enum BannerStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FeedTone {
+  OK
+  INFO
+  WARN
+  DANGER
+}
+
+enum SponsoredContentType {
+  VENDOR
+  PRODUCT
+  SERVICE
+  GENERAL
+}
+
+model Banner {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  imageUrl    String
+  linkUrl     String?
+  status      BannerStatus @default(DRAFT)
+  sortOrder   Int          @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+  @@index([sortOrder])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model Feed {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  tone      FeedTone @default(INFO)
+  icon      String?
+  linkUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model Guide {
+  id          String   @id @default(cuid())
+  thumbUrl    String
+  title       String
+  description String?  @db.Text
+  minutes     Int      @default(0)
+  linkUrl     String
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model SponsoredContent {
+  id           String                @id @default(cuid())
+  type         SponsoredContentType  @default(GENERAL)
+  title        String
+  description  String?               @db.Text
+  imageUrl     String?
+  linkUrl      String?
+  sponsoredBy  String
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean               @default(true)
+  impressions  Int                   @default(0)
+  clicks       Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([type])
+}
+
+// ========================================
+// SUPPORT TICKETS
+// ========================================
+
+enum SupportTicketStatus {
+  PENDING
+  SEEN
+  ON_WORK
+  REJECTED
+  COMPLETED
+}
+
+model SupportTicket {
+  id             String              @id @default(cuid())
+  ownerId        String
+  restaurantId   String?
+  title          String
+  equipmentName  String?
+  category       String              @default("General")
+  description    String              @db.Text
+  status         SupportTicketStatus @default(PENDING)
+  photoUrl       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  owner      User                  @relation("SupportTicketOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant?           @relation(fields: [restaurantId], references: [id])
+  threads    SupportTicketThread[]
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SupportTicketThread {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String
+  message   String   @db.Text
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User          @relation("SupportTicketThreadUser", fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+// ========================================
+// PART REQUESTS (Engineer requesting parts)
+// ========================================
+
+enum PartRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+enum PartRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model PartRequest {
+  id              String              @id @default(cuid())
+  engineerId      String
+  partItemId      String
+  assignmentId    String?             // Optional: linked to a specific job
+  quantity        Int                 @default(1)
+  priority        PartRequestPriority @default(MEDIUM)
+  reason          String?             @db.Text
+  status          PartRequestStatus   @default(PENDING)
+
+  // Admin response
+  adminId         String?             // Admin who processed the request
+  adminNote       String?             @db.Text
+  rejectionReason String?
+
+  // Tracking
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  dispatchedAt    DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Relations
+  engineer        User                @relation("EngineerPartRequests", fields: [engineerId], references: [id])
+  partItem        PartItem            @relation(fields: [partItemId], references: [id])
+  assignment      EngineerAssignment? @relation(fields: [assignmentId], references: [id])
+  admin           User?               @relation("AdminPartRequests", fields: [adminId], references: [id])
+
+  @@index([engineerId])
+  @@index([partItemId])
+  @@index([assignmentId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
 }

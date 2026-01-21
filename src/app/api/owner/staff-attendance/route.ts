@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -7,7 +7,7 @@ const markAttendanceSchema = z.object({
   staffId: z.string(),
   restaurantId: z.string(),
   attendanceDate: z.string(),
-  status: z.enum(["PRESENT", "ABSENT", "HALF_DAY", "LEAVE", "WEEKLY_OFF"]),
+  status: z.enum(["PRESENT", "ABSENT", "HALF_DAY", "LEAVE", "WEEKLY_OFF", "HOLIDAY"]),
   checkInTime: z.string().optional(),
   checkOutTime: z.string().optional(),
   workHours: z.number().optional(),
@@ -16,7 +16,7 @@ const markAttendanceSchema = z.object({
 // GET /api/owner/staff-attendance - Get attendance records
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const staffId = request.nextUrl.searchParams.get("staffId");
     const startDate = request.nextUrl.searchParams.get("startDate");
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 // POST /api/owner/staff-attendance - Mark attendance
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const validated = markAttendanceSchema.parse(body);
 
@@ -102,23 +102,6 @@ export async function POST(request: NextRequest) {
     const attendanceDate = new Date(validated.attendanceDate);
     attendanceDate.setHours(0, 0, 0, 0);
 
-    // Check if attendance already exists for this date
-    const existing = await db.staffAttendance.findUnique({
-      where: {
-        staffId_attendanceDate: {
-          staffId: validated.staffId,
-          attendanceDate,
-        },
-      },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { ok: false, error: "Attendance already marked for this date" },
-        { status: 400 }
-      );
-    }
-
     // Calculate work hours if check in/out times provided
     let workHours = validated.workHours;
     if (!workHours && validated.checkInTime && validated.checkOutTime) {
@@ -127,8 +110,22 @@ export async function POST(request: NextRequest) {
       workHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60); // hours
     }
 
-    const attendance = await db.staffAttendance.create({
-      data: {
+    // Use upsert to update if exists, create if not
+    const attendance = await db.staffAttendance.upsert({
+      where: {
+        staffId_attendanceDate: {
+          staffId: validated.staffId,
+          attendanceDate,
+        },
+      },
+      update: {
+        status: validated.status,
+        checkInTime: validated.checkInTime ? new Date(validated.checkInTime) : null,
+        checkOutTime: validated.checkOutTime ? new Date(validated.checkOutTime) : null,
+        workHours,
+        markedBy: session.id,
+      },
+      create: {
         staffId: validated.staffId,
         restaurantId: validated.restaurantId,
         attendanceDate,

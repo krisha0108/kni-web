@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
 
     const assignments = await db.engineerAssignment.findMany({
       where: { engineerId: session.id },

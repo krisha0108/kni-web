@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { registerVendorSchema } from "@/server/validators/auth";
-import { createSession } from "@/server/auth/session";
 import { Role, VendorApprovalStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 
@@ -75,9 +74,7 @@ export async function POST(request: NextRequest) {
       })),
     });
 
-    // Create session
-    await createSession(user.id);
-
+    // Do not create session - vendor must wait for admin approval before logging in
     return NextResponse.json({
       ok: true,
       data: {
@@ -87,7 +84,8 @@ export async function POST(request: NextRequest) {
           email: user.email,
           role: user.role,
         },
-        redirectUrl: "/vendor/pending",
+        message: "Registration successful! Your account is pending admin approval. You will be notified once approved.",
+        redirectUrl: "/register-vendor/success",
       },
     });
   } catch (error) {

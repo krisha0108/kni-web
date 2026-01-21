@@ -11,9 +11,14 @@ const ROLE_ROUTES = {
   ENGINEER: "/engineer",
 };
 
+// Vendor pages that unapproved vendors can access
+const VENDOR_ALLOWED_UNAPPROVED = ["/vendor/pending"];
+// Vendor pages that blocked/expired vendors can access
+const VENDOR_ALLOWED_BLOCKED = ["/vendor/pending", "/vendor/subscription"];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Allow API routes to handle their own auth
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
@@ -51,9 +56,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For protected routes, we let the request through
-  // and let server components handle role validation
-  return NextResponse.next();
+  // Pass pathname to layout via header for vendor approval checks
+  const response = NextResponse.next();
+  response.headers.set("x-pathname", pathname);
+
+  return response;
 }
 
 export const config = {

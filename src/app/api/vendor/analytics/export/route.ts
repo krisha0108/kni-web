@@ -159,7 +159,12 @@ export async function GET(request: NextRequest) {
         topProducts: topProducts.map((item) => {
           const product = productDetails.find((p) => p.id === item.vendorProductId);
           return {
-            product: product || null,
+            product: product ? {
+              id: product.id,
+              name: product.name || "Unknown Product",
+              price: product.price,
+              unit: product.unit || "unit",
+            } : null,
             totalQuantity: item._sum?.qty || 0,
             totalRevenue: productRevenueMap.get(item.vendorProductId) || 0,
             orderCount: Number(item._count?.orderId || 0),

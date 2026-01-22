@@ -39,6 +39,7 @@ import {
   Truck,
   PieChart,
   FileCheck,
+  User,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -149,6 +150,7 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "Coverage Settings", href: "/vendor/coverage", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
   { title: "Notifications", href: "/vendor/notifications", icon: Bell },
+  { title: "Profile", href: "/vendor/profile", icon: User },
 ];
 
 export const engineerSidebarItems: SidebarItem[] = [
@@ -157,4 +159,5 @@ export const engineerSidebarItems: SidebarItem[] = [
   { title: "Completed", href: "/engineer/completed", icon: CheckCircle },
   { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
   { title: "Notifications", href: "/engineer/notifications", icon: Bell },
+  { title: "Profile", href: "/engineer/profile", icon: User },
 ];

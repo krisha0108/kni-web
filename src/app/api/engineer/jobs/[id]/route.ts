@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineerMobile } from "@/server/auth/rbac";
-import { notifyOwnerJobCompleted, createNotificationForRole } from "@/server/notifications/service";
+import { notifyOwnerJobCompleted, createNotificationForRole, createNotification } from "@/server/notifications/service";
 import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
 import { rejectionReasonSchema } from "@/lib/validations/rejection";
@@ -283,6 +283,15 @@ export async function POST(
         NotificationType.BOOKING,
         "/admin/bookings/" + assignment.bookingId
       );
+
+      // Notify owner that engineer rejected their job
+      await createNotification({
+        userId: assignment.booking.ownerId,
+        title: "Engineer Unavailable",
+        message: `${session.name} is unable to take your service request at ${assignment.booking.restaurant.name}. Our team will assign another engineer shortly.`,
+        type: NotificationType.BOOKING,
+        linkUrl: "/owner/bookings/" + assignment.bookingId,
+      });
     } else if (action === "complete") {
       // Check if job is in accepted or in_progress status
       if (assignment.status !== "ACCEPTED" && assignment.status !== "IN_PROGRESS") {

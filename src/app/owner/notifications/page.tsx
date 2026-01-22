@@ -9,98 +9,70 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Bell, Search, CheckCircle, AlertCircle, Info, XCircle,
-  Calendar, Clock, Eye, CheckCheck, Trash2, BellOff
+  Bell, Search, CheckCircle, AlertCircle,
+  Clock, Eye, CheckCheck, Trash2, BellOff,
+  Package, Megaphone, CreditCard, Building2, ShoppingCart
 } from "lucide-react";
-import { useRestaurant } from "@/contexts/restaurant-context";
 import { formatDate } from "@/lib/utils";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "BOOKING" | "PAYMENT" | "SYSTEM";
+  type: "BOOKING" | "PAYMENT" | "ORDER" | "AMC" | "EQUIPMENT" | "SYSTEM" | "ANNOUNCEMENT";
   isRead: boolean;
+  linkUrl?: string;
   createdAt: string;
-  metadata?: {
-    bookingId?: string;
-    equipmentId?: string;
-    link?: string;
-  };
 }
 
 const TYPE_CONFIG = {
-  INFO: { icon: Info, color: "bg-blue-100 text-blue-600", badge: "default" as const },
-  SUCCESS: { icon: CheckCircle, color: "bg-green-100 text-green-600", badge: "success" as const },
-  WARNING: { icon: AlertCircle, color: "bg-yellow-100 text-yellow-600", badge: "warning" as const },
-  ERROR: { icon: XCircle, color: "bg-red-100 text-red-600", badge: "destructive" as const },
-  BOOKING: { icon: Calendar, color: "bg-purple-100 text-purple-600", badge: "secondary" as const },
-  PAYMENT: { icon: CheckCheck, color: "bg-emerald-100 text-emerald-600", badge: "success" as const },
-  SYSTEM: { icon: Bell, color: "bg-gray-100 text-gray-600", badge: "outline" as const },
+  BOOKING: { icon: Building2, color: "bg-blue-100 text-blue-600", badge: "default" as const, label: "Booking" },
+  PAYMENT: { icon: CreditCard, color: "bg-green-100 text-green-600", badge: "success" as const, label: "Payment" },
+  ORDER: { icon: ShoppingCart, color: "bg-purple-100 text-purple-600", badge: "secondary" as const, label: "Order" },
+  AMC: { icon: CheckCircle, color: "bg-emerald-100 text-emerald-600", badge: "success" as const, label: "AMC" },
+  EQUIPMENT: { icon: Package, color: "bg-orange-100 text-orange-600", badge: "warning" as const, label: "Equipment" },
+  SYSTEM: { icon: Bell, color: "bg-gray-100 text-gray-600", badge: "outline" as const, label: "System" },
+  ANNOUNCEMENT: { icon: Megaphone, color: "bg-yellow-100 text-yellow-600", badge: "warning" as const, label: "Announcement" },
 };
 
 const FILTER_OPTIONS = [
   { value: "all", label: "All Notifications" },
   { value: "unread", label: "Unread Only" },
-  { value: "INFO", label: "Information" },
-  { value: "SUCCESS", label: "Success" },
-  { value: "WARNING", label: "Warnings" },
-  { value: "ERROR", label: "Errors" },
   { value: "BOOKING", label: "Bookings" },
   { value: "PAYMENT", label: "Payments" },
+  { value: "ORDER", label: "Orders" },
+  { value: "EQUIPMENT", label: "Equipment" },
+  { value: "SYSTEM", label: "System" },
+  { value: "ANNOUNCEMENT", label: "Announcements" },
 ];
 
-export default function NotificationsPage() {
+export default function OwnerNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchNotifications();
-  }, [selectedRestaurant]);
+  }, []);
 
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const params = new URLSearchParams();
-      if (selectedRestaurant) {
-        params.append("restaurantId", selectedRestaurant.restaurantId);
-      }
-
-      const response = await fetch("/api/owner/notifications?" + params.toString());
+      const response = await fetch("/api/notifications?limit=100");
 
       if (!response.ok) {
-        // API doesn't exist yet, use sample data
-        setNotifications([
-          {
-            id: "1",
-            title: "Booking Confirmed",
-            message: "Your service booking #12345 has been confirmed for tomorrow at 10:00 AM",
-            type: "BOOKING",
-            isRead: false,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            title: "Payment Received",
-            message: "Payment of ₹2,500 has been successfully processed",
-            type: "PAYMENT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-          },
-        ]);
+        setNotifications([]);
         return;
       }
 
       const data = await response.json();
 
-      if (data.ok) {
-        setNotifications(data.data || []);
+      if (data.ok && data.data) {
+        setNotifications(data.data.items || []);
       } else {
         setNotifications([]);
       }
@@ -114,8 +86,10 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      const response = await fetch(`/api/owner/notifications/${id}/read`, {
-        method: "PATCH",
+      const response = await fetch("/api/notifications/mark-read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
       });
 
       if (response.ok) {
@@ -130,22 +104,24 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch("/api/owner/notifications/read-all", {
-        method: "PATCH",
+      const response = await fetch("/api/notifications/mark-read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
       });
 
       if (response.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         toast({ title: "Success", description: "All notifications marked as read" });
       }
-    } catch (error) {
+    } catch {
       toast({ title: "Error", description: "Failed to mark all as read", variant: "destructive" });
     }
   };
 
   const deleteNotification = async (id: string) => {
     try {
-      const response = await fetch(`/api/owner/notifications/${id}`, {
+      const response = await fetch(`/api/notifications/${id}`, {
         method: "DELETE",
       });
 
@@ -153,7 +129,7 @@ export default function NotificationsPage() {
         setNotifications(prev => prev.filter(n => n.id !== id));
         toast({ title: "Success", description: "Notification deleted" });
       }
-    } catch (error) {
+    } catch {
       toast({ title: "Error", description: "Failed to delete notification", variant: "destructive" });
     }
   };
@@ -161,14 +137,12 @@ export default function NotificationsPage() {
   const filteredNotifications = useMemo(() => {
     let filtered = notifications;
 
-    // Apply type/read filter
     if (filter === "unread") {
       filtered = filtered.filter(n => !n.isRead);
     } else if (filter !== "all") {
       filtered = filtered.filter(n => n.type === filter);
     }
 
-    // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -180,6 +154,8 @@ export default function NotificationsPage() {
   }, [notifications, filter, searchQuery]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const bookingCount = notifications.filter(n => n.type === "BOOKING").length;
+  const paymentCount = notifications.filter(n => n.type === "PAYMENT").length;
 
   const openNotification = (notification: Notification) => {
     setSelectedNotification(notification);
@@ -205,8 +181,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-8 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Bell className="h-6 w-6" />
@@ -228,7 +204,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -258,13 +234,11 @@ export default function NotificationsPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Calendar className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Building2 className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
-                  {notifications.filter(n => n.type === "BOOKING").length}
-                </p>
+                <p className="text-2xl font-bold">{bookingCount}</p>
                 <p className="text-xs text-muted-foreground">Bookings</p>
               </div>
             </div>
@@ -274,12 +248,10 @@ export default function NotificationsPage() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CreditCard className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
-                  {notifications.filter(n => n.type === "PAYMENT").length}
-                </p>
+                <p className="text-2xl font-bold">{paymentCount}</p>
                 <p className="text-xs text-muted-foreground">Payments</p>
               </div>
             </div>
@@ -288,7 +260,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Search and Filters */}
-      <Card className="mb-6">
+      <Card>
         <CardContent className="pt-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
@@ -335,7 +307,7 @@ export default function NotificationsPage() {
           ) : (
             <div className="space-y-3">
               {filteredNotifications.map((notification) => {
-                const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.INFO;
+                const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.SYSTEM;
                 const Icon = config.icon;
 
                 return (
@@ -362,7 +334,7 @@ export default function NotificationsPage() {
                         {notification.message}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant={config.badge}>{notification.type}</Badge>
+                        <Badge variant={config.badge}>{config.label}</Badge>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {getTimeAgo(notification.createdAt)}
@@ -393,7 +365,7 @@ export default function NotificationsPage() {
               {selectedNotification && (
                 <>
                   {(() => {
-                    const config = TYPE_CONFIG[selectedNotification.type] || TYPE_CONFIG.INFO;
+                    const config = TYPE_CONFIG[selectedNotification.type] || TYPE_CONFIG.SYSTEM;
                     const Icon = config.icon;
                     return (
                       <div className={`p-2 rounded-lg ${config.color}`}>
@@ -413,16 +385,16 @@ export default function NotificationsPage() {
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <Badge variant={TYPE_CONFIG[selectedNotification.type]?.badge || "default"}>
-                  {selectedNotification.type}
+                  {TYPE_CONFIG[selectedNotification.type]?.label || selectedNotification.type}
                 </Badge>
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   {formatDate(selectedNotification.createdAt)}
                 </span>
               </div>
-              {selectedNotification.metadata?.link && (
+              {selectedNotification.linkUrl && (
                 <Button className="w-full" asChild>
-                  <a href={selectedNotification.metadata.link}>View Details</a>
+                  <a href={selectedNotification.linkUrl}>View Details</a>
                 </Button>
               )}
             </div>

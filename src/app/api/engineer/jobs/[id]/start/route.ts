@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineerMobile } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { notifyOwnerEngineerStarted } from "@/server/notifications/service";
 
 /**
  * POST /api/engineer/jobs/:id/start
@@ -80,13 +79,11 @@ export async function POST(
     });
 
     // Notify owner that engineer has started work
-    await createNotification({
-      userId: assignment.booking.ownerId,
-      title: "Engineer Started Work",
-      message: `${session.name} has started working on your service request at ${assignment.booking.restaurant.name}`,
-      type: NotificationType.BOOKING,
-      linkUrl: `/owner/bookings/${assignment.bookingId}`,
-    });
+    await notifyOwnerEngineerStarted(
+      assignment.booking.ownerId,
+      assignment.bookingId,
+      session.name
+    );
 
     return NextResponse.json({
       ok: true,

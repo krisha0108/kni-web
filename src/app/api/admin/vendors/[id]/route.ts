@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { notifyVendorApproved, notifyVendorRejected } from "@/server/notifications/service";
+import { notifyVendorApproved, notifyVendorRejected, createNotification } from "@/server/notifications/service";
+import { NotificationType } from "@prisma/client";
 import { z } from "zod";
 import { rejectionReasonSchema } from "@/lib/validations/rejection";
 
@@ -117,15 +118,41 @@ export async function POST(
           activeUntil: new Date(activeUntil),
         },
       });
+      // Notify vendor their subscription is activated
+      await createNotification({
+        userId: id,
+        title: "Subscription Activated",
+        message: `Your vendor subscription has been activated and is valid until ${new Date(activeUntil).toLocaleDateString()}.`,
+        type: NotificationType.SYSTEM,
+        linkUrl: "/vendor/dashboard",
+      });
     } else if (action === "block") {
       await db.vendorProfile.update({
         where: { userId: id },
         data: { subscriptionStatus: "BLOCKED", approvalNote: reason },
       });
+      // Notify vendor their account is blocked
+      await createNotification({
+        userId: id,
+        title: "Account Blocked",
+        message: reason
+          ? `Your vendor account has been blocked. Reason: ${reason}`
+          : "Your vendor account has been blocked. Please contact support for more information.",
+        type: NotificationType.SYSTEM,
+        linkUrl: "/vendor/dashboard",
+      });
     } else if (action === "expire") {
       await db.vendorProfile.update({
         where: { userId: id },
         data: { subscriptionStatus: "EXPIRED" },
+      });
+      // Notify vendor their subscription has expired
+      await createNotification({
+        userId: id,
+        title: "Subscription Expired",
+        message: "Your vendor subscription has expired. Please renew to continue listing products.",
+        type: NotificationType.SYSTEM,
+        linkUrl: "/vendor/dashboard",
       });
     }
 

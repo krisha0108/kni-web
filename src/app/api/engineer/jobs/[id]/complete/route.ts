@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineer } from "@/server/auth/rbac";
-import { notifyOwnerServiceCompleted } from "@/server/notifications/service";
+import { notifyOwnerServiceCompleted, createNotificationForRole } from "@/server/notifications/service";
+import { Role, NotificationType } from "@prisma/client";
 import { calculateCommission } from "@/lib/commission";
 
 export async function POST(
@@ -102,6 +103,15 @@ export async function POST(
     await notifyOwnerServiceCompleted(
       assignment.booking.ownerId,
       assignment.booking.id
+    );
+
+    // Notify admins for review
+    await createNotificationForRole(
+      Role.ADMIN,
+      "Job Completed - Review Required",
+      `${session.name} has completed service at ${assignment.booking.restaurant.name}. Please review and process payout.`,
+      NotificationType.BOOKING,
+      `/admin/bookings/${assignment.bookingId}`
     );
 
     return NextResponse.json({ ok: true });

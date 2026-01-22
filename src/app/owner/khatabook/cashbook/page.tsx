@@ -492,7 +492,7 @@ export default function CashbookPage() {
                             </span>
                             <span>{entry.paymentMode}</span>
                             {entry.referenceNo && <span>Ref: {entry.referenceNo}</span>}
-                            <span>By: {entry.creator.name}</span>
+                            {entry.creator?.name && <span>By: {entry.creator.name}</span>}
                           </div>
                         </div>
                       </div>

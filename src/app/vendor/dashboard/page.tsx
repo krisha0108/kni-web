@@ -102,21 +102,21 @@ export default function VendorDashboardPage() {
   const valueFormatter = (value: number) => `₹${value.toLocaleString("en-IN")}`;
 
   // Format trend data for charts
-  const orderTrendData = analyticsData.trends.dailyOrders.map((item) => ({
+  const orderTrendData = (analyticsData.trends?.dailyOrders || []).map((item) => ({
     date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     Orders: item.count,
     Revenue: item.revenue,
   }));
 
   // Format breakdown data
-  const orderStatusData = analyticsData.breakdowns.ordersByStatus.map((item) => ({
+  const orderStatusData = (analyticsData.breakdowns?.ordersByStatus || []).map((item) => ({
     name: item.status.replace(/_/g, " "),
     value: item.count,
     revenue: item.revenue,
   }));
 
   // Top products data for bar chart
-  const topProductsData = analyticsData.breakdowns.topProducts
+  const topProductsData = (analyticsData.breakdowns?.topProducts || [])
     .filter((item) => item.product !== null)
     .slice(0, 5)
     .map((item) => ({
@@ -127,7 +127,7 @@ export default function VendorDashboardPage() {
     }));
 
   // Top customers data for bar chart
-  const topCustomersData = analyticsData.breakdowns.topCustomers
+  const topCustomersData = (analyticsData.breakdowns?.topCustomers || [])
     .filter((item) => item.restaurant !== null)
     .slice(0, 5)
     .map((item) => ({

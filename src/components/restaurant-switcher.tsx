@@ -23,7 +23,7 @@ export function RestaurantSwitcher() {
     );
   }
 
-  if (restaurants.length === 0) {
+  if (!restaurants || restaurants.length === 0) {
     return null;
   }
 

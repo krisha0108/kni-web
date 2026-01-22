@@ -103,25 +103,25 @@ export default function OwnerDashboardPage() {
   const valueFormatter = (value: number) => `₹${value.toLocaleString("en-IN")}`;
 
   // Format trend data for charts
-  const bookingTrendData = analyticsData.trends.dailyBookings.map((item) => ({
+  const bookingTrendData = (analyticsData.trends?.dailyBookings || []).map((item) => ({
     date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     Bookings: item.count,
     Revenue: item.revenue,
   }));
 
-  const expenseTrendData = analyticsData.trends.dailyExpenses.map((item) => ({
+  const expenseTrendData = (analyticsData.trends?.dailyExpenses || []).map((item) => ({
     date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     Expenses: item.count,
     Amount: item.total,
   }));
 
   // Format breakdown data for pie charts
-  const bookingStatusData = analyticsData.breakdowns.bookingsByStatus.map((item) => ({
+  const bookingStatusData = (analyticsData.breakdowns?.bookingsByStatus || []).map((item) => ({
     name: item.status.replace(/_/g, " "),
     value: item.count,
   }));
 
-  const expenseCategoryData = analyticsData.breakdowns.expensesByCategory.map((item) => ({
+  const expenseCategoryData = (analyticsData.breakdowns?.expensesByCategory || []).map((item) => ({
     name: item.category.replace(/_/g, " "),
     value: item.total,
   }));
@@ -232,7 +232,7 @@ export default function OwnerDashboardPage() {
               Total: {formatPrice(analyticsData.summary.marketplaceOrders.total)}
             </p>
             <Button size="sm" variant="outline" asChild className="mt-2">
-              <Link href="/owner/marketplace-orders">View All</Link>
+              <Link href="/owner/marketplace/orders">View All</Link>
             </Button>
           </CardContent>
         </Card>
@@ -301,7 +301,7 @@ export default function OwnerDashboardPage() {
 
       {/* Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2">
-        {analyticsData.recent.bookings.length > 0 && (
+        {(analyticsData.recent?.bookings?.length || 0) > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Recent Bookings</CardTitle>
@@ -309,7 +309,7 @@ export default function OwnerDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {analyticsData.recent.bookings.map((booking: any) => (
+                {(analyticsData.recent?.bookings || []).map((booking: any) => (
                   <div
                     key={booking.id}
                     className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
@@ -333,7 +333,7 @@ export default function OwnerDashboardPage() {
           </Card>
         )}
 
-        {analyticsData.recent.expenses.length > 0 && (
+        {(analyticsData.recent?.expenses?.length || 0) > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Recent Expenses</CardTitle>
@@ -341,7 +341,7 @@ export default function OwnerDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {analyticsData.recent.expenses.map((expense: any) => (
+                {(analyticsData.recent?.expenses || []).map((expense: any) => (
                   <div
                     key={expense.id}
                     className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"

@@ -114,7 +114,7 @@ export function NotificationBell() {
       }
       const data = await response.json();
       if (data.ok) {
-        setNotifications(data.data.items);
+        setNotifications(data.data?.items || []);
       }
     } catch (error) {
       console.debug("Notifications not available");

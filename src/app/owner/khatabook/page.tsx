@@ -55,7 +55,7 @@ interface FinanceStats {
   };
 }
 
-export default function KhayabookDashboardPage() {
+export default function KhatabookDashboardPage() {
   const [stats, setStats] = useState<FinanceStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { selectedRestaurant } = useRestaurant();
@@ -265,7 +265,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/cashbook")}
+              onClick={() => router.push("/owner/khatabook/cashbook")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Wallet className="h-5 w-5" />
@@ -279,7 +279,7 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/vendor-ledger")}
+              onClick={() => router.push("/owner/khatabook/vendor-ledger")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Store className="h-5 w-5" />
@@ -335,11 +335,11 @@ export default function KhayabookDashboardPage() {
             <Button
               variant="outline"
               className="h-auto py-6 flex-col items-start"
-              onClick={() => router.push("/owner/khayabook/reports")}
+              onClick={() => router.push("/owner/spending-reports")}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Receipt className="h-5 w-5" />
-                <span className="font-semibold">Reports</span>
+                <span className="font-semibold">Spending Reports</span>
               </div>
               <span className="text-xs text-muted-foreground">
                 View detailed finance reports

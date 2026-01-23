@@ -783,7 +783,7 @@ export default function VendorOrdersPage() {
                 <div>
                   <h3 className="font-semibold mb-2">Order Items</h3>
                   <div className="space-y-3">
-                    {selectedOrder.items.map((item) => (
+                    {selectedOrder.items?.map((item) => (
                       <div
                         key={item.id}
                         className="flex justify-between items-center p-3 border rounded-lg"

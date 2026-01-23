@@ -556,7 +556,7 @@ export default function EngineerJobDetailPage() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {job.booking.items.map((item) => (
+              {job.booking.items?.map((item) => (
                 <li key={item.id} className="flex justify-between">
                   <span>{item.serviceItem?.name || item.partItem?.name}</span>
                   <span className="text-muted-foreground">x{item.quantity}</span>

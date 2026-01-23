@@ -1,0 +1,3622 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KNI</title>
+    <link rel="icon" href="/landing/assests/Kni-red-logo.webp" type="image/x-icon" />
+    <!-- Alternative formats -->
+    <link rel="icon" href="/landing/assests/Kni-red-logo.webp" type="image/png" />
+    <link rel="stylesheet" href="/landing/output.css" />
+    <link rel="stylesheet" href="/landing/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swiper/swiper-bundle.min.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="max-w-[1920px] mx-auto">
+    <!-- Navbar Section Starts Here -->
+    <div class="relative w-full opacity-1">
+      <video
+        autoplay
+        muted
+        loop
+        class="absolute top-0 left-0 w-full h-[700px] md:h-[650px] object-cover z-0"
+        src="/landing/assests/Commercial Kitchen 2.mp4"
+        alt="Commercial Kitchen"
+      ></video>
+      <nav
+        id="mainNav"
+        class="fixed mx-auto max-w-[1920px] w-full px-5 py-2 text-white lg:px-16 lg:py-3 border-b-2 border-b-white z-10 transition-all duration-300"
+      >
+        <div
+          class="container flex flex-wrap items-center justify-between mx-auto text-gray-100"
+        >
+          <div class="h-12 w-40 lg:w-48 lg:h-14 xl:w-60 xl:mb-3">
+            <a
+              href=""
+              class="mr-4 block cursor-pointer py-1.5 text-base text-gray-200 font-semibold"
+            >
+              <img src="/landing/assests/kniwhite-logo.png" alt="kni-logo" />
+            </a>
+          </div>
+          <div class="hidden lg:block">
+            <ul
+              class="flex flex-col gap-2 mt-2 mb-4 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6"
+            >
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#home"
+                  data-scroll="home"
+                  class="nav-link flex items-center"
+                >
+                  Home
+                </a>
+              </li>
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#about"
+                  data-scroll="about"
+                  class="nav-link flex items-center"
+                >
+                  About
+                </a>
+              </li>
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#services"
+                  data-scroll="services"
+                  class="nav-link flex items-center"
+                >
+                  Services
+                </a>
+              </li>
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#process"
+                  data-scroll="process"
+                  class="nav-link flex items-center"
+                >
+                  Process
+                </a>
+              </li>
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#testimonial"
+                  data-scroll="testimonial"
+                  class="nav-link flex items-center"
+                >
+                  Testimonial
+                </a>
+              </li>
+              <!-- <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a href="" data-scroll="pricing" class="nav-link flex items-center"> Pricing </a>
+              </li> -->
+              <!-- <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a href="" data-scroll="blog" class="nav-link flex items-center"> Blog </a>
+              </li> -->
+              <li
+                class="flex items-center p-1 text-lg gap-x-2 text-gray-200 hover:text-[#E71720]"
+              >
+                <a
+                  href="#contact"
+                  data-scroll="contact"
+                  class="nav-link flex items-center"
+                >
+                  Contact
+                </a>
+              </li>
+              <li class="flex items-center ml-4">
+                <a
+                  href="/login"
+                  class="bg-[#E71720] hover:bg-[#c9141c] text-white px-6 py-2 rounded-full text-lg font-medium transition-all duration-300"
+                >
+                  Login
+                </a>
+              </li>
+            </ul>
+          </div>
+          <button
+            class="relative ml-auto h-6 max-h-[40px] w-6 max-w-[40px] select-none rounded-lg text-center align-middle text-xs font-medium uppercase text-inherit transition-all hover:bg-transparent focus:bg-transparent active:bg-transparent disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none lg:hidden"
+            type="button"
+            data-drawer-target="drawer-navigation"
+            data-drawer-show="drawer-navigation"
+            aria-controls="drawer-navigation"
+            data-drawer-backdrop="false"
+          >
+            <span
+              class="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                ></path>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </nav>
+      <!-- drawer component -->
+      <div
+        id="drawer-navigation"
+        class="fixed top-0 left-0 z-40 w-64 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-[#5A5758]"
+        tabindex="-1"
+        aria-labelledby="drawer-navigation-label"
+      >
+        <!-- <h5 id="drawer-navigation-label"
+           class="text-base font-semibold text-gray-500 uppercase dark:text-gray-400">Menu
+       </h5> -->
+        <div id="drawer-navigation-label" class="mr-4 mt-2">
+          <img src="/landing/assests/kniwhite-logo.png" alt="kni-logo" srcset="" />
+        </div>
+        <button
+          type="button"
+          data-drawer-hide="drawer-navigation"
+          aria-controls="drawer-navigation"
+          class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 absolute top-2.5 end-2.5 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+        >
+          <svg
+            aria-hidden="true"
+            class="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="sr-only">Close menu</span>
+        </button>
+        <div class="py-4 overflow-y-auto text-white">
+          <ul class="space-y-2 font-medium text-white">
+            <li>
+              <a
+                href="#home"
+                data-scroll="home"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="ms-3">Home</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="#about"
+                data-scroll="about"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="flex-1 ms-3 whitespace-nowrap">About</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="#services"
+                data-scroll="services"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="flex-1 ms-3 whitespace-nowrap">Services</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="#process"
+                data-scroll="process"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="flex-1 ms-3 whitespace-nowrap">Process</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="#testimonial"
+                data-scroll="testimonial"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="flex-1 ms-3 whitespace-nowrap">Testimonial</span>
+              </a>
+            </li>
+            <!-- <li>
+       <a
+         href=""
+         data-scroll="pricing"
+         class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+       >
+         <span class="flex-1 ms-3 whitespace-nowrap">Pricing</span>
+       </a>
+     </li> -->
+            <!-- <li>
+       <a
+         href=""
+         data-scroll="blog"
+         class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+       >
+         <span class="flex-1 ms-3 whitespace-nowrap">Blog</span>
+       </a>
+     </li> -->
+            <li>
+              <a
+                href="#contact"
+                data-scroll="contact"
+                class="nav-link flex items-center p-2 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group hover:text-black"
+              >
+                <span class="flex-1 ms-3 whitespace-nowrap">Contact</span>
+              </a>
+            </li>
+            <li class="mt-4">
+              <a
+                href="/login"
+                class="flex items-center justify-center p-3 bg-[#E71720] hover:bg-[#c9141c] text-white rounded-lg font-medium transition-all duration-300"
+              >
+                Login
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <section id="home">
+        <div class="flex flex-col justify-center items-center relative">
+          <div class="mt-20 lg:mt-28">
+            <img src="/landing/assests/kni.svg" alt="kni logo" />
+          </div>
+          <div class="wrapper">
+            <div
+              class="static-txt text-2xl px-2 md:text-3xl lg:text-5xl xl:text-6xl"
+            >
+              Revolutionizing Commercial Kitchens with<br />
+              <span
+                class="dynamic-text drop-shadow-lg text-2xl md:text-3xl lg:text-5xl xl:text-6xl"
+              ></span>
+            </div>
+          </div>
+        </div>
+        <div class="relative mt-28 sm:mt-40 lg:mt-28 px-7 lg:px-16">
+          <div
+            class="grid grid-cols-1 md:grid-cols-3 py-2 w-full items-stretch justify-center shadow-xl rounded-xl"
+          >
+            <div
+              class="bg-white px-4 pt-2 md:p-6 rounded-t-2xl md:rounded-t-none md:rounded-tl-2xl md:rounded-bl-2xl"
+            >
+              <div class="flex items-center mb-1 md:mb-2">
+                <div class="icon-container">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="40"
+                    viewBox="0 0 84.199 79.34"
+                  >
+                    <g
+                      id="Component_7_1"
+                      data-name="Component 7 – 1"
+                      transform="translate(1)"
+                    >
+                      <circle
+                        id="Ellipse_53"
+                        data-name="Ellipse 53"
+                        cx="25"
+                        cy="25"
+                        r="25"
+                        transform="translate(33.199)"
+                        fill="#e4e4e4"
+                      />
+                      <g id="kitchen-03" transform="translate(-2.84 19.67)">
+                        <line
+                          id="Line_27"
+                          x2="2.44"
+                          transform="translate(58.42 58.67)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_28"
+                          x2="44.03"
+                          transform="translate(10.4 58.67)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_29"
+                          x2="3.02"
+                          transform="translate(2.84 58.67)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_30"
+                          transform="translate(3.36 41.62)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_433"
+                          d="M3.36,38.05V11.31h57.8V49.4H3.36V45.35"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <g id="Group_66">
+                          <rect
+                            id="Rectangle_115"
+                            width="8.84"
+                            height="4.95"
+                            transform="translate(7.34 49.4)"
+                            fill="none"
+                            stroke="#231f20"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <rect
+                            id="Rectangle_116"
+                            width="8.84"
+                            height="4.95"
+                            transform="translate(48.34 49.4)"
+                            fill="none"
+                            stroke="#231f20"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </g>
+                        <path
+                          id="Path_434"
+                          d="M20.7,5.33h4.27v5.98H8.74V5.33h5.14"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_435"
+                          d="M19.72,11.31a2.809,2.809,0,0,0,.11-.77,2.98,2.98,0,1,0-5.96,0,3.252,3.252,0,0,0,.11.77h5.74Z"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_436"
+                          d="M52.7,5.33h4.27v5.98H40.74V5.33h5.14"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_437"
+                          d="M51.72,11.31a2.809,2.809,0,0,0,.11-.77,2.98,2.98,0,1,0-5.96,0,3.252,3.252,0,0,0,.11.77h5.74Z"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_31"
+                          x2="57.8"
+                          transform="translate(3.36 25.58)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_438"
+                          d="M13.88,18.45a2.57,2.57,0,1,1-2.57-2.57A2.569,2.569,0,0,1,13.88,18.45Z"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_439"
+                          d="M23.88,18.45a2.57,2.57,0,1,1-2.57-2.57A2.569,2.569,0,0,1,23.88,18.45Z"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_32"
+                          y2="23.82"
+                          transform="translate(20.52 25.58)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_33"
+                          y2="23.82"
+                          transform="translate(37.52 25.58)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_34"
+                          x2="4.21"
+                          y2="4.35"
+                          transform="translate(51.83 31.03)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.5"
+                        />
+                        <line
+                          id="Line_35"
+                          x2="10.42"
+                          y2="10.82"
+                          transform="translate(44.88 31.03)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.5"
+                        />
+                        <line
+                          id="Line_36"
+                          x2="4.2"
+                          y2="4.36"
+                          transform="translate(43.51 37.49)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.5"
+                        />
+                        <line
+                          id="Line_37"
+                          y2="1.23"
+                          transform="translate(16.54 36.44)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_38"
+                          y2="1.23"
+                          transform="translate(33.54 36.44)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+                <h3
+                  class="text-gray-800 font-bold text-sm md:text-lg lg:text-xl ml-2 md:line-clamp-1"
+                >
+                  Kitchen Equipment
+                </h3>
+              </div>
+              <p
+                class="text-gray-600 ml-12 text-xs md:text-base md:line-clamp-6 xl:line-clamp-5"
+              >
+                KNI connects businesses with verified professionals, suppliers,
+                and consultants for reliable service and quality equipment,
+                reducing risks of poor workmanship or faulty products.
+              </p>
+            </div>
+
+            <!-- Kitchen Service Card -->
+            <div class="bg-white px-4 pt-2 md:p-6">
+              <div class="flex items-center mb-1 md:mb-2">
+                <div class="icon-container">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="40"
+                    viewBox="0 0 84.299 84.501"
+                  >
+                    <g
+                      id="Group_225"
+                      data-name="Group 225"
+                      transform="translate(-723 -830)"
+                    >
+                      <circle
+                        id="Ellipse_53"
+                        data-name="Ellipse 54"
+                        cx="25"
+                        cy="25"
+                        r="25"
+                        transform="translate(757.299 830)"
+                        fill="#e4e4e4"
+                      />
+                      <g
+                        id="Group_81"
+                        data-name="Group 81"
+                        transform="translate(-17.801 20)"
+                      >
+                        <g
+                          id="Kitchen_stove-11"
+                          data-name="Kitchen stove-11"
+                          transform="translate(739.101 820.6)"
+                        >
+                          <line
+                            id="Line_345"
+                            data-name="Line 345"
+                            y1="27.7"
+                            transform="translate(5.7 25.2)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_346"
+                            data-name="Line 346"
+                            y1="27.7"
+                            transform="translate(58.3 25.2)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_764"
+                            data-name="Path 764"
+                            d="M58.2,59H5.8a3.116,3.116,0,0,1-3.1-3.1h0a3.116,3.116,0,0,1,3.1-3.1H58.3a3.116,3.116,0,0,1,3.1,3.1h0A3.2,3.2,0,0,1,58.2,59Z"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_765"
+                            data-name="Path 765"
+                            d="M58.8,25.2H5.2a2.476,2.476,0,0,1-2.5-2.5V13.5A2.476,2.476,0,0,1,5.2,11H58.8a2.476,2.476,0,0,1,2.5,2.5v9.2A2.476,2.476,0,0,1,58.8,25.2Z"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_766"
+                            data-name="Path 766"
+                            d="M10.3,11V8.1a3.159,3.159,0,0,1,3.2-3.2h2.7"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_767"
+                            data-name="Path 767"
+                            d="M26,11V8.1A3.138,3.138,0,0,0,22.8,5H20.1"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_768"
+                            data-name="Path 768"
+                            d="M22.9,11,21.6,8H14.8l-1.3,3"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_769"
+                            data-name="Path 769"
+                            d="M36.8,11V8.1A3.138,3.138,0,0,1,40,5h2.7"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_770"
+                            data-name="Path 770"
+                            d="M52.5,11V8.1a3.159,3.159,0,0,0-3.2-3.2H46.6"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_771"
+                            data-name="Path 771"
+                            d="M49.4,11,48.1,8H41.2l-1.3,3"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <circle
+                            id="Ellipse_82"
+                            data-name="Ellipse 82"
+                            cx="3.5"
+                            cy="3.5"
+                            r="3.5"
+                            transform="translate(6.8 14.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_347"
+                            data-name="Line 347"
+                            x1="2.5"
+                            y2="2.5"
+                            transform="translate(10.3 15.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <circle
+                            id="Ellipse_83"
+                            data-name="Ellipse 83"
+                            cx="3.5"
+                            cy="3.5"
+                            r="3.5"
+                            transform="translate(19 14.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_348"
+                            data-name="Line 348"
+                            x1="2.5"
+                            y2="2.5"
+                            transform="translate(22.5 15.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <circle
+                            id="Ellipse_84"
+                            data-name="Ellipse 84"
+                            cx="3.5"
+                            cy="3.5"
+                            r="3.5"
+                            transform="translate(38.3 14.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_349"
+                            data-name="Line 349"
+                            x1="2.5"
+                            y2="2.5"
+                            transform="translate(41.8 15.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <circle
+                            id="Ellipse_85"
+                            data-name="Ellipse 85"
+                            cx="3.5"
+                            cy="3.5"
+                            r="3.5"
+                            transform="translate(50.5 14.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_350"
+                            data-name="Line 350"
+                            x1="2.5"
+                            y2="2.5"
+                            transform="translate(54 15.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <line
+                            id="Line_351"
+                            data-name="Line 351"
+                            x2="4.9"
+                            transform="translate(29.7 18.6)"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_772"
+                            data-name="Path 772"
+                            d="M47.9,32.2V44.4a5.164,5.164,0,0,1-5.2,5.2H20.1a5.164,5.164,0,0,1-5.2-5.2V32.2"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_773"
+                            data-name="Path 773"
+                            d="M48.6,32.2H14.2a1.793,1.793,0,0,1-1.8-1.8h0a1.793,1.793,0,0,1,1.8-1.8H48.6a1.793,1.793,0,0,1,1.8,1.8h0A1.859,1.859,0,0,1,48.6,32.2Z"
+                            fill="none"
+                            stroke="#282525"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </g>
+                        <path
+                          id="Subtraction_13"
+                          data-name="Subtraction 13"
+                          d="M10720.5,13780.5a19.5,19.5,0,0,1-6.792-37.785,25.092,25.092,0,0,0,18.344,2.571,19.661,19.661,0,0,1,5.783,6.771,19.5,19.5,0,0,1-17.335,28.443Z"
+                          transform="translate(-9926 -12886)"
+                          fill="#fff"
+                        />
+                        <g
+                          id="Group_80"
+                          data-name="Group 80"
+                          transform="translate(10645.5 17138.4)"
+                        >
+                          <path
+                            id="Path_826"
+                            data-name="Path 826"
+                            d="M41.5,43l-1.9-1.9L43,37.7l1.9,1.9a7.837,7.837,0,0,1,2.1-.9V36h4.8v2.7a9.493,9.493,0,0,1,2.1.9l1.9-1.9,3.4,3.4L57.4,43a7.837,7.837,0,0,1,.9,2.1H61v4.8H58.3a9.493,9.493,0,0,1-.9,2.1l1.9,1.9-3.4,3.4L54,55.4a7.837,7.837,0,0,1-2.1.9V59H47V56.3a9.493,9.493,0,0,1-2.1-.9l-1.9,2L39.6,54l1.9-1.9a7.837,7.837,0,0,1-.9-2.1H37.9V45.2h2.7A7.261,7.261,0,0,1,41.5,43Z"
+                            transform="translate(-9900.4 -16310.9)"
+                            fill="none"
+                            stroke="#231f20"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <circle
+                            id="Ellipse_100"
+                            data-name="Ellipse 100"
+                            cx="5.3"
+                            cy="5.3"
+                            r="5.3"
+                            transform="translate(-9856.301 -16268.7)"
+                            fill="none"
+                            stroke="#231f20"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </g>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+                <h3
+                  class="text-gray-800 font-bold text-sm md:text-lg lg:text-xl ml-2"
+                >
+                  Kitchen Service
+                </h3>
+              </div>
+              <p
+                class="text-gray-600 ml-12 text-xs md:text-base md:line-clamp-6 xl:line-clamp-5"
+              >
+                KNI provides access to verified professionals for reliable
+                kitchen services, ensuring smooth operations through experienced
+                and efficient solutions to meet diverse operational needs
+                seamlessly.
+              </p>
+            </div>
+
+            <!-- Kitchen Design Card -->
+            <div
+              class="bg-white px-4 pt-2 md:p-6 rounded-b-2xl md:rounded-tr-2xl md:rounded-br-2xl md:rounded-bl-none"
+            >
+              <div class="flex items-center mb-1 md:mb-2">
+                <div class="icon-container">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="40"
+                    viewBox="0 0 74.138 80.6"
+                  >
+                    <g
+                      id="Group_226"
+                      data-name="Group 226"
+                      transform="translate(-1226 -830)"
+                    >
+                      <circle
+                        id="Ellipse_53"
+                        data-name="Ellipse 55"
+                        cx="25"
+                        cy="25"
+                        r="25"
+                        transform="translate(1250.139 830)"
+                        fill="#e4e4e4"
+                      />
+                      <g id="Blueprint-02" transform="translate(1222.7 848.3)">
+                        <path
+                          id="Path_625"
+                          data-name="Path 625"
+                          d="M48.7,43.7H7.1a2.8,2.8,0,0,1-2.8-2.8V5.5A2.8,2.8,0,0,1,7.1,2.7H51.5a2.8,2.8,0,0,1,2.8,2.8v7.1"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_626"
+                          data-name="Path 626"
+                          d="M29.3,2.7V23.2h14"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_220"
+                          data-name="Line 220"
+                          y1="13.5"
+                          transform="translate(29.3 30.2)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_627"
+                          data-name="Path 627"
+                          d="M4.3,23.2H20.9V33.8"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_221"
+                          data-name="Line 221"
+                          y2="10.6"
+                          transform="translate(37.5 23.2)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <path
+                          id="Path_628"
+                          data-name="Path 628"
+                          d="M59.7,51.9l-5.5,9.4-5.5-9.4v-36A3.329,3.329,0,0,1,52,12.6h4.3a3.329,3.329,0,0,1,3.3,3.3Z"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_222"
+                          data-name="Line 222"
+                          x2="11"
+                          transform="translate(48.7 20.4)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                        <line
+                          id="Line_223"
+                          data-name="Line 223"
+                          x2="11"
+                          transform="translate(48.7 51.9)"
+                          fill="none"
+                          stroke="#231f20"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+
+                <h3
+                  class="text-gray-800 font-bold text-sm md:text-lg lg:text-xl ml-2"
+                >
+                  Kitchen Design
+                </h3>
+              </div>
+              <p
+                class="text-gray-600 ml-12 text-xs md:text-base md:line-clamp-6 xl:line-clamp-5"
+              >
+                KNI offers verified experts for kitchen design services,
+                ensuring reliable planning, high-quality implementation, expert
+                execution, minimizing risks and maximizing efficiency for your
+                commercial kitchen.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <!-- Navbar Section Ends Here -->
+
+    <!-- About KNI section start here  -->
+    <section id="about" class="container mx-auto px-5 py-12 md:py-16">
+      <div class="mx-auto max-w-6xl lg:px-8">
+        <!-- Main Content Container -->
+        <h2
+          class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 my-8"
+        >
+          About KNI
+        </h2>
+        <div
+          class="flex flex-col lg:flex-row items-center justify-between gap-8"
+        >
+          <!-- Text Content -->
+          <div class="w-full lg:w-1/2 space-y-6">
+            <div class="space-y-4">
+              <h3 class="text-2xl font-bold text-gray-900">
+                Kitchen Network International,
+              </h3>
+              <p class="text-gray-900 leading-relaxed">
+                popularly known as KNI, is a comprehensive service marketplace
+                designed exclusively for the commercial kitchen sector. KNI
+                bridges the gap between restaurant and resort owners and kitchen
+                equipment service professionals, offering a wide range of
+                services to meet diverse operational needs.
+              </p>
+
+              <p class="text-gray-900 leading-relaxed">
+                It streamlines the management of service bookings, service
+                calls, and tracking of service engineers, ensuring a seamless
+                experience for businesses operating in the hospitality industry.
+              </p>
+            </div>
+          </div>
+
+          <!-- Image Section with Experience Badge -->
+          <div class="w-full lg:w-1/2 relative mt-8 lg:mt-0">
+            <!-- Combined Image -->
+            <div class="w-full h-[300px] sm:h-[400px] lg:h-[450px]">
+              <img
+                src="/landing/assests/aboutkni.webp"
+                alt="KNI Kitchen Staff and Operations"
+                class="w-full h-full object-cover rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- About KNI section end here  -->
+
+    <!-- Our Vision and Mision Section Start here  -->
+    <section class="px-5 my-8">
+      <div
+        class="mx-auto max-w-6xl lg:px-8 grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8"
+      >
+        <div
+          class="flex gap-2 justify-center py-5 px-2 bg-white rounded-md hover:bg-gray-50 hover:rounded-md transform transition duration-300 hover:shadow-xl"
+        >
+          <div class="icon-container w-[8rem] pt-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-16 h-16"
+              width="92.28"
+              height="91.137"
+              viewBox="0 0 92.28 91.137"
+            >
+              <g
+                id="Group_222"
+                data-name="Group 222"
+                transform="translate(-212 -1996.463)"
+              >
+                <circle
+                  class="circle-transition"
+                  id="Ellipse_53"
+                  data-name="Ellipse 53"
+                  cx="25"
+                  cy="25"
+                  r="25"
+                  transform="translate(254.28 1996.463)"
+                  fill="#e4e4e4"
+                />
+                <g id="Vision-12" transform="translate(210.3 2014.4)">
+                  <path
+                    id="Path_1475"
+                    data-name="Path 1475"
+                    d="M37.622,22.829s-7.857,9.229-17.461,9.229S2.7,22.829,2.7,22.829,10.557,13.6,20.161,13.6,37.622,22.829,37.622,22.829Z"
+                    transform="translate(0 2.101)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <circle
+                    id="Ellipse_193"
+                    data-name="Ellipse 193"
+                    cx="4.615"
+                    cy="4.615"
+                    r="4.615"
+                    transform="translate(15.546 20.316)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_738"
+                    data-name="Line 738"
+                    y1="3.866"
+                    transform="translate(20.161 7.345)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_739"
+                    data-name="Line 739"
+                    y1="2.619"
+                    x2="2.744"
+                    transform="translate(27.27 10.089)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_740"
+                    data-name="Line 740"
+                    x1="2.619"
+                    y1="2.619"
+                    transform="translate(10.308 10.089)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_741"
+                    data-name="Line 741"
+                    y2="3.742"
+                    transform="translate(20.161 38.774)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_742"
+                    data-name="Line 742"
+                    x1="2.619"
+                    y2="2.619"
+                    transform="translate(10.308 37.278)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_743"
+                    data-name="Line 743"
+                    x2="2.744"
+                    y2="2.619"
+                    transform="translate(27.27 37.278)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <rect
+                    id="Rectangle_218"
+                    data-name="Rectangle 218"
+                    width="11.225"
+                    height="21.452"
+                    transform="translate(6.192 50.623)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <rect
+                    id="Rectangle_219"
+                    data-name="Rectangle 219"
+                    width="11.225"
+                    height="26.316"
+                    transform="translate(27.02 45.883)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <rect
+                    id="Rectangle_220"
+                    data-name="Rectangle 220"
+                    width="11.225"
+                    height="45.523"
+                    transform="translate(47.225 26.677)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <line
+                    id="Line_744"
+                    data-name="Line 744"
+                    y2="67.099"
+                    transform="translate(69.55 5.1)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <path
+                    id="Path_1476"
+                    data-name="Path 1476"
+                    d="M63.772,11.336,57.536,5.1,51.3,11.336"
+                    transform="translate(12.014 0)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                </g>
+              </g>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-2 px-2">
+            <span class="text-2xl font-bold text-gray-900"> Our Vission </span>
+            <p class="text-sm sm:text-base">
+              To be the leading platform transforming commercial kitchen
+              operations by connecting businesses with reliable service
+              professionals, driving efficiency, and promoting growth.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="flex gap-2 justify-center py-5 px-2 bg-white rounded-md hover:bg-gray-50 hover:rounded-md transform transition duration-300 hover:shadow-xl"
+        >
+          <div class="icon-container w-[8rem] pt-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-16 h-16"
+              width="94.28"
+              height="93.075"
+              viewBox="0 0 94.28 93.075"
+            >
+              <g
+                id="Group_223"
+                data-name="Group 223"
+                transform="translate(-1005.919 -1996.463)"
+              >
+                <circle
+                  id="Ellipse_53"
+                  class="circle-transition"
+                  data-name="Ellipse 53"
+                  cx="25"
+                  cy="25"
+                  r="25"
+                  transform="translate(1050.199 1996.463)"
+                  fill="#e4e4e4"
+                />
+                <g
+                  id="Group_139"
+                  data-name="Group 139"
+                  transform="translate(8288.919 17100.627)"
+                >
+                  <line
+                    id="Line_721"
+                    data-name="Line 721"
+                    x1="26.729"
+                    y2="26.874"
+                    transform="translate(-7250.708 -15070.04)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <path
+                    id="Path_1418"
+                    data-name="Path 1418"
+                    d="M47.512,24.361,43.9,12.514,54.014,2.4l3.468,11.992Z"
+                    transform="translate(-7271.49 -15094.4)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <path
+                    id="Path_1419"
+                    data-name="Path 1419"
+                    d="M46.4,20.669l11.992,3.612,9.969-9.969L56.369,10.7Z"
+                    transform="translate(-7270.378 -15090.708)"
+                    fill="none"
+                    stroke="#231f20"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                  <g
+                    id="Group_139-2"
+                    data-name="Group 139"
+                    transform="translate(-7283 -15076.106)"
+                  >
+                    <g
+                      id="Ellipse_198"
+                      data-name="Ellipse 198"
+                      fill="none"
+                      stroke="#231f20"
+                      stroke-width="2"
+                    >
+                      <circle
+                        cx="32.509"
+                        cy="32.509"
+                        r="32.509"
+                        stroke="none"
+                      />
+                      <circle cx="32.509" cy="32.509" r="31.509" fill="none" />
+                    </g>
+                    <g
+                      id="Ellipse_196"
+                      data-name="Ellipse 196"
+                      transform="translate(20.228 20.228)"
+                      fill="none"
+                      stroke="#231f20"
+                      stroke-width="2"
+                    >
+                      <circle
+                        cx="12.281"
+                        cy="12.281"
+                        r="12.281"
+                        stroke="none"
+                      />
+                      <circle cx="12.281" cy="12.281" r="11.281" fill="none" />
+                    </g>
+                    <g
+                      id="Ellipse_197"
+                      data-name="Ellipse 197"
+                      transform="translate(10.114 10.114)"
+                      fill="none"
+                      stroke="#231f20"
+                      stroke-width="2"
+                    >
+                      <circle
+                        cx="22.395"
+                        cy="22.395"
+                        r="22.395"
+                        stroke="none"
+                      />
+                      <circle cx="22.395" cy="22.395" r="21.395" fill="none" />
+                    </g>
+                  </g>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-2 px-2">
+            <span class="text-2xl font-bold text-gray-900"> Our Mission </span>
+            <p class="text-sm sm:text-base">
+              KNI empowers restaurant and resort owners by offering seamless
+              access to kitchen services, equipment, and expert consultations,
+              simplifying kitchen management and enhancing operational
+              efficiency.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Our Vision and Mision Section end here  -->
+
+    <!-- Our Core Value Start here  -->
+    <section class="px-5 md:px-8 lg:px-16 py-8 bg-[#F6F6F6] mt-12">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 my-8"
+      >
+        Our Core Value
+      </h2>
+      <div class="max-w-4xl mx-auto">
+        <div
+          class="grid gap-y-4 md:gap-y-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 justify-start sm:justify-center md:justify-between my-12 gap-x-4"
+        >
+          <div class="flex flex-col justify-center items-center">
+            <div
+              class="parent-div flex flex-col bg-white justify-center items-center border-[1px] border-[#E71720] rounded-md w-64 h-56 hover:bg-[#E71720] hover:text-white hover:shadow-gray transform transition duration-300 hover:scale-105"
+            >
+              <div
+                class="parent-img card rounded-full bg-[#F3F3F3] w-20 h-20 flex items-center justify-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-10 h-10"
+                  width="61.73"
+                  height="61.145"
+                  viewBox="0 0 61.73 61.145"
+                >
+                  <g
+                    id="Group_140"
+                    data-name="Group 140"
+                    transform="translate(-575.898 -2655)"
+                  >
+                    <g
+                      id="Ellipse_200"
+                      data-name="Ellipse 200"
+                      transform="translate(589 2655)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-width="2"
+                    >
+                      <circle cx="17.5" cy="17.5" r="17.5" stroke="none" />
+                      <circle cx="17.5" cy="17.5" r="16.5" fill="none" />
+                    </g>
+                    <g
+                      id="Money_Management-02"
+                      data-name="Money Management-02"
+                      transform="translate(574.813 2654.5)"
+                    >
+                      <g id="Group_88" data-name="Group 88">
+                        <g id="Group_87" data-name="Group 87">
+                          <path
+                            id="Path_960"
+                            data-name="Path 960"
+                            d="M49.4,40.8l4-6.6h0l.3-.6a12.677,12.677,0,0,0,1.7-7.4l-.8-7.6c-.6-3.6,3.6-2.4,4-.8l2.8,12.8a14.692,14.692,0,0,1-1.1,9.3c-1.7,3.2-4.6,8-6,10.3a3.441,3.441,0,0,0-.5,2.6l.3,1.7"
+                            fill="none"
+                            stroke="#e71720"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_961"
+                            data-name="Path 961"
+                            d="M42.3,54.8c-.6-.8-4.8-6.7,1.7-12.6l4.6-7.6c1.8-3,5.4-1.6,4.8-.4v.1"
+                            fill="none"
+                            stroke="#e71720"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </g>
+                        <path
+                          id="Path_962"
+                          data-name="Path 962"
+                          d="M38.4,60.1l.4-3.4a1.815,1.815,0,0,1,1.8-1.9l14.6-.2A1.71,1.71,0,0,1,57,56.3l-.2,4.3"
+                          fill="none"
+                          stroke="#e71720"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                      </g>
+                      <g id="Group_90" data-name="Group 90">
+                        <g id="Group_89" data-name="Group 89">
+                          <path
+                            id="Path_963"
+                            data-name="Path 963"
+                            d="M14.6,40.8l-4-6.6h0l-.3-.6a12.677,12.677,0,0,1-1.7-7.4l.8-7.6c.6-3.6-3.6-2.4-4-.8L2.5,30.7A14.692,14.692,0,0,0,3.6,40c1.7,3.2,4.6,8,6,10.3a3.441,3.441,0,0,1,.5,2.6l-.3,1.7"
+                            fill="none"
+                            stroke="#e71720"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                          <path
+                            id="Path_964"
+                            data-name="Path 964"
+                            d="M21.7,54.8c.6-.8,4.8-6.7-1.7-12.6l-4.6-7.6c-1.8-3-5.4-1.6-4.8-.4v.1"
+                            fill="none"
+                            stroke="#e71720"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </g>
+                        <path
+                          id="Path_965"
+                          data-name="Path 965"
+                          d="M25.6,60.1l-.4-3.4a1.815,1.815,0,0,0-1.8-1.9L8.8,54.6A1.71,1.71,0,0,0,7,56.3l.2,4.3"
+                          fill="none"
+                          stroke="#e71720"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                      </g>
+                    </g>
+                    <g
+                      id="Group_140-2"
+                      data-name="Group 140"
+                      transform="translate(594.877 2660.087)"
+                    >
+                      <path
+                        id="Path_1495"
+                        data-name="Path 1495"
+                        d="M15.84,20.931V18.954A3.954,3.954,0,0,0,11.886,15H5.954A3.954,3.954,0,0,0,2,18.954v1.977"
+                        transform="translate(0 -0.106)"
+                        fill="none"
+                        stroke="#e71720"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <circle
+                        id="Ellipse_199"
+                        data-name="Ellipse 199"
+                        cx="3.988"
+                        cy="3.988"
+                        r="3.988"
+                        transform="translate(4.707 3.155)"
+                        fill="none"
+                        stroke="#e71720"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1496"
+                        data-name="Path 1496"
+                        d="M21.966,20.933V18.956A3.954,3.954,0,0,0,19,15.13"
+                        transform="translate(-0.195 -0.108)"
+                        fill="none"
+                        stroke="#e71720"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1497"
+                        data-name="Path 1497"
+                        d="M16,3.13a3.954,3.954,0,0,1,0,7.661"
+                        transform="translate(-0.16 0.03)"
+                        fill="none"
+                        stroke="#e71720"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <div class="text-center text-lg mx-auto font-bold mt-5">
+                <p>Customer Centricity</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col justify-center items-center">
+            <div
+              class="parent-div bg-white flex flex-col justify-center items-center border-[1px] border-[#E71720] rounded-md w-64 h-56 hover:bg-[#E71720] hover:text-white hover:shadow-gray transform transition duration-300 hover:scale-105"
+            >
+              <div
+                class="card rounded-full bg-[#F3F3F3] w-20 h-20 flex items-center justify-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-10 h-10"
+                  width="52.419"
+                  height="72.153"
+                  viewBox="0 0 52.419 72.153"
+                >
+                  <g
+                    id="Quality_Control-13"
+                    data-name="Quality Control-13"
+                    transform="translate(-8.983 1.158)"
+                  >
+                    <circle
+                      id="Ellipse_209"
+                      data-name="Ellipse 209"
+                      cx="17.537"
+                      cy="17.537"
+                      r="17.537"
+                      transform="matrix(0.723, -0.691, 0.691, 0.723, 10.397, 24.482)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      id="Path_1567"
+                      data-name="Path 1567"
+                      d="M43.312,34.7,47.9,64.96,33.8,61.177,19.7,64.96,24.285,34.7"
+                      transform="translate(1.36 5.036)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      id="Path_1568"
+                      data-name="Path 1568"
+                      d="M44.935,43.476A21.543,21.543,0,1,0,13.3,24.449,21.465,21.465,0,0,0,24.762,43.476"
+                      transform="translate(0.424 0.387)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      id="Path_1569"
+                      data-name="Path 1569"
+                      d="M19.458,35.1,14.3,55.846l7.909-2.063"
+                      transform="translate(0.571 5.094)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      id="Path_1570"
+                      data-name="Path 1570"
+                      d="M45.536,35.1l5.158,20.746L42.9,53.783"
+                      transform="translate(4.752 5.094)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <path
+                      id="Path_1571"
+                      data-name="Path 1571"
+                      d="M25.9,23.619l4.814,5.5L41.145,17.2"
+                      transform="translate(2.267 2.477)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_767"
+                      data-name="Line 767"
+                      y1="23.726"
+                      transform="translate(35.158 42.487)"
+                      fill="none"
+                      stroke="#e71720"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </g>
+                </svg>
+              </div>
+              <div class="text-center text-lg mx-auto font-bold mt-5">
+                <p>Quality Service</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col justify-center items-center">
+            <div
+              class="parent-div bg-white flex flex-col justify-center items-center border-[1px] border-[#E71720] rounded-md w-64 h-56 hover:bg-[#E71720] hover:text-white hover:shadow-gray transform transition duration-300 hover:scale-105"
+            >
+              <div
+                class="card rounded-full bg-[#F3F3F3] w-20 h-20 flex items-center justify-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-10 h-10"
+                  width="62.986"
+                  height="67.159"
+                  viewBox="0 0 62.986 67.159"
+                >
+                  <g
+                    id="creative_idea-15"
+                    data-name="creative idea-15"
+                    transform="translate(-3.67 -1.8)"
+                  >
+                    <g
+                      id="Group_110"
+                      data-name="Group 110"
+                      transform="translate(18.379 12.807)"
+                    >
+                      <path
+                        id="Path_1227"
+                        data-name="Path 1227"
+                        d="M19.147,27.446a3.584,3.584,0,0,1-1.25-.96,4.272,4.272,0,0,1,1.517-6.494,3.3,3.3,0,0,1,.424-3.682,3.478,3.478,0,0,1,3.515-.8,3.675,3.675,0,0,1,6.839-1.35,4.814,4.814,0,0,1,4.675-2.377,4.354,4.354,0,0,1,3.916,2.957s4.229-1.506,5.913,3.381a4.482,4.482,0,0,1,4.909,2.845,4.881,4.881,0,0,1-1.7,6.482"
+                        transform="translate(-16.957 -11.769)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1228"
+                        data-name="Path 1228"
+                        d="M23.01,26.031A2.859,2.859,0,0,0,25.074,24"
+                        transform="translate(-16.256 -10.353)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1229"
+                        data-name="Path 1229"
+                        d="M42.132,17.46A5.034,5.034,0,0,0,39.12,19.4"
+                        transform="translate(-14.392 -11.11)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1230"
+                        data-name="Path 1230"
+                        d="M42.8,21.82a4.762,4.762,0,0,0-2.968,4.463"
+                        transform="translate(-14.309 -10.606)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1231"
+                        data-name="Path 1231"
+                        d="M37.31,24a2.942,2.942,0,0,1,2.644,2.031"
+                        transform="translate(-14.601 -10.353)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1232"
+                        data-name="Path 1232"
+                        d="M31.53,18.33A3.261,3.261,0,0,0,32.7,21.677a5.473,5.473,0,0,0,.915.636,3.7,3.7,0,0,1,1.64,4.374"
+                        transform="translate(-15.281 -11.01)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1233"
+                        data-name="Path 1233"
+                        d="M28.26,22.386s.725-2.577,4.831-.993"
+                        transform="translate(-15.648 -10.715)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1234"
+                        data-name="Path 1234"
+                        d="M28.83,13.9a4.381,4.381,0,0,0,.123,2.867"
+                        transform="translate(-15.605 -11.522)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1235"
+                        data-name="Path 1235"
+                        d="M34.79,15.7a5.924,5.924,0,0,1,.636,3.905"
+                        transform="translate(-14.893 -11.314)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1236"
+                        data-name="Path 1236"
+                        d="M19.16,19.174a4.141,4.141,0,0,1,3.771.3,3.593,3.593,0,0,0,3.548.279"
+                        transform="translate(-16.702 -10.95)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1237"
+                        data-name="Path 1237"
+                        d="M22.643,19.41s1.54,2.064-.993,3.548"
+                        transform="translate(-16.413 -10.885)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1238"
+                        data-name="Path 1238"
+                        d="M29.656,25.21a4,4,0,0,0-.736.681"
+                        transform="translate(-15.572 -10.213)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1239"
+                        data-name="Path 1239"
+                        d="M22.7,15.11a4.068,4.068,0,0,0,.123,2.231"
+                        transform="translate(-16.304 -11.382)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                    </g>
+                    <g
+                      id="Group_111"
+                      data-name="Group 111"
+                      transform="translate(15.727 28.484)"
+                    >
+                      <path
+                        id="Path_1240"
+                        data-name="Path 1240"
+                        d="M52.437,25.82a19.111,19.111,0,0,1,.681,5.088c0,7.765-3.559,14.449-10.175,17.495v.011l-.614,2.968-.391.033-5.01.335-5.144.346-6.181.413-.859-4.095c-6.616-3.057-10.164-9.74-10.164-17.495a19.173,19.173,0,0,1,.681-5.088"
+                        transform="translate(-14.58 -25.82)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1241"
+                        data-name="Path 1241"
+                        d="M24.77,49.831,25,51.661a1.848,1.848,0,0,0,1.975,1.607l12.228-.937a1.847,1.847,0,0,0,1.7-2.008l-.145-1.562"
+                        transform="translate(-13.401 -23.165)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1242"
+                        data-name="Path 1242"
+                        d="M25.72,52.662l.312,2.053a1.641,1.641,0,0,0,1.785,1.361l11.046-.8a1.605,1.605,0,0,0,1.529-1.7l-.156-2.086"
+                        transform="translate(-13.291 -22.849)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1243"
+                        data-name="Path 1243"
+                        d="M26.71,55.487l.424,1.752c.435,1.227,1.138,1.941,2.276,1.863l8.323-.636a1.968,1.968,0,0,0,1.83-2.176l.011-1.64"
+                        transform="translate(-13.176 -22.483)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1244"
+                        data-name="Path 1244"
+                        d="M29.72,58.647a3.389,3.389,0,0,0,3.492,2.912A3.467,3.467,0,0,0,36.838,58.1"
+                        transform="translate(-12.828 -22.084)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1245"
+                        data-name="Path 1245"
+                        d="M30.52,51.595s-.19-13.076-5.11-21.545"
+                        transform="translate(-13.327 -25.33)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1246"
+                        data-name="Path 1246"
+                        d="M34.61,51.249s.19-12.73,5.11-21.2"
+                        transform="translate(-12.262 -25.33)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                      <path
+                        id="Path_1247"
+                        data-name="Path 1247"
+                        d="M26.27,32.105l2.644-3,2.432,2.243L33.355,28.2l1.919,3.146,2.287-2.332,2.41,2.555"
+                        transform="translate(-13.227 -25.545)"
+                        fill="none"
+                        stroke="#e71620"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                    </g>
+                    <line
+                      id="Line_643"
+                      data-name="Line 643"
+                      y1="6.092"
+                      transform="translate(34.996 2.8)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_644"
+                      data-name="Line 644"
+                      x1="6.092"
+                      transform="translate(4.67 34.743)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_645"
+                      data-name="Line 645"
+                      x1="6.092"
+                      transform="translate(59.564 34.743)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_646"
+                      data-name="Line 646"
+                      x1="4.374"
+                      y1="4.262"
+                      transform="translate(12.023 12.362)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_647"
+                      data-name="Line 647"
+                      x1="4.363"
+                      y1="4.251"
+                      transform="translate(52.646 51.769)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_648"
+                      data-name="Line 648"
+                      y1="4.251"
+                      x2="4.374"
+                      transform="translate(53.584 13.065)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_649"
+                      data-name="Line 649"
+                      y1="4.251"
+                      x2="4.363"
+                      transform="translate(13.317 51.769)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                    <line
+                      id="Line_650"
+                      data-name="Line 650"
+                      x2="37.187"
+                      transform="translate(16.396 28.484)"
+                      fill="none"
+                      stroke="#e71620"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </g>
+                </svg>
+              </div>
+              <div class="text-center text-lg mx-auto font-bold mt-5">
+                <p>Innovation</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Our Core Value Ends here  -->
+
+    <!-- Our Services Start here  -->
+    <section id="services" class="max-w-6xl mx-auto px-5 md:px-8 lg:px-16 2xl:px-0 py-12">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 my-10"
+      >
+        Our Services
+      </h2>
+    
+        <div
+          class="hidden md:grid gap-y-4 md:gap-y-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 justify-start sm:justify-center gap-x-2 my-12"
+        >
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/AnnualMaintenanceContracts.svg"
+                  alt="AnnualMaintenanceContracts"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Annual Maintenance Contracts (AMC)
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">
+                    Custom AMC for Kitchen Equipment.
+                  </li>
+                  <li class="text-gray-900">
+                    Scheduled Maintenance to Reduce Downtime.
+                  </li>
+                  <li class="text-gray-900">Emergency Repairs, Anytime.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/EquipmentSelection.svg"
+                  alt="KitchenLayout"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Equipment Selection And Procurement
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">One-Click Equipment Selection.</li>
+                  <li class="text-gray-900">
+                    New, Refurbished, or Custom Options.
+                  </li>
+                  <li class="text-gray-900">Easy Ordering & Delivery.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/KitchenLayout.svg"
+                  alt="KitchenLayout"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Kitchen Layout And Consulting
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">
+                    Kitchen Layout & Design Consultation
+                  </li>
+                  <li class="text-gray-900">
+                    Architectural & Interior Design Solutions
+                  </li>
+                  <li class="text-gray-900">Expert Advice for Efficiency</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/ManpowerSourcing.svg"
+                  alt="KitchenLayout"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Manpower Sourcing
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">
+                    Hire Skilled Kitchen Professionals.
+                  </li>
+                  <li class="text-gray-900">
+                    Trained Staff for Smooth Operations.
+                  </li>
+                  <li class="text-gray-900">
+                    Temporary or Permanent Staffing.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/Laundry&MEPSolutions.svg"
+                  alt="KitchenLayout"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Laundry And MEP Solutions
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">
+                    Laundry Equipment Procurement & Maintenance.
+                  </li>
+                  <li class="text-gray-900">MEP Accessories & Fittings.</li>
+                  <li class="text-gray-900">Installation & Repair Services.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="max-w-lg p-3 bg-white rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-80"
+          >
+            <div class="flex items-start gap-x-4">
+              <!-- Icon container -->
+              <div class="flex-shrink-0 mt-2">
+                <img
+                  src="/landing/assests/ServiceBooking.svg"
+                  alt="KitchenLayout"
+                  class="w-10 h-10"
+                />
+              </div>
+
+              <!-- Content container -->
+              <div class="flex-1">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                  Service Booking And Call Management
+                </h3>
+                <ul class="space-y-1 list-disc list-red">
+                  <li class="text-gray-900">
+                    Easy Service Booking Through The Platform.
+                  </li>
+                  <li class="text-gray-900">Real-Time Updates on Requests.</li>
+                  <li class="text-gray-900">Advanced Appointment Tracking.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- Mobile Swiper (hidden on desktop) -->
+  <div class="swiper services-swiper md:hidden">
+    <div class="swiper-wrapper">
+      <!-- Card 1 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/AnnualMaintenanceContracts.svg"
+                alt="AnnualMaintenanceContracts"
+                class="w-10 h-10"
+              />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Annual Maintenance Contracts (AMC)
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">Custom AMC for Kitchen Equipment.</li>
+                <li class="text-gray-900">Scheduled Maintenance to Reduce Downtime.</li>
+                <li class="text-gray-900">Emergency Repairs, Anytime.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/EquipmentSelection.svg"
+                alt="KitchenLayout"
+                class="w-10 h-10"
+              />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Equipment Selection And Procurement
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">One-Click Equipment Selection.</li>
+                <li class="text-gray-900">New, Refurbished, or Custom Options.</li>
+                <li class="text-gray-900">Easy Ordering & Delivery.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <!-- Icon container -->
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/KitchenLayout.svg"
+                alt="KitchenLayout"
+                class="w-10 h-10"
+              />
+            </div>
+
+            <!-- Content container -->
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Kitchen Layout And Consulting
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">
+                  Kitchen Layout & Design Consultation
+                </li>
+                <li class="text-gray-900">
+                  Architectural & Interior Design Solutions
+                </li>
+                <li class="text-gray-900">Expert Advice for Efficiency</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <!-- Icon container -->
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/ManpowerSourcing.svg"
+                alt="KitchenLayout"
+                class="w-10 h-10"
+              />
+            </div>
+
+            <!-- Content container -->
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Manpower Sourcing
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">
+                  Hire Skilled Kitchen Professionals.
+                </li>
+                <li class="text-gray-900">
+                  Trained Staff for Smooth Operations.
+                </li>
+                <li class="text-gray-900">
+                  Temporary or Permanent Staffing.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <!-- Icon container -->
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/Laundry&MEPSolutions.svg"
+                alt="KitchenLayout"
+                class="w-10 h-10"
+              />
+            </div>
+
+            <!-- Content container -->
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Laundry And MEP Solutions
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">
+                  Laundry Equipment Procurement & Maintenance.
+                </li>
+                <li class="text-gray-900">MEP Accessories & Fittings.</li>
+                <li class="text-gray-900">Installation & Repair Services.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="swiper-slide">
+        <div class="p-3 bg-white rounded-lg shadow-lg">
+          <div class="flex items-start gap-x-4">
+            <!-- Icon container -->
+            <div class="flex-shrink-0 mt-2">
+              <img
+                src="/landing/assests/ServiceBooking.svg"
+                alt="KitchenLayout"
+                class="w-10 h-10"
+              />
+            </div>
+
+            <!-- Content container -->
+            <div class="flex-1">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-3">
+                Service Booking And Call Management
+              </h3>
+              <ul class="space-y-1 list-disc list-red">
+                <li class="text-gray-900">
+                  Easy Service Booking Through The Platform.
+                </li>
+                <li class="text-gray-900">Real-Time Updates on Requests.</li>
+                <li class="text-gray-900">Advanced Appointment Tracking.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Add Navigation Buttons -->
+    <div class="swiper-button-prev !text-[#E71720] !w-10 !h-10 !bg-white !rounded-full !shadow-lg"></div>
+    <div class="swiper-button-next !text-[#E71720] !w-10 !h-10 !bg-white !rounded-full !shadow-lg"></div>
+
+    
+  </div>
+    </section>
+    <!-- Our Services Ends here  -->
+
+    <!-- How KNI Improves Section Start here  -->
+    <section class="max-w-6xl mx-auto py-8 px-5">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 mb-4"
+      >
+        How KNI Improves
+      </h2>
+      <p class="text-gray-900 text-xl md:text-2xl font-medium text-center">
+        The Commercial Kitchen Industry
+      </p>
+      <div class="main_feature py-8">
+        <div class="features left">
+          <!-- Left Column -->
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img
+                src="/landing/assests/SimplifyingServiceManagement.svg"
+                alt="Icon"
+              />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">Simplifying Service Management</h3>
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img src="/landing/assests/VerifiedProfessionals.svg" alt="Icon" />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">
+                Verified Professionals & Quality Equipment
+              </h3>
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img
+                src="/landing/assests/Real-TimeTrackingAndTransparency.svg"
+                alt="Icon"
+              />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">Real-Time Tracking And Transparency</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="features center-logo">
+          <div class="animationview"></div>
+          <div class="img_view">
+            <img src="/landing/assests/Kni-red-logo.webp" alt="kni logo" />
+          </div>
+        </div>
+
+        <div class="features right">
+          <!-- Right Column -->
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img src="/landing/assests/ReducingDowntime.svg" alt="Icon" />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">
+                Reducing Downtime And Increasing Productivity
+              </h3>
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img src="/landing/assests/ComprehensiveSolutions.svg" alt="Icon" />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">Comprehensive Solutions</h3>
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon">
+              <img src="/landing/assests/Cost-Efficiency.svg" alt="Icon" />
+            </div>
+            <div class="feature-title-box">
+              <h3 class="feature-title">Cost-Efficiency</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- How KNI Improves Section end here  -->
+
+    <!-- Our Process Section Starts here-->
+
+    <section id="process" class="pt-8 sm:pt-20">
+      <div class="container max-w-5xl mx-auto px-5 pb-8">
+        <!-- Header Section -->
+        <h2
+          class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 mb-8"
+        >
+          Our Process
+        </h2>
+
+        <!-- Process Flow Container -->
+        <div
+          class="flex flex-col xl:flex-row items-center justify-center gap-4 md:gap-2 max-w-6xl mx-auto"
+        >
+          <!-- Process Item 1 -->
+          <div class="flex flex-col items-center w-full md:w-1/5">
+            <div
+              class="w-48 h-48 bg-white border border-[#e6e6e6] shadow-lg rounded-lg flex items-center justify-center"
+            >
+              <img
+                src="/landing/assests/understanding.svg"
+                alt="understanding"
+                class="w-16 h-16"
+              />
+            </div>
+            <p
+              class="text-base font-light text-center mt-3 leading-tight max-w-44"
+            >
+              Understanding Your Needs
+            </p>
+          </div>
+
+          <!-- Arrow 1 -->
+          <div class="hidden xl:flex items-center justify-center w-8">
+            <svg
+              class="w-6 h-6 text-gray-900"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+
+          <!-- Process Item 2 -->
+          <div class="flex flex-col items-center w-full md:w-1/5">
+            <div
+              class="w-48 h-48 bg-white border border-[#e6e6e6] shadow-lg rounded-lg flex items-center justify-center"
+            >
+              <img
+                src="/landing/assests/ExploringSolutions.svg"
+                alt="Exploring Solutions"
+                class="w-16 h-16"
+              />
+            </div>
+            <p
+              class="text-base font-light text-center mt-3 leading-tight max-w-44"
+            >
+              Exploring Solutions
+            </p>
+          </div>
+
+          <!-- Arrow 2 -->
+          <div class="hidden xl:flex items-center justify-center w-8">
+            <svg
+              class="w-6 h-6 text-gray-900"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+
+          <!-- Process Item 3 -->
+          <div class="flex flex-col items-center w-full md:w-1/5">
+            <div
+              class="w-48 h-48 bg-white border border-[#e6e6e6] shadow-lg rounded-lg flex items-center justify-center"
+            >
+              <img
+                src="/landing/assests/SeamlessBooking.svg"
+                alt="Seamless Booking"
+                class="w-16 h-16"
+              />
+            </div>
+            <p
+              class="text-base font-light text-center mt-3 leading-tight max-w-44"
+            >
+              Seamless Booking
+            </p>
+          </div>
+
+          <!-- Arrow 3 -->
+          <div class="hidden xl:flex items-center justify-center w-8">
+            <svg
+              class="w-6 h-6 text-gray-900"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+
+          <!-- Process Item 4 -->
+          <div class="flex flex-col items-center w-full md:w-1/5">
+            <div
+              class="w-48 h-48 bg-white border border-[#e6e6e6] shadow-lg rounded-lg flex items-center justify-center"
+            >
+              <img
+                src="/landing/assests/MatchingProfessionals.svg"
+                alt="Matching With Professionals"
+                class="w-16 h-16"
+              />
+            </div>
+            <p
+              class="text-base font-light text-center mt-3 leading-tight max-w-48"
+            >
+              Matching With Professionals
+            </p>
+          </div>
+
+          <!-- Arrow 4 -->
+          <div class="hidden xl:flex items-center justify-center w-8">
+            <svg
+              class="w-6 h-6 text-gray-900"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+
+          <!-- Process Item 5 -->
+          <div class="flex flex-col items-center w-full md:w-1/5">
+            <div
+              class="w-48 h-48 bg-white border border-[#e6e6e6] shadow-lg rounded-lg flex items-center justify-center"
+            >
+              <img
+                src="/landing/assests/EfficientServiceDelivery.svg"
+                alt="Efficient Service Delivery"
+                class="w-16 h-16"
+              />
+            </div>
+            <p
+              class="text-base font-light text-center mt-3 leading-tight max-w-44"
+            >
+              Efficient Service Delivery
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Our Process Section end here-->
+
+    <!-- Achievements Section Starts here-->
+    <section class="max-w-5xl mx-auto text-center px-5 mb-10">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 py-8"
+      >
+        Achievements
+      </h2>
+      <div class="flex flex-wrap justify-center md:justify-between gap-6 mt-4">
+        <!-- Achievement Item -->
+        <div class="w-36 sm:w-44 flex flex-col items-center">
+          <div
+            class="flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full"
+          >
+            <div
+              class="flex items-center justify-center w-16 h-16 border-2 border-red-500 rounded-full"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#E71720"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-check-check w-8 h-8"
+              >
+                <path d="M18 6 7 17l-5-5" />
+                <path d="m22 10-7.5 7.5L13 16" />
+              </svg>
+            </div>
+          </div>
+
+          <p class="mt-2 text-6xl font-black">2k+</p>
+          <p class="text-xl text-gray-900">Project Done</p>
+        </div>
+
+        <!-- Achievement Item -->
+        <div class="w-36 sm:w-44 flex flex-col items-center">
+          <div
+            class="flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full"
+          >
+            <div
+              class="flex items-center justify-center w-16 h-16 border-2 border-red-500 rounded-full"
+            >
+              <img
+                src="/landing/assests/HappyCustomers.svg"
+                alt="HappyCustomers"
+                class="w-8 h-8"
+              />
+            </div>
+          </div>
+          <p class="mt-2 text-6xl font-black">5k+</p>
+          <p class="text-xl text-gray-900">Happy Customers</p>
+        </div>
+
+        <!-- Achievement Item -->
+        <div class="w-36 sm:w-44 flex flex-col items-center">
+          <div
+            class="flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full"
+          >
+            <div
+              class="flex items-center justify-center w-16 h-16 border-2 border-red-500 rounded-full"
+            >
+              <img
+                src="/landing/assests/GreatReviews.svg"
+                alt="GreatReviews"
+                class="w-8 h-8"
+              />
+            </div>
+          </div>
+          <p class="mt-2 text-6xl font-black">12k+</p>
+          <p class="text-xl text-gray-900">Great Reviews</p>
+        </div>
+
+        <!-- Achievement Item -->
+        <div class="w-36 sm:w-44 flex flex-col items-center">
+          <div
+            class="flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full"
+          >
+            <div
+              class="flex items-center justify-center w-16 h-16 border-2 border-red-500 rounded-full"
+            >
+              <img
+                src="/landing/assests/SupportTeam.svg"
+                alt="SupportTeam"
+                class="w-8 h-8"
+              />
+            </div>
+          </div>
+          <p class="mt-2 text-6xl font-black">1k+</p>
+          <p class="text-xl text-gray-900">Support Team</p>
+        </div>
+      </div>
+    </section>
+    <!-- Achievements Section end here-->
+
+    <!-- Our Clients Section starts here  -->
+    <section class="md:py-4">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 my-2"
+      >
+        Our Clients
+      </h2>
+      <div class="logo-slider">
+        <div class="logo-slide-track">
+          <!-- Original logos -->
+          <div class="logo-slide">
+            <img src="/landing/assests/adanilogo.webp" alt="Adani" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/mglogo.webp" alt="MG" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/mrflogo.webp" alt="MRF" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/suzukilogo.webp" alt="Suzuki" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/zyduslogo.webp" alt="Zydus Cadila" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/fordlogo.webp" alt="Ford" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/hondalogo.webp" alt="Honda" />
+          </div>
+
+          <!-- Cloned logos -->
+          <div class="logo-slide">
+            <img src="/landing/assests/adanilogo.webp" alt="Adani" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/mglogo.webp" alt="MG" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/mrflogo.webp" alt="MRF" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/suzukilogo.webp" alt="Suzuki" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/zyduslogo.webp" alt="Zydus Cadila" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/fordlogo.webp" alt="Ford" />
+          </div>
+          <div class="logo-slide">
+            <img src="/landing/assests/hondalogo.webp" alt="Honda" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Our Clients Section end here  -->
+
+    <!-- Testimonials Section Starts here  -->
+    <section id="testimonial" class="bg-[#F6F6F6] py-12 sm:py-20 sm:mt-6">
+      <div class="max-w-5xl mx-auto px-5">
+        <!-- Testimonials Header -->
+        <h2
+          class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 pb-8"
+        >
+          Testimonials
+        </h2>
+        <!-- Swiper Container -->
+        <div class="swiper testimonials-swiper md:hidden">
+          <div class="swiper-wrapper">
+            <!-- Card 1 -->
+            <div class="swiper-slide bg-white p-6 rounded-lg shadow-lg">
+              <div class="star-rating mb-4">★★★★★</div>
+              <p class="text-gray-600 mb-6">
+                The commercial oven we installed has taken our kitchen to the
+                next level! It cooks food quickly, allowing us to maintain
+                consistency in every dish. We've seen a significant boost in
+                efficiency during our busiest hours.
+              </p>
+              <div class="flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full flex items-center justify-center"
+                >
+                  <img src="/landing/assests/Testimonials1.png" alt="Testimonials1" />
+                </div>
+                <div class="ml-4">
+                  <h4 class="font-semibold text-[#E71720]">Piyush Patel</h4>
+                  <p class="text-sm text-gray-500">CEO - Patel Restaurant</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="swiper-slide bg-white p-6 rounded-lg shadow-lg">
+              <div class="star-rating mb-4">★★★★★</div>
+              <p class="text-gray-600 mb-6">
+                The industrial grade dishwasher has been a real time-saver! It
+                handles large loads with ease and the full cycle keeps our
+                kitchen running smoothly even during large events. It's a
+                must-have for any catering business.
+              </p>
+              <div class="flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full flex items-center justify-center"
+                >
+                  <img src="/landing/assests/Testimonials2.png" alt="Testimonials2" />
+                </div>
+                <div class="ml-4">
+                  <h4 class="font-semibold text-[#E71720]">Janak Das</h4>
+                  <p class="text-sm text-gray-500">
+                    Executive - Dosa Alem restaurant
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="swiper-slide bg-white p-6 rounded-lg shadow-lg">
+              <div class="star-rating mb-4">★★★★★</div>
+              <p class="text-gray-600 mb-6">
+                Our new commercial refrigeration units are top-notch. The
+                well-thought installation simple space for all our supplies and
+                keeps everything at the perfect temperature. It's made a big
+                difference in managing our inventory and reducing waste.
+              </p>
+              <div class="flex items-center">
+                <div
+                  class="w-10 h-10 rounded-full flex items-center justify-center"
+                >
+                  <img src="/landing/assests/Testimonials3.png" alt="Testimonials3" />
+                </div>
+                <div class="ml-4">
+                  <h4 class="font-semibold text-[#E71720]">Paresh Shah</h4>
+                  <p class="text-sm text-gray-500">Owner - Horizon Hotel</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Navigation Buttons with Custom Styling -->
+          <div
+            class="swiper-button-prev !text-[#E71720] !w-10 !h-10 !bg-white !rounded-full !shadow-lg"
+          ></div>
+          <div
+            class="swiper-button-next !text-[#E71720] !w-10 !h-10 !bg-white !rounded-full !shadow-lg"
+          ></div>
+        </div>
+        <!-- Testimonials Grid -->
+        <div
+          class="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          <!-- Card 1 -->
+          <div class="bg-white p-6 rounded-lg shadow-lg">
+            <!-- Stars -->
+            <div class="star-rating mb-4">★★★★★</div>
+
+            <!-- Testimonial Text -->
+            <p class="text-gray-600 mb-6 line-clamp-6">
+              The commercial oven we installed has taken our kitchen to the next
+              level! It cooks food quickly, allowing us to maintain consistency
+              in every dish. We've seen a significant boost in efficiency during
+              our busiest hours.
+            </p>
+
+            <!-- Profile Section -->
+            <div class="flex items-center">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <img src="/landing/assests/Testimonials1.png" alt="Testimonials1" />
+              </div>
+              <div class="ml-4">
+                <h4 class="font-semibold text-[#E71720]">Piyush Patel</h4>
+                <p class="text-sm text-gray-500">CEO - Patel Restaurant</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="star-rating mb-4">★★★★★</div>
+            <p class="text-gray-600 mb-6 line-clamp-6">
+              The industrial grade dishwasher has been a real time-saver! It
+              handles large loads with ease and the full cycle keeps our kitchen
+              running smoothly even during large events. It's a must-have for
+              any catering business.
+            </p>
+            <div class="flex items-center">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <img src="/landing/assests/Testimonials2.png" alt="Testimonials2" />
+              </div>
+              <div class="ml-4">
+                <h4 class="font-semibold text-[#E71720]">Janak Das</h4>
+                <p class="text-sm text-gray-500">
+                  Executive - Dosa Alem restaurant
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="star-rating mb-4">★★★★★</div>
+            <p class="text-gray-600 mb-6 line-clamp-6">
+              Our new commercial refrigeration units are top-notch. The
+              well-thought installation simple space for all our supplies and
+              keeps everything at the perfect temperature. It's made a big
+              difference in managing our inventory and reducing waste.
+            </p>
+            <div class="flex items-center">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <img src="/landing/assests/Testimonials3.png" alt="Testimonials3" />
+              </div>
+              <div class="ml-4">
+                <h4 class="font-semibold text-[#E71720]">Paresh Shah</h4>
+                <p class="text-sm text-gray-500">Owner - Horizon Hotel</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Testimonials Section end here  -->
+
+    <!-- FAQ Section Starts here  -->
+    <div class="max-w-6xl mx-auto px-5 md:px-8 lg:px-16 my-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Left Column -->
+        <div class="px-6">
+          <h2
+            class="text-3xl md:text-4xl lg:text-5xl text-left font-bold text-gray-900 pb-8"
+          >
+            Frequently Asked Questions
+          </h2>
+          <p class="text-gray-900 mb-6 max-w-sm">
+            KNI is more than just a marketplace; it’s a complete ecosystem built
+            to support the commercial kitchen industry, ensuring reliable
+            services and operational excellence for its users.
+          </p>
+          <button
+            class="bg-[#E71720] text-white px-6 py-2 rounded hover:text-[#E71720] hover:bg-white border-[1px] border-[#E71720] transition-colors"
+          >
+            Ask Anything
+          </button>
+        </div>
+
+        <!-- Right Column - Accordions -->
+        <div class="space-y-4">
+          <!-- Accordion 1 -->
+          <div
+            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <button
+              class="accordion-header w-full text-left p-4 font-medium focus:outline-none hover:bg-gray-50 transition-colors"
+            >
+              What types of kitchen equipment can I source through KNI?
+            </button>
+            <div class="accordion-content px-4">
+              <p class="text-gray-600">
+                KNI offers a wide range of commercial kitchen equipment
+                including ovens, refrigeration units, dishwashers, and more.
+              </p>
+            </div>
+          </div>
+
+          <!-- Accordion 2 -->
+          <div
+            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <button
+              class="accordion-header w-full text-left p-4 font-medium focus:outline-none hover:bg-gray-50 transition-colors"
+            >
+              How do I book a service for my kitchen equipment?
+            </button>
+            <div class="accordion-content px-4">
+              <p class="text-gray-600">
+                You can easily book a service through our online platform or
+                contact our customer support team.
+              </p>
+            </div>
+          </div>
+
+          <!-- Accordion 3 -->
+          <div
+            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <button
+              class="accordion-header w-full text-left p-4 font-medium focus:outline-none hover:bg-gray-50 transition-colors"
+            >
+              Does KNI provide Annual Maintenance Contracts (AMCs)?
+            </button>
+            <div class="accordion-content px-4">
+              <p class="text-gray-600">
+                Yes, KNI offers tailored AMC plans for commercial kitchen
+                equipment. These plans include regular maintenance, timely
+                repairs, and emergency support to minimize downtime.
+              </p>
+            </div>
+          </div>
+
+          <!-- Accordion 4 -->
+          <div
+            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <button
+              class="accordion-header w-full text-left p-4 font-medium focus:outline-none hover:bg-gray-50 transition-colors"
+            >
+              Can KNI help me design and optimize my kitchen layout?
+            </button>
+            <div class="accordion-content px-4">
+              <p class="text-gray-600">
+                Yes, our team of experts can help you design and optimize your
+                kitchen layout for maximum efficiency.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- FAQ Section Ends here  -->
+
+    <!-- Blog Section Starts here  -->
+    <section class="hidden px-5 md:px-8 lg:px-16 my-16 max-w-6xl mx-auto">
+      <h2
+        class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 my-8"
+      >
+        Latest Blog
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Blog Card 1 -->
+        <div class="bg-white rounded-lg overflow-hidden">
+          <div class="relative h-48 w-full">
+            <img
+              src="/api/placeholder/400/320"
+              alt="Commercial Kitchen"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div class="p-4">
+            <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
+              <span>10 Dec, 2023</span>
+              <span>Kitchen Recipe</span>
+            </div>
+            <h3 class="text-lg font-semibold mb-2 line-clamp-2">
+              Special Kitchen Equipment Features: New POS Simplifies Operations
+              for Restaurants & Resorts
+            </h3>
+          </div>
+        </div>
+
+        <!-- Blog Card 2 -->
+        <div class="bg-white rounded-lg overflow-hidden">
+          <div class="relative h-48 w-full">
+            <img
+              src="/api/placeholder/400/320"
+              alt="Kitchen Staff"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div class="p-4">
+            <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
+              <span>15 Dec, 2023</span>
+              <span>Kitchen Guide</span>
+            </div>
+            <h3 class="text-lg font-semibold mb-2 line-clamp-2">
+              Top 5 Reasons to Choose POS for Your Commercial Kitchen Needs
+            </h3>
+          </div>
+        </div>
+
+        <!-- Blog Card 3 -->
+        <div class="bg-white rounded-lg overflow-hidden">
+          <div class="relative h-48 w-full">
+            <img
+              src="/api/placeholder/400/320"
+              alt="Modern Kitchen"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div class="p-4">
+            <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
+              <span>20 Dec, 2023</span>
+              <span>Kitchen Tips</span>
+            </div>
+            <h3 class="text-lg font-semibold mb-2 line-clamp-2">
+              Streamlining Kitchen Management: The POS Approach to Efficiency &
+              Growth
+            </h3>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Blog Section end here  -->
+
+    <!-- Get In Touch Section Starts here  -->
+    <div id="contact" class="container-large px-4 py-8 sm:pb-12 sm:pt-20">
+      <div class="text-center mb-8">
+        <h2
+          class="text-3xl uppercase md:text-4xl lg:text-5xl text-center font-bold text-gray-900 mb-3"
+        >
+          Get In Touch
+        </h2>
+        <p class="text-gray-900 text-base md:text-xl">
+          Reach out to us for inquiries, support, or collaboration—we're here to
+          help!
+        </p>
+      </div>
+
+      <div class="relative max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg custom-shadow p-4 sm:p-8 form-section">
+          <form class="space-y-6 max-w-xl">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label
+                  for="Name"
+                  class="block mb-2 text-base font-medium text-gray-900 dark:text-white"
+                  >Name</label
+                >
+                <input
+                  type="text"
+                  placeholder="Name"
+                  class="w-full px-4 py-2.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  for="Email"
+                  class="block mb-2 text-base font-medium text-gray-900 dark:text-white"
+                  >Email</label
+                >
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  class="w-full px-4 py-2.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label
+                  for="Subject"
+                  class="block mb-2 text-base font-medium text-gray-900 dark:text-white"
+                  >Subject</label
+                >
+
+                <input
+                  type="text"
+                  placeholder="Subject"
+                  class="w-full px-4 py-2.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  for="Phone"
+                  class="block mb-2 text-base font-medium text-gray-900 dark:text-white"
+                  >Phone</label
+                >
+
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  class="w-full px-4 py-2.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                for="Message"
+                class="block mb-2 text-base font-medium text-gray-900 dark:text-white"
+                >Message</label
+              >
+
+              <textarea
+                placeholder="Message"
+                rows="6"
+                style="resize: none"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
+              ></textarea>
+            </div>
+            <div>
+              <button
+                class="bg-[#E71720] text-white px-6 py-2.5 rounded-lg hover:bg-red-600 transition-colors duration-300 flex items-center gap-2 text-base"
+              >
+                Send
+                <svg
+                  class="h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-send"
+                >
+                  <path
+                    d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+                  />
+                  <path d="m21.854 2.147-10.94 10.939" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="contact-info-position">
+          <div class="bg-gray-50 rounded-lg p-6 shadow-lg">
+            <div class="space-y-6">
+              <h2 class="text-xl font-semibold text-gray-900">
+                Contact Information
+              </h2>
+
+              <!-- Address -->
+              <div class="flex items-start gap-3">
+                <div class="mt-1">
+                  <img
+                    src="/landing/assests/location.svg"
+                    alt="location"
+                    class="w-8"
+                  />
+                </div>
+                <p class="text-gray-900 text-sm leading-relaxed">
+                  Plot No. 1117, Phase 3, Lane T-14, B/H Aalook Brand, Vatva
+                  GIDC, Ahmedabad - 382445, Gujarat, India.
+                </p>
+              </div>
+
+              <!-- Phone -->
+              <div class="flex items-center gap-3">
+                <div class="">
+                  <img
+                    src="/landing/assests/phone.svg"
+                    alt="location"
+                    class="w-4 h-4"
+                  />
+                </div>
+                <p class="text-gray-600 text-sm">+912-789012234</p>
+              </div>
+
+              <!-- Email -->
+              <div class="flex items-center gap-3">
+                <div class="text-[#E71720]">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <p class="text-gray-900 text-sm">Help@kni.com</p>
+              </div>
+
+              <!-- Website -->
+              <div class="flex items-center gap-3">
+                <div class="text-[#E71720]">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                    />
+                  </svg>
+                </div>
+                <p class="text-gray-900 text-sm">www.kni.com</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Get In Touch Section end here  -->
+
+    <!-- Scroll to Top Button -->
+    <button
+      id="scrollToTop"
+      class="fixed z-10 bottom-8 right-8 bg-[#E71720] text-white p-2 md:p-4 rounded-full shadow-lg hover:bg-red-600 transition-all duration-300 hidden"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4 md:h-6 md:w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 10l7-7m0 0l7 7m-7-7v18"
+        />
+      </svg>
+    </button>
+    <!-- Footer Section starts here  -->
+    <footer class="bg-[#5A5758] py-8 px-4">
+      <div class="container mx-auto max-w-6xl">
+        <!-- Logo Container -->
+        <div class="flex justify-center mb-6">
+          <img
+            src="/landing/assests/footerknilogo.webp"
+            alt="KNI logo"
+            class="w-52 sm:w-auto"
+          />
+        </div>
+
+        <!-- Description Text -->
+        <div class="text-center mb-8 max-w-4xl mx-auto">
+          <p class="text-white text-sm md:text-base leading-relaxed">
+            KNI is a specialized platform bridging the gap between commercial
+            kitchen owners and service professionals, offering streamlined
+            solutions for service bookings, equipment needs, and operational
+            challenges ensuring efficiency and reliability across the industry.
+          </p>
+        </div>
+
+        <!-- Follow Text -->
+        <div class="text-center mb-4">
+          <p class="text-white text-xl font-semibold">Like & Follow Us On</p>
+        </div>
+
+        <!-- Social Links -->
+        <div class="flex justify-center items-center gap-6 my-5">
+          <!-- Facebook -->
+          <a
+            href=""
+            class="footer-icon w-10 h-10 flex items-center justify-center rounded-full transition-colors group"
+          >
+            <!-- <img src="/landing/assests/facebook-icon.svg" alt="Facebook" /> -->
+
+            <svg
+              id="Component_15_1"
+              data-name="Component 15 – 1"
+              xmlns="http://www.w3.org/2000/svg"
+              width="60.213"
+              height="60.212"
+              viewBox="0 0 60.213 60.212"
+            >
+              <ellipse
+                id="Ellipse_212"
+                data-name="Ellipse 212"
+                cx="30.106"
+                cy="30.106"
+                rx="30.106"
+                ry="30.106"
+                fill="#666"
+              />
+              <g
+                id="Group_153"
+                data-name="Group 153"
+                transform="translate(16.715 13.368)"
+              >
+                <path
+                  id="Path_69"
+                  data-name="Path 69"
+                  d="M1414.708,3264.57q-5.072,0-7.676,2.722c-1.86,1.928-2.773,4.818-2.773,8.673v7.017h-8.369v8.352h8.369V3311.4h8.369v-20.069h6.678l1.674-8.352h-8.352v-5.6a5.4,5.4,0,0,1,.862-3.381,3.517,3.517,0,0,1,2.891-1.065h4.6v-8A46.448,46.448,0,0,0,1414.708,3264.57Z"
+                  transform="translate(-1395.89 -3264.57)"
+                  fill="#fff"
+                />
+              </g>
+            </svg>
+          </a>
+
+          <!-- Instagram -->
+          <a
+            href=""
+            class="footer-icon w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#E71720] transition-colors group"
+          >
+            <!-- <img src="/landing/assests/instagram-icon.svg" alt="Instagram" /> -->
+
+            <svg
+              id="Component_16_1"
+              data-name="Component 16 – 1"
+              xmlns="http://www.w3.org/2000/svg"
+              width="60.213"
+              height="60.212"
+              viewBox="0 0 60.213 60.212"
+            >
+              <ellipse
+                id="Ellipse_213"
+                data-name="Ellipse 213"
+                cx="30.106"
+                cy="30.106"
+                rx="30.106"
+                ry="30.106"
+                fill="#666"
+              />
+              <path
+                id="Path_1591"
+                data-name="Path 1591"
+                d="M1453.2,3264.57a9.594,9.594,0,0,0-4.92,1.336,10.107,10.107,0,0,0-3.584,3.584,9.582,9.582,0,0,0-1.319,4.92v13.78a9.579,9.579,0,0,0,1.319,4.92,9.973,9.973,0,0,0,3.584,3.584,9.431,9.431,0,0,0,4.92,1.336h13.78a9.431,9.431,0,0,0,4.92-1.336,9.845,9.845,0,0,0,3.584-3.584,9.434,9.434,0,0,0,1.336-4.92v-13.78a9.436,9.436,0,0,0-1.336-4.92,9.976,9.976,0,0,0-3.584-3.584,9.594,9.594,0,0,0-4.92-1.336Zm0,3.043h13.78a6.733,6.733,0,0,1,3.432.913,6.533,6.533,0,0,1,2.469,2.469,6.823,6.823,0,0,1,.9,3.415v13.78a6.779,6.779,0,0,1-.9,3.416,6.7,6.7,0,0,1-2.469,2.485,6.891,6.891,0,0,1-3.432.9H1453.2a6.828,6.828,0,0,1-3.415-.9,6.834,6.834,0,0,1-3.381-5.9v-13.78a6.669,6.669,0,0,1,.913-3.415,6.42,6.42,0,0,1,2.469-2.469A6.672,6.672,0,0,1,1453.2,3267.613Zm15.876,3.331a1.355,1.355,0,0,0-.981.406,1.41,1.41,0,0,0,0,1.944,1.388,1.388,0,0,0,1.961,0,1.367,1.367,0,0,0,0-1.944A1.354,1.354,0,0,0,1469.079,3270.944Zm-8.978,1.234a8.727,8.727,0,0,0-4.565,1.234,9.381,9.381,0,0,0-3.331,3.331,9.028,9.028,0,0,0,0,9.113,9.386,9.386,0,0,0,3.331,3.331,9.059,9.059,0,0,0,9.13,0,9.207,9.207,0,0,0,3.314-3.331,9.028,9.028,0,0,0,0-9.113,9.2,9.2,0,0,0-3.314-3.331A8.813,8.813,0,0,0,1460.1,3272.178Zm0,3.043a6.087,6.087,0,0,1,5.275,3.009,6.11,6.11,0,0,1-2.215,8.353,6.292,6.292,0,0,1-6.121,0,5.926,5.926,0,0,1-2.215-2.215,6.208,6.208,0,0,1,0-6.138,5.879,5.879,0,0,1,2.215-2.2A5.964,5.964,0,0,1,1460.1,3275.222Z"
+                transform="translate(-1429.994 -3251.201)"
+                fill="#fff"
+              />
+            </svg>
+          </a>
+
+          <!-- YouTube -->
+          <a
+            href=""
+            class="footer-icon w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#E71720] transition-colors group"
+          >
+            <!-- <img src="/landing/assests/youtube-icon.svg" alt="YouTube" /> -->
+
+            <svg
+              id="Component_17_1"
+              data-name="Component 17 – 1"
+              xmlns="http://www.w3.org/2000/svg"
+              width="60.213"
+              height="60.212"
+              viewBox="0 0 60.213 60.212"
+            >
+              <ellipse
+                id="Ellipse_214"
+                data-name="Ellipse 214"
+                cx="30.106"
+                cy="30.106"
+                rx="30.106"
+                ry="30.106"
+                fill="#666"
+              />
+              <path
+                id="Path_1592"
+                data-name="Path 1592"
+                d="M1506.146,3285.184v-9.874l8.741,4.937Zm19.444-12.985a4.23,4.23,0,0,0-2.925-2.959h-.034a95.527,95.527,0,0,0-11.869-.71c-.423,0-.845,0-1.268.017h.068c-.355-.017-.778-.017-1.2-.017a99.4,99.4,0,0,0-12.359.761l.49-.051a4.206,4.206,0,0,0-2.942,2.925l-.017.034a42.747,42.747,0,0,0-.693,7.761v.287h0v.271a43.405,43.405,0,0,0,.744,8.031l-.051-.271a4.26,4.26,0,0,0,2.925,2.959h.034a95.53,95.53,0,0,0,11.869.71h2.4a99.4,99.4,0,0,0,12.359-.761l-.49.051a4.17,4.17,0,0,0,2.959-2.925v-.017a43.071,43.071,0,0,0,.693-7.777v-.558a43.428,43.428,0,0,0-.744-8.031Z"
+                transform="translate(-1479.456 -3248.466)"
+                fill="#fff"
+              />
+            </svg>
+          </a>
+
+          <!-- Twitter/X -->
+          <a
+            href=""
+            class="footer-icon w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#E71720] transition-colors group"
+          >
+            <!-- <img src="/landing/assests/twiter-icon.svg" alt="Twitter" /> -->
+
+            <svg
+              id="Component_18_1"
+              data-name="Component 18 – 1"
+              xmlns="http://www.w3.org/2000/svg"
+              width="60.213"
+              height="60.212"
+              viewBox="0 0 60.213 60.212"
+            >
+              <ellipse
+                id="Ellipse_215"
+                data-name="Ellipse 215"
+                cx="30.106"
+                cy="30.106"
+                rx="30.106"
+                ry="30.106"
+                fill="#666"
+              />
+              <path
+                id="Path_1593"
+                data-name="Path 1593"
+                d="M1560.207,3277.895l9.958-11.345h-2.35l-8.656,9.84-6.915-9.84h-7.963l10.449,14.879-10.449,11.885h2.367l9.13-10.4,7.287,10.4h7.98m-23.552-25.022h3.618l16.7,23.366h-3.635"
+                transform="translate(-1527.546 -3249.833)"
+                fill="#fff"
+              />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Divider Line -->
+        <div class="border-t-2 border-[#7F7C7D] max-w-6xl mx-auto mb-6"></div>
+
+        <!-- Copyright -->
+        <div class="text-center">
+          <p class="text-white text-sm">
+            © Copyright 2024 Kitchen Network International. All rights reserved.
+          </p>
+          <div class="mt-4 space-x-4">
+            <a href="/landing/privacy-policy.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Privacy Policy</a>
+            <span class="text-gray-400">|</span>
+            <a href="/landing/terms.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+    <!-- Footer Section end here  -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    <!-- swiper js link  -->
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <!-- custom js link  -->
+    <script src="/landing/script.js"></script>
+  </body>
+</html>

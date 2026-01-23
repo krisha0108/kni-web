@@ -362,7 +362,7 @@ export default function AdminBookingDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {booking.items.map((item) => {
+                {booking.items?.map((item) => {
                   const itemData = item.serviceItem || item.partItem;
                   const isService = !!item.serviceItem;
                   return (

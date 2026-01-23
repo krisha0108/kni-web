@@ -523,11 +523,11 @@ export default function ServiceHistoryPage() {
               </div>
 
               {/* Items */}
-              {selectedBooking.items.length > 0 && (
+              {(selectedBooking.items?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="font-medium mb-2">Service Items</h4>
                   <div className="space-y-2">
-                    {selectedBooking.items.map((item) => (
+                    {selectedBooking.items?.map((item) => (
                       <div
                         key={item.id}
                         className="flex justify-between text-sm p-2 bg-muted/50 rounded"

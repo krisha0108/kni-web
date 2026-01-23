@@ -204,7 +204,7 @@ export default function EngineerJobsPage() {
         <div className="border-t pt-3">
           <p className="text-sm font-medium mb-2">Items:</p>
           <ul className="text-sm text-muted-foreground space-y-1">
-            {job.booking.items.map((item) => (
+            {job.booking.items?.map((item) => (
               <li key={item.id}>
                 • {item.serviceItem?.name || item.partItem?.name} x{item.quantity}
               </li>

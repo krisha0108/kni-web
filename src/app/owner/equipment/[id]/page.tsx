@@ -649,7 +649,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-medium text-sm">
-                              {service.items.map(item => item.serviceItem?.name || item.partItem?.name).join(", ") || "Service Request"}
+                              {(service.items?.map(item => item.serviceItem?.name || item.partItem?.name) || []).join(", ") || "Service Request"}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDate(service.slotStartDateTime || service.createdAt)}

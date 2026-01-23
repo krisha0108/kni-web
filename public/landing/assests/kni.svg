@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144.678" height="144.678" viewBox="0 0 144.678 144.678">
+  <defs>
+    <filter id="Subtraction_12" x="0" y="0" width="144.678" height="144.678" filterUnits="userSpaceOnUse">
+      <feOffset dx="10" dy="10" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-opacity="0.412"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="Group_227" data-name="Group 227" transform="translate(-897.5 -252.822)">
+    <g transform="matrix(1, 0, 0, 1, 897.5, 252.82)" filter="url(#Subtraction_12)">
+      <path id="Subtraction_12-2" data-name="Subtraction 12" d="M56.839,113.678a57.331,57.331,0,0,1-11.455-1.155,56.533,56.533,0,0,1-20.324-8.553A57.005,57.005,0,0,1,4.467,78.963,56.523,56.523,0,0,1,1.155,68.294a57.4,57.4,0,0,1,0-22.91A56.533,56.533,0,0,1,9.707,25.06,57.005,57.005,0,0,1,34.715,4.467,56.59,56.59,0,0,1,45.383,1.155,57.391,57.391,0,0,1,68.524,1.2,56.546,56.546,0,0,1,89.18,10.1a57.249,57.249,0,0,1,8.485,7.2,8.835,8.835,0,1,0,9.293,12.716,56.578,56.578,0,0,1,6.719,26.824,57.318,57.318,0,0,1-1.155,11.455,56.819,56.819,0,0,1-44.23,44.23A57.318,57.318,0,0,1,56.839,113.678ZM35.366,64.005h0L29.9,70.6l.048.059,6.253,7.628H47.069L35.384,64.027l-.018-.022ZM11.715,37.463V78.282h8.407V70.34l4.235-5.168-.005-.057L31.218,56.8,47.069,37.463H36.205L20.122,57.084V37.463Zm83.146-.251v39.9h8.217v-39.9Zm-43.758,0V47.864L86.508,77.108v-39.9H78.292V59.67Zm0,20.543V77.108H59.32V64.542Z" transform="translate(5.5 5.5)" fill="#fff" stroke="rgba(0,0,0,0)" stroke-width="1"/>
+    </g>
+    <path id="Path_418" data-name="Path 418" d="M336.227,79.569a4.209,4.209,0,1,1-4.209-4.209,4.209,4.209,0,0,1,4.209,4.209" transform="translate(670.062 204.772)" fill="#fff"/>
+  </g>
+</svg>

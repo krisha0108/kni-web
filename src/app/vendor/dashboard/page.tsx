@@ -117,10 +117,10 @@ export default function VendorDashboardPage() {
 
   // Top products data for bar chart
   const topProductsData = (analyticsData.breakdowns?.topProducts || [])
-    .filter((item) => item.product !== null)
+    .filter((item) => item.product?.name)
     .slice(0, 5)
     .map((item) => ({
-      name: item.product!.name.length > 20 ? item.product!.name.slice(0, 17) + "..." : item.product!.name,
+      name: item.product!.name!.length > 20 ? item.product!.name!.slice(0, 17) + "..." : item.product!.name!,
       Revenue: item.totalRevenue,
       Quantity: item.totalQuantity,
       Orders: item.orderCount,
@@ -128,10 +128,10 @@ export default function VendorDashboardPage() {
 
   // Top customers data for bar chart
   const topCustomersData = (analyticsData.breakdowns?.topCustomers || [])
-    .filter((item) => item.restaurant !== null)
+    .filter((item) => item.restaurant?.name)
     .slice(0, 5)
     .map((item) => ({
-      name: item.restaurant!.name.length > 15 ? item.restaurant!.name.slice(0, 12) + "..." : item.restaurant!.name,
+      name: item.restaurant!.name!.length > 15 ? item.restaurant!.name!.slice(0, 12) + "..." : item.restaurant!.name!,
       Revenue: item.totalRevenue,
       Orders: item.orderCount,
     }));

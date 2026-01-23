@@ -436,7 +436,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           <div>
             <h1 className="text-3xl font-bold">{equipment.name}</h1>
             <p className="text-muted-foreground">
-              {equipment.equipmentType?.category?.name || equipment.category?.name || equipment.category}
+              {equipment.equipmentType?.category?.name || (typeof equipment.category === 'object' && equipment.category !== null ? (equipment.category as { name?: string }).name : equipment.category)}
               {equipment.equipmentType && ` • ${equipment.equipmentType.name}`}
             </p>
           </div>

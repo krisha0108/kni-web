@@ -330,13 +330,13 @@ model Category {
   deletedAt DateTime?
 
   // Relations
-  subCategories        SubCategory[]
-  serviceItems         ServiceItem[]
-  partItems            PartItem[]
-  restaurantCategories RestaurantCategory[]
-  marketplaceProducts  MarketplaceProduct[]
-  vendorProducts       VendorProduct[]       // Legacy relation for migration
-  equipment            Equipment[]
+  subCategories         SubCategory[]
+  serviceItems          ServiceItem[]
+  partItems             PartItem[]
+  restaurantCategories  RestaurantCategory[]
+  marketplaceProducts   MarketplaceProduct[]
+  vendorProducts        VendorProduct[]       // Legacy relation for migration
+  equipment             Equipment[]
 
   @@index([isActive])
 }
@@ -350,10 +350,10 @@ model SubCategory {
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
 
-  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  serviceItems ServiceItem[]
-  partItems    PartItem[]
-  equipment    Equipment[]
+  category              Category               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  serviceItems          ServiceItem[]
+  partItems             PartItem[]
+  equipment             Equipment[]
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -916,8 +916,8 @@ model Equipment {
   restaurant      Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   subCategory     SubCategory?      @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
-  amcSubscription AMCSubscription[]
-  serviceBookings ServiceBooking[]  // Service history for this equipment
+  amcSubscription       AMCSubscription[]
+  serviceBookings       ServiceBooking[]       // Service history for this equipment
 
   @@index([ownerId])
   @@index([restaurantId])
@@ -1711,6 +1711,7 @@ model SupportTicketThread {
   ticketId  String
   userId    String
   message   String   @db.Text
+  imageUrl  String?  // Optional image attachment
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
 

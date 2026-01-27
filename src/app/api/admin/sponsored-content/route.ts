@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
+import { autoUpdateSponsoredContentStatuses } from "@/server/utils/auto-status-update";
 
 const sponsoredSchema = z.object({
   type: z.enum(["VENDOR", "PRODUCT", "SERVICE", "GENERAL"]).default("GENERAL"),
@@ -18,6 +19,9 @@ const sponsoredSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
+
+    // Auto-update statuses based on dates before fetching
+    await autoUpdateSponsoredContentStatuses();
 
     const searchParams = request.nextUrl.searchParams;
     const isActive = searchParams.get("isActive");

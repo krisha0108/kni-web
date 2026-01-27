@@ -6,8 +6,8 @@ import { z } from "zod";
 const bannerUpdateSchema = z.object({
   title: z.string().min(3).optional(),
   description: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  linkUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().optional(),
+  linkUrl: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   sortOrder: z.number().int().min(0).optional(),
   startDate: z.string().optional(),
@@ -40,9 +40,13 @@ export async function GET(
     return NextResponse.json({ ok: true, data: banner });
   } catch (error: any) {
     console.error("Get banner error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: error.status || 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }
@@ -89,9 +93,13 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: banner });
   } catch (error: any) {
     console.error("Update banner error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: error.status || 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }
@@ -115,9 +123,13 @@ export async function DELETE(
     return NextResponse.json({ ok: true, message: "Banner deleted successfully" });
   } catch (error: any) {
     console.error("Delete banner error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: error.status || 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }

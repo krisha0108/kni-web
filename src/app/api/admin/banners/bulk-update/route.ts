@@ -47,9 +47,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Bulk update banners error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }

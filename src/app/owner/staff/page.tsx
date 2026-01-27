@@ -16,6 +16,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,7 +43,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useRestaurant } from "@/contexts/restaurant-context";
-import { UserPlus, Edit, Trash2, Phone, Calendar, DollarSign, Search } from "lucide-react";
+import { UserPlus, Edit, Trash2, Phone, MoreHorizontal, Search } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 
 interface Staff {
@@ -66,33 +84,46 @@ const statusColors: Record<string, "default" | "success" | "warning" | "destruct
   TERMINATED: "destructive",
 };
 
+interface FormState {
+  id: string | null;
+  name: string;
+  phone: string;
+  designation: string;
+  staffType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERN";
+  status: "ACTIVE" | "ON_LEAVE" | "RESIGNED" | "TERMINATED";
+  joiningDate: string;
+  monthlySalary: string;
+  dailyWage: string;
+}
+
+const initialFormState: FormState = {
+  id: null,
+  name: "",
+  phone: "",
+  designation: "",
+  staffType: "FULL_TIME",
+  status: "ACTIVE",
+  joiningDate: new Date().toISOString().split("T")[0],
+  monthlySalary: "",
+  dailyWage: "",
+};
+
 export default function StaffManagementPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const { selectedRestaurant } = useRestaurant();
 
-  const [form, setForm] = useState<{
-    name: string;
-    phone: string;
-    designation: string;
-    staffType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "DAILY_WAGE";
-    joiningDate: string;
-    monthlySalary: string;
-    dailyWage: string;
-  }>({
-    name: "",
-    phone: "",
-    designation: "",
-    staffType: "FULL_TIME",
-    joiningDate: new Date().toISOString().split("T")[0],
-    monthlySalary: "",
-    dailyWage: "",
-  });
+  const [form, setForm] = useState<FormState>(initialFormState);
+
+  const isEditMode = form.id !== null;
 
   useEffect(() => {
     if (selectedRestaurant) {
@@ -138,6 +169,33 @@ export default function StaffManagementPage() {
     if (!selectedRestaurant) return;
 
     // Validation
+    if (!form.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!form.phone || form.phone.length < 10) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid phone number (min 10 digits)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!form.designation.trim()) {
+      toast({
+        title: "Error",
+        description: "Designation is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (form.staffType === "FULL_TIME" || form.staffType === "CONTRACT") {
       if (!form.monthlySalary || parseFloat(form.monthlySalary) <= 0) {
         toast({
@@ -163,27 +221,43 @@ export default function StaffManagementPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch("/api/owner/staff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          restaurantId: selectedRestaurant.restaurantId,
-          name: form.name,
-          phone: form.phone,
-          designation: form.designation,
-          staffType: form.staffType,
-          joiningDate: form.joiningDate,
-          monthlySalary: form.monthlySalary ? parseFloat(form.monthlySalary) : undefined,
-          dailyWage: form.dailyWage ? parseFloat(form.dailyWage) : undefined,
-        }),
-      });
+      const payload = {
+        restaurantId: selectedRestaurant.restaurantId,
+        name: form.name,
+        phone: form.phone,
+        designation: form.designation,
+        staffType: form.staffType,
+        status: form.status,
+        joiningDate: form.joiningDate,
+        monthlySalary: form.monthlySalary ? parseFloat(form.monthlySalary) : null,
+        dailyWage: form.dailyWage ? parseFloat(form.dailyWage) : null,
+      };
+
+      let response;
+      if (isEditMode) {
+        // Update existing staff
+        response = await fetch(`/api/owner/staff/${form.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Create new staff
+        response = await fetch("/api/owner/staff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
       const data = await response.json();
 
       if (data.ok) {
         toast({
           title: "Success",
-          description: "Staff member added successfully",
+          description: isEditMode
+            ? "Staff member updated successfully"
+            : "Staff member added successfully",
         });
         setIsDialogOpen(false);
         resetForm();
@@ -191,14 +265,14 @@ export default function StaffManagementPage() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to add staff member",
+          description: data.error || `Failed to ${isEditMode ? "update" : "add"} staff member`,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add staff member",
+        description: `Failed to ${isEditMode ? "update" : "add"} staff member`,
         variant: "destructive",
       });
     } finally {
@@ -206,16 +280,102 @@ export default function StaffManagementPage() {
     }
   };
 
-  const resetForm = () => {
+  const handleEdit = (member: Staff) => {
     setForm({
-      name: "",
-      phone: "",
-      designation: "",
-      staffType: "FULL_TIME",
-      joiningDate: new Date().toISOString().split("T")[0],
-      monthlySalary: "",
-      dailyWage: "",
+      id: member.id,
+      name: member.name,
+      phone: member.phone,
+      designation: member.designation,
+      staffType: member.staffType,
+      status: member.status,
+      joiningDate: member.joiningDate ? member.joiningDate.split("T")[0] : "",
+      monthlySalary: member.monthlySalary ? (member.monthlySalary / 100).toString() : "",
+      dailyWage: member.dailyWage ? (member.dailyWage / 100).toString() : "",
     });
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (member: Staff) => {
+    setStaffToDelete(member);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!staffToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/owner/staff/${staffToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: "Staff member has been terminated",
+        });
+        setIsDeleteDialogOpen(false);
+        setStaffToDelete(null);
+        fetchStaff();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete staff member",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete staff member",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleStatusChange = async (member: Staff, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/owner/staff/${member.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: `Status updated to ${staffStatusLabels[newStatus as keyof typeof staffStatusLabels]}`,
+        });
+        fetchStaff();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setForm(initialFormState);
+  };
+
+  const openAddDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
   };
 
   const filteredStaff = staff.filter((member) => {
@@ -242,7 +402,7 @@ export default function StaffManagementPage() {
           <h1 className="text-3xl font-bold">Staff Management</h1>
           <p className="text-muted-foreground">Manage your restaurant staff</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={openAddDialog}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add Staff Member
         </Button>
@@ -301,6 +461,7 @@ export default function StaffManagementPage() {
                   <TableHead>Phone</TableHead>
                   <TableHead>Salary/Wage</TableHead>
                   <TableHead>Joining Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,12 +485,54 @@ export default function StaffManagementPage() {
                     </TableCell>
                     <TableCell>
                       {member.monthlySalary
-                        ? formatPrice(member.monthlySalary) + "/month"
+                        ? formatPrice(member.monthlySalary / 100) + "/month"
                         : member.dailyWage
-                        ? formatPrice(member.dailyWage) + "/day"
+                        ? formatPrice(member.dailyWage / 100) + "/day"
                         : "-"}
                     </TableCell>
                     <TableCell>{formatDate(member.joiningDate)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEdit(member)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                          {Object.entries(staffStatusLabels).map(([status, label]) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => handleStatusChange(member, status)}
+                              disabled={member.status === status}
+                            >
+                              <Badge
+                                variant={statusColors[status]}
+                                className="mr-2 h-2 w-2 p-0 rounded-full"
+                              />
+                              {label}
+                              {member.status === status && " (Current)"}
+                            </DropdownMenuItem>
+                          ))}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(member)}
+                            className="text-red-600 focus:text-red-600"
+                            disabled={member.status === "TERMINATED"}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Terminate
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -338,13 +541,15 @@ export default function StaffManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Add Staff Dialog */}
+      {/* Add/Edit Staff Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add Staff Member</DialogTitle>
+            <DialogTitle>{isEditMode ? "Edit Staff Member" : "Add Staff Member"}</DialogTitle>
             <DialogDescription>
-              Add a new staff member to {selectedRestaurant.restaurant.name}
+              {isEditMode
+                ? `Update details for ${form.name}`
+                : `Add a new staff member to ${selectedRestaurant.restaurant.name}`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -410,17 +615,38 @@ export default function StaffManagementPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="joiningDate">
-                  Joining Date <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="joiningDate"
-                  type="date"
-                  value={form.joiningDate}
-                  onChange={(e) => setForm({ ...form, joiningDate: e.target.value })}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="joiningDate">
+                    Joining Date <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="joiningDate"
+                    type="date"
+                    value={form.joiningDate}
+                    onChange={(e) => setForm({ ...form, joiningDate: e.target.value })}
+                    required
+                  />
+                </div>
+                {isEditMode && (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={form.status}
+                      onValueChange={(value: any) => setForm({ ...form, status: value })}
+                    >
+                      <SelectTrigger id="status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Active</SelectItem>
+                        <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                        <SelectItem value="RESIGNED">Resigned</SelectItem>
+                        <SelectItem value="TERMINATED">Terminated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {(form.staffType === "FULL_TIME" || form.staffType === "CONTRACT") && (
@@ -458,6 +684,23 @@ export default function StaffManagementPage() {
                   />
                 </div>
               )}
+
+              {form.staffType === "INTERN" && (
+                <div className="space-y-2">
+                  <Label htmlFor="monthlySalary">
+                    Monthly Stipend (₹) <span className="text-muted-foreground">(Optional)</span>
+                  </Label>
+                  <Input
+                    id="monthlySalary"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.monthlySalary}
+                    onChange={(e) => setForm({ ...form, monthlySalary: e.target.value })}
+                    placeholder="Enter monthly stipend (if any)"
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -472,12 +715,36 @@ export default function StaffManagementPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Adding..." : "Add Staff Member"}
+                {isSaving ? (isEditMode ? "Saving..." : "Adding...") : isEditMode ? "Save Changes" : "Add Staff Member"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminate Staff Member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to terminate <strong>{staffToDelete?.name}</strong>?
+              This will mark them as terminated and they will no longer appear in active staff lists.
+              This action can be reversed by changing their status later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Terminating..." : "Terminate"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

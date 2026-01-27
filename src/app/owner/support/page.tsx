@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, MessageSquare, Clock, CheckCircle, AlertCircle, XCircle, Eye, Send, Phone, Trash2 } from "lucide-react";
+import { Plus, Search, MessageSquare, Clock, CheckCircle, AlertCircle, XCircle, Eye, Send, Phone, Trash2, Upload, X, ImageIcon } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { formatDate } from "@/lib/utils";
 
@@ -37,6 +37,7 @@ interface SupportTicket {
 interface TicketThread {
   id: string;
   message: string;
+  imageUrl: string | null;
   isAdmin: boolean;
   createdAt: string;
   user: {
@@ -92,6 +93,12 @@ export default function OwnerSupportPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [ticketImageUrl, setTicketImageUrl] = useState("");
+  const [replyImageUrl, setReplyImageUrl] = useState("");
+  const [isUploadingTicketImage, setIsUploadingTicketImage] = useState(false);
+  const [isUploadingReplyImage, setIsUploadingReplyImage] = useState(false);
+  const ticketFileInputRef = useRef<HTMLInputElement>(null);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
@@ -175,6 +182,41 @@ export default function OwnerSupportPage() {
       category: "General",
       description: "",
     });
+    setTicketImageUrl("");
+  };
+
+  const handleImageUpload = async (
+    file: File,
+    setUrl: (url: string) => void,
+    setLoading: (loading: boolean) => void
+  ) => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "support-tickets");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.ok) {
+        setUrl(data.url);
+        toast({ title: "Success", description: "Image uploaded successfully" });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -194,6 +236,7 @@ export default function OwnerSupportPage() {
         equipmentName: formData.equipmentName || undefined,
         category: formData.category,
         description: formData.description,
+        photoUrl: ticketImageUrl || undefined,
       };
 
       const response = await fetch("/api/owner/support", {
@@ -228,20 +271,27 @@ export default function OwnerSupportPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!selectedTicket || !newMessage.trim()) return;
+    if (!selectedTicket || (!newMessage.trim() && !replyImageUrl)) return;
 
     try {
       setIsSending(true);
+      const payload: { message: string; imageUrl?: string } = {
+        message: newMessage || "Image attached",
+      };
+      if (replyImageUrl) {
+        payload.imageUrl = replyImageUrl;
+      }
       const response = await fetch(`/api/owner/support/${selectedTicket.id}/threads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: newMessage }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
       if (data.ok) {
         setThreads([...threads, data.data]);
         setNewMessage("");
+        setReplyImageUrl("");
       } else {
         toast({
           title: "Error",
@@ -293,6 +343,8 @@ export default function OwnerSupportPage() {
 
   const openTicketDetail = (ticket: SupportTicket) => {
     setSelectedTicket(ticket);
+    setReplyImageUrl("");
+    setNewMessage("");
     fetchTicketDetail(ticket.id);
     setIsDetailOpen(true);
   };
@@ -397,6 +449,51 @@ export default function OwnerSupportPage() {
                     placeholder="Describe your issue in detail..."
                     rows={4}
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Attachment (Optional)</Label>
+                  <input
+                    type="file"
+                    ref={ticketFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, setTicketImageUrl, setIsUploadingTicketImage);
+                      e.target.value = "";
+                    }}
+                  />
+                  {ticketImageUrl ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={ticketImageUrl}
+                        alt="Attachment preview"
+                        className="h-24 w-auto rounded-lg border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => setTicketImageUrl("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => ticketFileInputRef.current?.click()}
+                      disabled={isUploadingTicketImage}
+                    >
+                      {isUploadingTicketImage ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      Upload Image
+                    </Button>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -573,6 +670,20 @@ export default function OwnerSupportPage() {
                     )}
                   </div>
                   <p className="text-sm">{selectedTicket.description}</p>
+                  {selectedTicket.photoUrl && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <ImageIcon className="h-3 w-3" />
+                        Attachment
+                      </p>
+                      <img
+                        src={selectedTicket.photoUrl}
+                        alt="Ticket attachment"
+                        className="rounded-lg border max-w-full max-h-40 cursor-pointer"
+                        onClick={() => window.open(selectedTicket.photoUrl!, "_blank")}
+                      />
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Created: {formatDate(selectedTicket.createdAt)}
                   </p>
@@ -608,6 +719,14 @@ export default function OwnerSupportPage() {
                           </span>
                         </div>
                         <p className="text-sm">{thread.message}</p>
+                        {thread.imageUrl && (
+                          <img
+                            src={thread.imageUrl}
+                            alt="Attachment"
+                            className="mt-2 rounded-lg max-w-full max-h-40 object-cover cursor-pointer"
+                            onClick={() => window.open(thread.imageUrl!, "_blank")}
+                          />
+                        )}
                       </div>
                     ))
                   )}
@@ -616,21 +735,65 @@ export default function OwnerSupportPage() {
 
               {/* Reply Section */}
               {selectedTicket.status !== "COMPLETED" && selectedTicket.status !== "REJECTED" && (
-                <div className="flex gap-2 pt-4 border-t">
-                  <Input
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                  />
-                  <Button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                <div className="pt-4 border-t space-y-2">
+                  {/* Image Preview */}
+                  {replyImageUrl && (
+                    <div className="relative inline-block">
+                      <img
+                        src={replyImageUrl}
+                        alt="Upload preview"
+                        className="h-16 w-auto rounded-lg border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5"
+                        onClick={() => setReplyImageUrl("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      ref={replyFileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, setReplyImageUrl, setIsUploadingReplyImage);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Input
+                      placeholder="Type your message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      disabled={isUploadingReplyImage}
+                    >
+                      {isUploadingReplyImage ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <ImageIcon className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button onClick={handleSendMessage} disabled={isSending || (!newMessage.trim() && !replyImageUrl)}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

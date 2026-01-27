@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { autoUpdateBannerStatuses } from "@/server/utils/auto-status-update";
 
 /**
  * GET /api/app_api/banners
@@ -8,6 +9,9 @@ import { db } from "@/server/db";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Auto-update banner statuses based on dates
+    await autoUpdateBannerStatuses();
+
     const searchParams = request.nextUrl.searchParams;
     const perPage = Number(searchParams.get("per_page")) || 10;
     const status = searchParams.get("status") || "published";

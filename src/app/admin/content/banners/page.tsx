@@ -140,11 +140,25 @@ export default function BannersPage() {
   };
 
   const handleCreate = async () => {
+    if (!formData.title.trim()) {
+      toast({ title: "Error", description: "Title is required", variant: "destructive" });
+      return;
+    }
+    if (!formData.imageUrl.trim()) {
+      toast({ title: "Error", description: "Banner image is required", variant: "destructive" });
+      return;
+    }
     try {
+      const payload = {
+        ...formData,
+        linkUrl: formData.linkUrl || undefined,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+      };
       const response = await fetch("/api/admin/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (data.ok) {

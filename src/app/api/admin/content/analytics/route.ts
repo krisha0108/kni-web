@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
+import { autoUpdateAllStatuses } from "@/server/utils/auto-status-update";
 
 /**
  * GET /api/admin/content/analytics
@@ -9,6 +10,9 @@ import { requireAdmin } from "@/server/auth/rbac";
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
+
+    // Auto-update all content statuses before fetching analytics
+    await autoUpdateAllStatuses();
 
     const searchParams = request.nextUrl.searchParams;
     const days = Number(searchParams.get("days")) || 30;

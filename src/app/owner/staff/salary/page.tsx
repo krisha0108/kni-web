@@ -190,7 +190,7 @@ export default function StaffSalaryPage() {
     if (amount > remainingAmount) {
       toast({
         title: "Error",
-        description: `Payment amount cannot exceed remaining amount (${formatPrice(selectedRecord.totalPayable - selectedRecord.totalPaid)})`,
+        description: `Payment amount cannot exceed remaining amount (${formatPrice((selectedRecord.totalPayable - selectedRecord.totalPaid) / 100)})`,
         variant: "destructive",
       });
       return;
@@ -370,7 +370,7 @@ export default function StaffSalaryPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatPrice(summary.totalPayable)}</div>
+              <div className="text-2xl font-bold">{formatPrice(summary.totalPayable / 100)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -379,7 +379,7 @@ export default function StaffSalaryPage() {
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatPrice(summary.totalPaid)}</div>
+              <div className="text-2xl font-bold text-green-600">{formatPrice(summary.totalPaid / 100)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -388,7 +388,7 @@ export default function StaffSalaryPage() {
               <CalendarDays className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{formatPrice(summary.totalPending)}</div>
+              <div className="text-2xl font-bold text-orange-600">{formatPrice(summary.totalPending / 100)}</div>
             </CardContent>
           </Card>
         </div>
@@ -439,18 +439,18 @@ export default function StaffSalaryPage() {
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{record.staff.name}</TableCell>
                       <TableCell>{record.staff.designation}</TableCell>
-                      <TableCell>{formatPrice(record.basicSalary)}</TableCell>
+                      <TableCell>{formatPrice(record.basicSalary / 100)}</TableCell>
                       <TableCell>
-                        {record.allowances > 0 ? formatPrice(record.allowances) : "-"}
+                        {record.allowances > 0 ? formatPrice(record.allowances / 100) : "-"}
                       </TableCell>
                       <TableCell>
-                        {record.deductions > 0 ? formatPrice(record.deductions) : "-"}
+                        {record.deductions > 0 ? formatPrice(record.deductions / 100) : "-"}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        {formatPrice(record.totalPayable)}
+                        {formatPrice(record.totalPayable / 100)}
                       </TableCell>
                       <TableCell>
-                        {record.totalPaid > 0 ? formatPrice(record.totalPaid) : "-"}
+                        {record.totalPaid > 0 ? formatPrice(record.totalPaid / 100) : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusColors[record.status]}>
@@ -464,7 +464,7 @@ export default function StaffSalaryPage() {
                               size="sm"
                               onClick={() => openPaymentDialog(record)}
                             >
-                              Pay {formatPrice(remaining)}
+                              Pay {formatPrice(remaining / 100)}
                             </Button>
                           )}
                           {record.totalPaid === 0 && (
@@ -501,16 +501,16 @@ export default function StaffSalaryPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Total Payable</p>
-                  <p className="font-semibold">{formatPrice(selectedRecord.totalPayable)}</p>
+                  <p className="font-semibold">{formatPrice(selectedRecord.totalPayable / 100)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Already Paid</p>
-                  <p className="font-semibold">{formatPrice(selectedRecord.totalPaid)}</p>
+                  <p className="font-semibold">{formatPrice(selectedRecord.totalPaid / 100)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Remaining</p>
                   <p className="font-semibold text-orange-600">
-                    {formatPrice(selectedRecord.totalPayable - selectedRecord.totalPaid)}
+                    {formatPrice((selectedRecord.totalPayable - selectedRecord.totalPaid) / 100)}
                   </p>
                 </div>
               </div>

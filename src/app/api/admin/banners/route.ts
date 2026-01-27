@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
+import { autoUpdateBannerStatuses } from "@/server/utils/auto-status-update";
 
 const bannerSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  imageUrl: z.string().url("Must be a valid URL"),
-  linkUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  imageUrl: z.string().min(1, "Image URL is required"),
+  linkUrl: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
   sortOrder: z.number().int().min(0).default(0),
   startDate: z.string().optional(),
@@ -21,6 +22,9 @@ const bannerSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
+
+    // Auto-update statuses based on dates before fetching
+    await autoUpdateBannerStatuses();
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
@@ -57,9 +61,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Get banners error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: error.status || 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }
@@ -103,9 +111,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Create banner error:", error);
+    const message = error.message || "Internal server error";
+    let status = 500;
+    if (message.includes("Unauthorized")) status = 401;
+    else if (message.includes("Forbidden")) status = 403;
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal server error" },
-      { status: 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }

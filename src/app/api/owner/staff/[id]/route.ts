@@ -8,7 +8,7 @@ const updateStaffSchema = z.object({
   phone: z.string().min(10).optional(),
   designation: z.string().min(2).optional(),
   staffType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]).optional(),
-  status: z.enum(["ACTIVE", "ON_LEAVE", "TERMINATED"]).optional(),
+  status: z.enum(["ACTIVE", "ON_LEAVE", "RESIGNED", "TERMINATED"]).optional(),
   monthlySalary: z.number().positive().optional().nullable(),
   dailyWage: z.number().positive().optional().nullable(),
 });

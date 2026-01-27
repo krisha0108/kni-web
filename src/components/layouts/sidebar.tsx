@@ -111,6 +111,7 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Payment Settings", href: "/admin/payment-settings", icon: CreditCard },
   { title: "Content Management", href: "/admin/content", icon: Image },
   { title: "Notifications", href: "/admin/notifications", icon: Bell },
+  { title: "Support Tickets", href: "/admin/support", icon: MessageSquare },
 ];
 
 export const ownerSidebarItems: SidebarItem[] = [
@@ -157,6 +158,7 @@ export const engineerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/engineer/dashboard", icon: LayoutDashboard },
   { title: "My Jobs", href: "/engineer/jobs", icon: ClipboardList },
   { title: "Completed", href: "/engineer/completed", icon: CheckCircle },
+  { title: "Parts Request", href: "/engineer/parts-request", icon: Package },
   { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
   { title: "Notifications", href: "/engineer/notifications", icon: Bell },
   { title: "Profile", href: "/engineer/profile", icon: User },

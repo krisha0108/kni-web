@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const createThreadSchema = z.object({
   message: z.string().min(1, "Message is required"),
+  imageUrl: z.string().optional(),
 });
 
 export async function GET(
@@ -100,6 +101,7 @@ export async function POST(
         ticketId: id,
         userId: session.id,
         message: validation.data.message,
+        imageUrl: validation.data.imageUrl || null,
         isAdmin: false,
       },
       include: {
@@ -120,10 +122,10 @@ export async function POST(
     });
 
     return NextResponse.json({ ok: true, data: thread });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Create thread error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
+      { ok: false, error: error?.message || "Internal server error", stack: error?.stack },
       { status: 500 }
     );
   }

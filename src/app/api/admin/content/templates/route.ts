@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
           data: {
             title: "Welcome to KNI Super App!",
             description: "Your one-stop solution for restaurant equipment service and maintenance",
+            imageUrl: "https://placehold.co/800x400/3b82f6/white?text=Welcome+Banner",
             sortOrder: 1,
             status: "DRAFT",
           },
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
           data: {
             title: "Save with AMC Plans",
             description: "Get up to 20% savings with our Annual Maintenance Contracts",
+            imageUrl: "https://placehold.co/800x400/10b981/white?text=AMC+Promotion",
             sortOrder: 2,
             status: "DRAFT",
           },
@@ -43,6 +45,7 @@ export async function GET(request: NextRequest) {
           data: {
             title: "24/7 Service Support",
             description: "Professional help available anytime, anywhere",
+            imageUrl: "https://placehold.co/800x400/8b5cf6/white?text=24x7+Support",
             sortOrder: 3,
             status: "DRAFT",
           },
@@ -54,6 +57,7 @@ export async function GET(request: NextRequest) {
           data: {
             title: "Special Seasonal Offer",
             description: "Limited time discount on all services",
+            imageUrl: "https://placehold.co/800x400/f59e0b/white?text=Seasonal+Offer",
             sortOrder: 0,
             status: "DRAFT",
           },

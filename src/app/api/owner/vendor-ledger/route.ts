@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
     if (vendorName) {
       where.vendorName = {
         contains: vendorName,
-        mode: "insensitive",
       };
     }
 

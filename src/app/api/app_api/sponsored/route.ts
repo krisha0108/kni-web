@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { autoUpdateSponsoredContentStatuses } from "@/server/utils/auto-status-update";
 
 /**
  * GET /api/app_api/sponsored
@@ -8,6 +9,9 @@ import { db } from "@/server/db";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Auto-update sponsored content statuses based on dates
+    await autoUpdateSponsoredContentStatuses();
+
     const now = new Date();
 
     // Query active sponsored content

@@ -5,6 +5,7 @@ import { notifyOwnerJobCompleted, createNotificationForRole, createNotification 
 import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
 import { rejectionReasonSchema } from "@/lib/validations/rejection";
+import { calculateCommission } from "@/lib/commission";
 
 export async function GET(
   request: NextRequest,
@@ -436,7 +437,37 @@ export async function POST(
           where: { id: assignment.bookingId },
           data: { status: "COMPLETED" },
         });
+
+        // Get assignment with commission rate for payout calculation
+        const assignmentData = await tx.engineerAssignment.findUnique({
+          where: { id },
+          select: { commissionRate: true, engineerId: true },
+        });
+
+        // Calculate commission and create payout
+        const commissionAmount = calculateCommission(
+          booking.totalAmount,
+          assignmentData?.commissionRate || 20
+        );
+
+        await tx.payout.create({
+          data: {
+            assignmentId: id,
+            engineerId: session.id,
+            amount: commissionAmount,
+            status: "PENDING",
+          },
+        });
       });
+
+      // Notify admins for payout review
+      await createNotificationForRole(
+        Role.ADMIN,
+        "Job Completed - Payout Pending",
+        `${session.name} has completed service at ${assignment.booking.restaurant.name}. Please review and process payout.`,
+        NotificationType.BOOKING,
+        `/admin/payouts`
+      );
 
       // Send notification outside transaction
       await notifyOwnerJobCompleted(assignment.booking.ownerId, assignment.bookingId);

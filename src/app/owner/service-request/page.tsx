@@ -31,10 +31,10 @@ export default function ServiceRequestPage() {
             <h3 className="text-xl font-semibold">Coming Soon</h3>
             <p className="text-muted-foreground text-center mt-2 max-w-md">
               The New Service Request feature is currently under development.
-              Please use the Service Feed to browse and book available services.
+              Please go to My Equipment to request service for your equipment.
             </p>
-            <Button className="mt-6" onClick={() => router.push("/owner/feed")}>
-              Go to Service Feed
+            <Button className="mt-6" onClick={() => router.push("/owner/equipment")}>
+              Go to My Equipment
             </Button>
           </div>
         </CardContent>

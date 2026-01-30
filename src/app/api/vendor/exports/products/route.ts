@@ -9,7 +9,13 @@ export async function GET() {
 
     const products = await db.vendorProduct.findMany({
       where: { vendorId: session.id, deletedAt: null },
-      include: { category: { select: { name: true } } },
+      include: {
+        product: {
+          include: {
+            marketplaceCategory: { select: { name: true } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' }
     })
 
@@ -25,8 +31,8 @@ export async function GET() {
 
     const exportData = products.map(p => ({
       id: p.id,
-      name: p.name,
-      category: p.category?.name || 'N/A',
+      name: p.product?.name || p.name || 'N/A',
+      category: p.product?.marketplaceCategory?.name || 'N/A',
       price: p.price,
       stock: p.stockQuantity || 0,
       isActive: p.isActive,

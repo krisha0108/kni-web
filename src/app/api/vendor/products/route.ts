@@ -39,7 +39,16 @@ export async function GET(request: NextRequest) {
     const vendorProducts = await db.vendorProduct.findMany({
       where,
       include: {
-        product: true,
+        product: {
+          include: {
+            marketplaceCategory: {
+              select: { id: true, name: true },
+            },
+            marketplaceSubCategory: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -64,6 +73,9 @@ export async function GET(request: NextRequest) {
         imageUrl: vp.product!.imageUrl,
         unit: vp.product!.unit,
         productDescription: vp.product!.description, // Admin's default description
+        // Category info
+        category: vp.product!.marketplaceCategory,
+        subCategory: vp.product!.marketplaceSubCategory,
       }));
 
     return NextResponse.json({ ok: true, data: products });
@@ -105,6 +117,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify the product's category is one the vendor has selected
+    if (adminProduct.marketplaceCategoryId) {
+      const vendorSelection = await db.vendorCategorySelection.findUnique({
+        where: {
+          vendorId_categoryId: {
+            vendorId: session.id,
+            categoryId: adminProduct.marketplaceCategoryId,
+          },
+        },
+      });
+
+      if (!vendorSelection) {
+        return NextResponse.json(
+          { ok: false, error: "You must select this product's category first before adding it" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Check if vendor already has this product
     const existingVendorProduct = await db.vendorProduct.findFirst({
       where: {
@@ -132,7 +163,16 @@ export async function POST(request: NextRequest) {
         isActive: isActive ?? true,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            marketplaceCategory: {
+              select: { id: true, name: true },
+            },
+            marketplaceSubCategory: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
 
@@ -150,6 +190,8 @@ export async function POST(request: NextRequest) {
       name: vendorProduct.product?.name ?? "",
       imageUrl: vendorProduct.product?.imageUrl ?? null,
       unit: vendorProduct.product?.unit ?? "",
+      category: vendorProduct.product?.marketplaceCategory ?? null,
+      subCategory: vendorProduct.product?.marketplaceSubCategory ?? null,
     };
 
     return NextResponse.json({ ok: true, data: result });

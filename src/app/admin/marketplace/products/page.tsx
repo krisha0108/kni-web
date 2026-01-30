@@ -43,6 +43,18 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Search, Package, Store } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { ClientOnly } from "@/components/client-only";
+
+interface MarketplaceCategory {
+  id: string;
+  name: string;
+}
+
+interface MarketplaceSubCategory {
+  id: string;
+  name: string;
+}
 
 interface MarketplaceProduct {
   id: string;
@@ -52,6 +64,10 @@ interface MarketplaceProduct {
   description: string | null;
   isActive: boolean;
   createdAt: string;
+  marketplaceCategoryId: string | null;
+  marketplaceSubCategoryId: string | null;
+  marketplaceCategory: MarketplaceCategory | null;
+  marketplaceSubCategory: MarketplaceSubCategory | null;
   creator: { id: string; name: string };
   _count: { vendorProducts: number };
 }
@@ -70,9 +86,12 @@ const UNIT_OPTIONS = [
 
 export default function AdminMarketplaceProductsPage() {
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
+  const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<MarketplaceSubCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -85,8 +104,38 @@ export default function AdminMarketplaceProductsPage() {
   const [formUnit, setFormUnit] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formCategoryId, setFormCategoryId] = useState("");
+  const [formSubCategoryId, setFormSubCategoryId] = useState("");
 
   const { toast } = useToast();
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/admin/marketplace/categories");
+      const data = await response.json();
+      if (data.ok) {
+        setCategories(data.data.items);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories", error);
+    }
+  };
+
+  const fetchSubCategories = async (categoryId: string) => {
+    if (!categoryId) {
+      setSubCategories([]);
+      return;
+    }
+    try {
+      const response = await fetch("/api/admin/marketplace/subcategories?categoryId=" + categoryId);
+      const data = await response.json();
+      if (data.ok) {
+        setSubCategories(data.data.items);
+      }
+    } catch (error) {
+      console.error("Failed to fetch subcategories", error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -94,6 +143,7 @@ export default function AdminMarketplaceProductsPage() {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filterStatus && filterStatus !== "all") params.set("status", filterStatus);
+      if (filterCategoryId && filterCategoryId !== "all") params.set("categoryId", filterCategoryId);
 
       const response = await fetch("/api/admin/marketplace/products?" + params.toString());
       const data = await response.json();
@@ -112,8 +162,22 @@ export default function AdminMarketplaceProductsPage() {
   };
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     fetchProducts();
-  }, [search, filterStatus]);
+  }, [search, filterStatus, filterCategoryId]);
+
+  useEffect(() => {
+    if (formCategoryId) {
+      fetchSubCategories(formCategoryId);
+      // Reset subcategory when category changes
+      setFormSubCategoryId("");
+    } else {
+      setSubCategories([]);
+    }
+  }, [formCategoryId]);
 
   const resetForm = () => {
     setFormName("");
@@ -121,11 +185,14 @@ export default function AdminMarketplaceProductsPage() {
     setFormUnit("");
     setFormDescription("");
     setFormIsActive(true);
+    setFormCategoryId("");
+    setFormSubCategoryId("");
+    setSubCategories([]);
   };
 
   const handleCreate = async () => {
-    if (!formName || !formUnit) {
-      toast({ title: "Error", description: "Name and Unit are required", variant: "destructive" });
+    if (!formName || !formUnit || !formCategoryId) {
+      toast({ title: "Error", description: "Name, Unit, and Category are required", variant: "destructive" });
       return;
     }
 
@@ -140,6 +207,8 @@ export default function AdminMarketplaceProductsPage() {
           unit: formUnit,
           description: formDescription || undefined,
           isActive: formIsActive,
+          marketplaceCategoryId: formCategoryId,
+          marketplaceSubCategoryId: formSubCategoryId || undefined,
         }),
       });
       const data = await response.json();
@@ -160,8 +229,8 @@ export default function AdminMarketplaceProductsPage() {
 
   const handleEdit = async () => {
     if (!selectedProduct) return;
-    if (!formName || !formUnit) {
-      toast({ title: "Error", description: "Name and Unit are required", variant: "destructive" });
+    if (!formName || !formUnit || !formCategoryId) {
+      toast({ title: "Error", description: "Name, Unit, and Category are required", variant: "destructive" });
       return;
     }
 
@@ -176,6 +245,8 @@ export default function AdminMarketplaceProductsPage() {
           unit: formUnit,
           description: formDescription || null,
           isActive: formIsActive,
+          marketplaceCategoryId: formCategoryId,
+          marketplaceSubCategoryId: formSubCategoryId || null,
         }),
       });
       const data = await response.json();
@@ -215,17 +286,25 @@ export default function AdminMarketplaceProductsPage() {
     }
   };
 
-  const openEditDialog = (product: MarketplaceProduct) => {
+  const openEditDialog = async (product: MarketplaceProduct) => {
     setSelectedProduct(product);
     setFormName(product.name);
     setFormImageUrl(product.imageUrl || "");
     setFormUnit(product.unit);
     setFormDescription(product.description || "");
     setFormIsActive(product.isActive);
+    setFormCategoryId(product.marketplaceCategoryId || "");
+
+    // Fetch subcategories for the product's category
+    if (product.marketplaceCategoryId) {
+      await fetchSubCategories(product.marketplaceCategoryId);
+    }
+    setFormSubCategoryId(product.marketplaceSubCategoryId || "");
     setIsEditOpen(true);
   };
 
   return (
+    <ClientOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -253,6 +332,42 @@ export default function AdminMarketplaceProductsPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
+                <Label htmlFor="categoryId">Category *</Label>
+                <Select value={formCategoryId} onValueChange={setFormCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {subCategories.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="subCategoryId">Subcategory</Label>
+                  <Select
+                    value={formSubCategoryId || "none"}
+                    onValueChange={(val) => setFormSubCategoryId(val === "none" ? "" : val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subcategory (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {subCategories.map((subCategory) => (
+                        <SelectItem key={subCategory.id} value={subCategory.id}>
+                          {subCategory.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
                 <Label htmlFor="name">Product Name *</Label>
                 <Input
                   id="name"
@@ -277,12 +392,12 @@ export default function AdminMarketplaceProductsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
-                <Input
-                  id="imageUrl"
+                <Label>Product Image</Label>
+                <ImageUpload
                   value={formImageUrl}
-                  onChange={(e) => setFormImageUrl(e.target.value)}
-                  placeholder="https://example.com/product-image.jpg"
+                  onChange={(url) => setFormImageUrl(url)}
+                  folder="marketplace-products"
+                  label="Upload Product Image"
                 />
               </div>
               <div className="space-y-2">
@@ -328,6 +443,19 @@ export default function AdminMarketplaceProductsPage() {
             className="pl-10"
           />
         </div>
+        <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="All Status" />
@@ -345,6 +473,7 @@ export default function AdminMarketplaceProductsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Vendors</TableHead>
               <TableHead>Status</TableHead>
@@ -355,13 +484,13 @@ export default function AdminMarketplaceProductsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
                   No products found
                 </TableCell>
@@ -390,6 +519,18 @@ export default function AdminMarketplaceProductsPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-sm">
+                        {product.marketplaceCategory?.name || "-"}
+                      </div>
+                      {product.marketplaceSubCategory && (
+                        <div className="text-xs text-muted-foreground">
+                          {product.marketplaceSubCategory.name}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{product.unit}</TableCell>
@@ -448,6 +589,42 @@ export default function AdminMarketplaceProductsPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label htmlFor="edit-categoryId">Category *</Label>
+              <Select value={formCategoryId} onValueChange={setFormCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {subCategories.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-subCategoryId">Subcategory</Label>
+                <Select
+                  value={formSubCategoryId || "none"}
+                  onValueChange={(val) => setFormSubCategoryId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subcategory (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {subCategories.map((subCategory) => (
+                      <SelectItem key={subCategory.id} value={subCategory.id}>
+                        {subCategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
               <Label htmlFor="edit-name">Product Name *</Label>
               <Input
                 id="edit-name"
@@ -471,11 +648,12 @@ export default function AdminMarketplaceProductsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-imageUrl">Image URL</Label>
-              <Input
-                id="edit-imageUrl"
+              <Label>Product Image</Label>
+              <ImageUpload
                 value={formImageUrl}
-                onChange={(e) => setFormImageUrl(e.target.value)}
+                onChange={(url) => setFormImageUrl(url)}
+                folder="marketplace-products"
+                label="Upload Product Image"
               />
             </div>
             <div className="space-y-2">
@@ -531,5 +709,6 @@ export default function AdminMarketplaceProductsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </ClientOnly>
   );
 }

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/server/db";
-import { requireEngineerMobile } from "@/server/auth/rbac";
+// import { db } from "@/server/db";
+// import { requireEngineerMobile } from "@/server/auth/rbac";
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * GET /api/service-engineer/parts
  * Get available parts for the service engineer to request
  */
 export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     const session = await requireEngineerMobile(request);
 
@@ -68,4 +76,5 @@ export async function GET(request: NextRequest) {
       { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
+  DISABLED - Parts request flow */
 }

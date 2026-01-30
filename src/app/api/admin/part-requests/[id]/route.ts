@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/server/db";
-import { requireAdmin } from "@/server/auth/rbac";
-import { PartRequestStatus } from "@prisma/client";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+// import { db } from "@/server/db";
+// import { requireAdmin } from "@/server/auth/rbac";
+// import { PartRequestStatus } from "@prisma/client";
+// import { createNotification } from "@/server/notifications/service";
+// import { NotificationType } from "@prisma/client";
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * GET /api/admin/part-requests/:id
  * Get a single part request details
  */
@@ -13,6 +15,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     await requireAdmin();
     const { id } = await params;
@@ -99,9 +107,12 @@ export async function GET(
       { status: 500 }
     );
   }
+  DISABLED - Parts request flow */
 }
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * PATCH /api/admin/part-requests/:id
  * Update a part request (approve, reject, dispatch)
  */
@@ -109,6 +120,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     const session = await requireAdmin();
     const { id } = await params;
@@ -247,4 +264,5 @@ export async function PATCH(
       { status: 500 }
     );
   }
+  DISABLED - Parts request flow */
 }

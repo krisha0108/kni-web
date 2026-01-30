@@ -160,8 +160,8 @@ export default function NewBookingPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-lg text-muted-foreground">Your cart is empty</p>
-            <Button className="mt-4" onClick={() => router.push("/owner/feed")}>
-              Browse Services
+            <Button className="mt-4" onClick={() => router.push("/owner/equipment")}>
+              Go to My Equipment
             </Button>
           </CardContent>
         </Card>

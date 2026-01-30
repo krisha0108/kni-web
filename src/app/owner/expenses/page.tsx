@@ -17,6 +17,7 @@ import { Plus, Pencil, Trash2, Calendar, Download, BarChart3, Building2 } from "
 import { getAllExpenseCategories, getExpenseCategoryLabel } from "@/lib/expense";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Expense {
   id: string;
@@ -369,13 +370,12 @@ export default function OwnerExpensesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Receipt Image URL</Label>
-                  <Input
+                  <Label>Receipt Image</Label>
+                  <ImageUpload
                     value={formData.receiptImageUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, receiptImageUrl: e.target.value })
-                    }
-                    placeholder="https://..."
+                    onChange={(url) => setFormData({ ...formData, receiptImageUrl: url })}
+                    folder="expense-receipts"
+                    label="Upload Receipt"
                   />
                 </div>
               </div>
@@ -567,10 +567,12 @@ export default function OwnerExpensesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Receipt Image URL</Label>
-              <Input
+              <Label>Receipt Image</Label>
+              <ImageUpload
                 value={formData.receiptImageUrl}
-                onChange={(e) => setFormData({ ...formData, receiptImageUrl: e.target.value })}
+                onChange={(url) => setFormData({ ...formData, receiptImageUrl: url })}
+                folder="expense-receipts"
+                label="Upload Receipt"
               />
             </div>
           </div>

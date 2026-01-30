@@ -7,6 +7,7 @@ export const categorySchema = z.object({
 export const subCategorySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   categoryId: z.string().min(1, "Category is required"),
+  imageUrl: z.string().optional(),
 });
 
 export const serviceItemSchema = z.object({
@@ -20,6 +21,7 @@ export const serviceItemSchema = z.object({
 export const partItemSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
+  imageUrl: z.string().optional(),
   price: z.number().int().positive("Price must be a positive integer"),
   categoryId: z.string().min(1, "Category is required"),
   subCategoryId: z.string().optional(),

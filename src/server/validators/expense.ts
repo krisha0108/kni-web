@@ -7,7 +7,7 @@ export const expenseSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   expenseDate: z.string().datetime("Invalid date format"),
   description: z.string().min(2, "Description must be at least 2 characters"),
-  receiptImageUrl: z.string().url("Invalid URL").optional(),
+  receiptImageUrl: z.string().optional(),
 });
 
 export const expenseUpdateSchema = z.object({
@@ -17,7 +17,7 @@ export const expenseUpdateSchema = z.object({
   amount: z.number().positive("Amount must be positive").optional(),
   expenseDate: z.string().datetime("Invalid date format").optional(),
   description: z.string().min(2, "Description must be at least 2 characters").optional(),
-  receiptImageUrl: z.string().url("Invalid URL").optional(),
+  receiptImageUrl: z.string().optional(),
 });
 
 export type ExpenseInput = z.infer<typeof expenseSchema>;

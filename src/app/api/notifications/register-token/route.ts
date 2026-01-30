@@ -4,13 +4,18 @@ import { getMobileSession } from "@/server/auth/mobile-session";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("📱 Register token endpoint called");
     const session = await getMobileSession(request);
     if (!session) {
+      console.log("❌ No session found");
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
+    console.log("👤 Registering token for user:", session.id, session.email);
 
     const body = await request.json();
-    const { token, deviceId } = body;
+    const { token, deviceId, platform } = body;
+    console.log("🔑 Token to register:", token?.substring(0, 30) + "...");
+    console.log("📱 Platform:", platform || "web (default)");
 
     if (!token) {
       return NextResponse.json({ ok: false, error: "Token is required" }, { status: 400 });
@@ -37,12 +42,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new token
+    // Detect platform from request body or user-agent
+    const detectedPlatform = platform || "web";
     const deviceToken = await db.deviceToken.create({
       data: {
         userId: session.id,
         token,
         deviceId: deviceId || null,
-        platform: "web",
+        platform: detectedPlatform,
         isActive: true,
       },
     });

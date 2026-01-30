@@ -7,7 +7,7 @@ const feedSchema = z.object({
   text: z.string().min(3, "Text must be at least 3 characters"),
   tone: z.enum(["OK", "INFO", "WARN", "DANGER"]).default("INFO"),
   icon: z.string().optional(),
-  linkUrl: z.string().url().optional().or(z.literal("")),
+  linkUrl: z.string().optional().or(z.literal("")),
   isActive: z.boolean().default(true),
 });
 

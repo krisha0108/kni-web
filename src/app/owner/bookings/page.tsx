@@ -461,9 +461,9 @@ export default function OwnerBookingsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg text-muted-foreground">No bookings yet</p>
-            <p className="text-sm text-muted-foreground">Create your first booking from the feed</p>
-            <Button className="mt-4" onClick={() => router.push("/owner/feed")}>
-              Browse Services
+            <p className="text-sm text-muted-foreground">Create your first booking from My Equipment</p>
+            <Button className="mt-4" onClick={() => router.push("/owner/equipment")}>
+              Go to My Equipment
             </Button>
           </CardContent>
         </Card>

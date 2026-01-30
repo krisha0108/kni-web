@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/server/db";
-import { requireAdmin } from "@/server/auth/rbac";
-import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
+// import { db } from "@/server/db";
+// import { requireAdmin } from "@/server/auth/rbac";
+// import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * GET /api/admin/part-requests
  * Get all part requests with filters
  */
 export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     await requireAdmin();
 
@@ -151,4 +159,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  DISABLED - Parts request flow */
 }

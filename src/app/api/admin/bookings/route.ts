@@ -20,6 +20,16 @@ export async function GET(request: NextRequest) {
           owner: { select: { id: true, name: true, email: true } },
           restaurant: { select: { id: true, name: true, city: true } },
           paymentProof: true,
+          items: {
+            include: {
+              serviceItem: {
+                include: { category: { select: { id: true, name: true } } },
+              },
+              partItem: {
+                include: { category: { select: { id: true, name: true } } },
+              },
+            },
+          },
           engineerAssignments: {
             include: {
               engineer: { select: { id: true, name: true } },

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package, Grid3X3 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { EngineerRatingDialog } from "@/components/ratings/engineer-rating-dialog";
@@ -19,6 +19,7 @@ interface Booking {
   scheduledDate?: string;
   scheduledTimeSlot?: string;
   totalAmount: number;
+  problemDescription?: string;
   notes?: string;
   createdAt: string;
   restaurant: { id: string; name: string; address: string; city: string };
@@ -26,8 +27,18 @@ interface Booking {
     id: string;
     qty: number;
     priceSnapshot: number;
-    serviceItem?: { id: string; name: string };
-    partItem?: { id: string; name: string };
+    serviceItem?: {
+      id: string;
+      name: string;
+      category?: { id: string; name: string };
+      subCategory?: { id: string; name: string };
+    };
+    partItem?: {
+      id: string;
+      name: string;
+      category?: { id: string; name: string };
+      subCategory?: { id: string; name: string };
+    };
   }>;
   paymentProof?: { id: string; screenshotUrl: string; status: string; verifiedAt?: string };
   engineerAssignments?: Array<{
@@ -203,34 +214,200 @@ export default function BookingDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Items */}
+          {/* Problem Description */}
+          {booking.problemDescription && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Problem Description
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">{booking.problemDescription}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Items - Grouped by Category */}
           <Card>
             <CardHeader>
-              <CardTitle>Items</CardTitle>
+              <CardTitle>Items by Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {booking.items?.map((item) => {
-                  const itemData = item.serviceItem || item.partItem;
-                  const isService = !!item.serviceItem;
-                  return (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">{itemData?.name}</span>
-                        <span className="text-xs ml-2 px-2 py-0.5 rounded bg-muted">
-                          {isService ? "Service" : "Part"}
-                        </span>
-                        <span className="text-muted-foreground ml-2">x{item.qty}</span>
+              <div className="space-y-6">
+                {(() => {
+                  // Group items by category
+                  const grouped: Record<string, {
+                    categoryId: string;
+                    categoryName: string;
+                    services: typeof booking.items;
+                    parts: typeof booking.items;
+                  }> = {};
+
+                  booking.items?.forEach((item) => {
+                    const itemData = item.serviceItem || item.partItem;
+                    const category = itemData?.category;
+                    const categoryId = category?.id || "uncategorized";
+                    const categoryName = category?.name || "Uncategorized";
+
+                    if (!grouped[categoryId]) {
+                      grouped[categoryId] = {
+                        categoryId,
+                        categoryName,
+                        services: [],
+                        parts: [],
+                      };
+                    }
+
+                    if (item.serviceItem) {
+                      grouped[categoryId].services.push(item);
+                    } else {
+                      grouped[categoryId].parts.push(item);
+                    }
+                  });
+
+                  return Object.values(grouped).map((category) => {
+                    const categoryTotal = [...category.services, ...category.parts].reduce(
+                      (sum, item) => sum + item.priceSnapshot * item.qty,
+                      0
+                    );
+
+                    return (
+                      <div key={category.categoryId} className="border rounded-lg overflow-hidden">
+                        {/* Category Header */}
+                        <div className="flex items-center justify-between p-3 bg-muted/50 border-b">
+                          <div className="flex items-center gap-2">
+                            <Grid3X3 className="h-4 w-4" />
+                            <span className="font-bold">{category.categoryName}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm text-muted-foreground">
+                              {category.services.length + category.parts.length} items
+                            </span>
+                            <span className="ml-3 font-bold text-primary">
+                              {formatPrice(categoryTotal)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-3 space-y-4">
+                          {/* Services */}
+                          {category.services.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-blue-600">
+                                <Wrench className="h-4 w-4" />
+                                <span className="text-sm font-semibold uppercase">
+                                  Services ({category.services.length})
+                                </span>
+                              </div>
+                              <div className="space-y-2 pl-6">
+                                {category.services.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-100"
+                                  >
+                                    <div>
+                                      <span className="font-medium">{item.serviceItem?.name}</span>
+                                      {item.serviceItem?.subCategory && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({item.serviceItem.subCategory.name})
+                                        </span>
+                                      )}
+                                      <span className="text-muted-foreground ml-2">x{item.qty}</span>
+                                    </div>
+                                    <span className="font-medium text-blue-600">
+                                      {formatPrice(item.priceSnapshot * item.qty)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Parts */}
+                          {category.parts.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-orange-600">
+                                <Package className="h-4 w-4" />
+                                <span className="text-sm font-semibold uppercase">
+                                  Parts ({category.parts.length})
+                                </span>
+                              </div>
+                              <div className="space-y-2 pl-6">
+                                {category.parts.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex justify-between items-center p-2 bg-orange-50 rounded border border-orange-100"
+                                  >
+                                    <div>
+                                      <span className="font-medium">{item.partItem?.name}</span>
+                                      {item.partItem?.subCategory && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({item.partItem.subCategory.name})
+                                        </span>
+                                      )}
+                                      <span className="text-muted-foreground ml-2">x{item.qty}</span>
+                                    </div>
+                                    <span className="font-medium text-orange-600">
+                                      {formatPrice(item.priceSnapshot * item.qty)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="font-medium">{formatPrice(item.priceSnapshot * item.qty)}</span>
+                    );
+                  });
+                })()}
+
+                <Separator />
+
+                {/* Payment Breakdown */}
+                {(() => {
+                  // Item total (GST-inclusive prices)
+                  const itemTotal = booking.items?.reduce(
+                    (sum, item) => sum + item.priceSnapshot * item.qty, 0
+                  ) || 0;
+
+                  // Calculate GST breakdown (prices are GST-inclusive)
+                  const GST_RATE = 0.18;
+                  const baseAmount = Math.round(itemTotal / (1 + GST_RATE));
+                  const gstAmount = itemTotal - baseAmount;
+
+                  // Tip is the difference between total and item total
+                  const tipAmount = Math.max(0, booking.totalAmount - itemTotal);
+
+                  return (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Base Amount</span>
+                        <span>{formatPrice(baseAmount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>GST (18%)</span>
+                        <span>{formatPrice(gstAmount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center font-medium">
+                        <span>Item Total (incl. GST)</span>
+                        <span>{formatPrice(itemTotal)}</span>
+                      </div>
+                      {tipAmount > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>Tip for Professional</span>
+                          <span>{formatPrice(tipAmount)}</span>
+                        </div>
+                      )}
+                      <Separator />
+                      <div className="flex justify-between items-center font-bold text-lg">
+                        <span>Total Paid</span>
+                        <span>{formatPrice(booking.totalAmount)}</span>
+                      </div>
                     </div>
                   );
-                })}
-                <Separator />
-                <div className="flex justify-between items-center font-bold text-lg">
-                  <span>Total</span>
-                  <span>{formatPrice(booking.totalAmount)}</span>
-                </div>
+                })()}
               </div>
             </CardContent>
           </Card>

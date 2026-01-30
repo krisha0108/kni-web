@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Bell, BellOff, Loader2 } from "lucide-react";
+import { Bell, BellOff, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface NotificationPreferences {
@@ -26,7 +26,41 @@ export function NotificationSettings() {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const { toast } = useToast();
+
+  const sendTestNotification = async () => {
+    setIsTesting(true);
+    try {
+      const response = await fetch("/api/notifications/test", {
+        method: "POST",
+      });
+      const result = await response.json();
+
+      if (result.ok) {
+        toast({
+          title: "Test Sent",
+          description: result.message || "Check your device for the notification!",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Failed",
+          description: result.error || "Could not send test notification.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error sending test notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send test notification.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   useEffect(() => {
     fetchPreferences();
@@ -144,6 +178,27 @@ export function NotificationSettings() {
             <CardContent>
               <Button onClick={handleEnablePush} disabled={permissionLoading}>
                 {permissionLoading ? "Requesting..." : "Enable Push Notifications"}
+              </Button>
+            </CardContent>
+          )}
+          {permission === "granted" && (
+            <CardContent>
+              <Button
+                variant="outline"
+                onClick={sendTestNotification}
+                disabled={isTesting}
+              >
+                {isTesting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Test Notification
+                  </>
+                )}
               </Button>
             </CardContent>
           )}

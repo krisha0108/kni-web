@@ -29,9 +29,14 @@ import {
 } from "@/components/ui/dialog";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, MapPin, Tags } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { RejectionReasonInput } from "@/components/rejection-reason-input";
+
+interface VendorCategory {
+  id: string;
+  name: string;
+}
 
 interface Vendor {
   id: string;
@@ -43,7 +48,10 @@ interface Vendor {
     approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
     subscriptionStatus: "TRIAL" | "ACTIVE" | "INACTIVE";
     approvalNote: string | null;
+    city: string | null;
+    state: string | null;
   } | null;
+  categories: VendorCategory[];
 }
 
 export default function AdminVendorsPage() {
@@ -52,11 +60,18 @@ export default function AdminVendorsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionError, setRejectionError] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
   const { toast } = useToast();
+
+  const openDetailDialog = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsDetailDialogOpen(true);
+  };
 
   const fetchVendors = async () => {
     try {
@@ -195,23 +210,24 @@ export default function AdminVendorsPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Categories</TableHead>
               <TableHead>Approval Status</TableHead>
               <TableHead>Subscription</TableHead>
               <TableHead>Registered</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
+              <TableHead className="w-[180px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : vendors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No vendors found
                 </TableCell>
               </TableRow>
@@ -220,7 +236,34 @@ export default function AdminVendorsPage() {
                 <TableRow key={vendor.id}>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{vendor.email}</TableCell>
-                  <TableCell>{vendor.phone}</TableCell>
+                  <TableCell>
+                    {vendor.vendorProfile?.city && vendor.vendorProfile?.state ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span>{vendor.vendorProfile.city}, {vendor.vendorProfile.state}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Not set</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {vendor.categories && vendor.categories.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {vendor.categories.slice(0, 2).map((cat) => (
+                          <Badge key={cat.id} variant="outline" className="text-xs">
+                            {cat.name}
+                          </Badge>
+                        ))}
+                        {vendor.categories.length > 2 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{vendor.categories.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">None</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={statusColors[vendor.vendorProfile?.approvalStatus || "PENDING"] || "default"}>
                       {vendor.vendorProfile?.approvalStatus || "PENDING"}
@@ -233,26 +276,36 @@ export default function AdminVendorsPage() {
                   </TableCell>
                   <TableCell>{formatDate(vendor.createdAt)}</TableCell>
                   <TableCell>
-                    {vendor.vendorProfile?.approvalStatus === "PENDING" && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleApprove(vendor.id)}
-                          title="Approve vendor"
-                        >
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openRejectDialog(vendor.id)}
-                          title="Reject vendor"
-                        >
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openDetailDialog(vendor)}
+                        title="View details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {vendor.vendorProfile?.approvalStatus === "PENDING" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleApprove(vendor.id)}
+                            title="Approve vendor"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openRejectDialog(vendor.id)}
+                            title="Reject vendor"
+                          >
+                            <XCircle className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -260,6 +313,136 @@ export default function AdminVendorsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Vendor Details Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Vendor Details</DialogTitle>
+            <DialogDescription>
+              Review vendor information for approval decision
+            </DialogDescription>
+          </DialogHeader>
+          {selectedVendor && (
+            <div className="space-y-4 py-4">
+              {/* Basic Info */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Business Information</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">{selectedVendor.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{selectedVendor.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <p className="font-medium">{selectedVendor.phone || "Not provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Registered</p>
+                    <p className="font-medium">{formatDate(selectedVendor.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Location
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">City</p>
+                    <p className="font-medium">{selectedVendor.vendorProfile?.city || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">State</p>
+                    <p className="font-medium">{selectedVendor.vendorProfile?.state || "Not set"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <Tags className="h-3 w-3" /> Selected Categories
+                </h4>
+                {selectedVendor.categories && selectedVendor.categories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedVendor.categories.map((cat) => (
+                      <Badge key={cat.id} variant="secondary">
+                        {cat.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No categories selected</p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Status</h4>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Approval</p>
+                    <Badge variant={statusColors[selectedVendor.vendorProfile?.approvalStatus || "PENDING"] || "default"}>
+                      {selectedVendor.vendorProfile?.approvalStatus || "PENDING"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Subscription</p>
+                    <Badge variant={subscriptionColors[selectedVendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
+                      {selectedVendor.vendorProfile?.subscriptionStatus || "INACTIVE"}
+                    </Badge>
+                  </div>
+                </div>
+                {selectedVendor.vendorProfile?.approvalNote && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">Rejection Note</p>
+                    <p className="text-sm bg-destructive/10 p-2 rounded text-destructive">
+                      {selectedVendor.vendorProfile.approvalNote}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            {selectedVendor?.vendorProfile?.approvalStatus === "PENDING" && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setIsDetailDialogOpen(false);
+                    if (selectedVendor) openRejectDialog(selectedVendor.id);
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedVendor) handleApprove(selectedVendor.id);
+                    setIsDetailDialogOpen(false);
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            )}
+            {selectedVendor?.vendorProfile?.approvalStatus !== "PENDING" && (
+              <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+                Close
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Vendor Rejection Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>

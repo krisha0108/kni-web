@@ -63,6 +63,8 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { itemId } = await params;
 
+    console.log("[Cart DELETE] Deleting item:", itemId, "for owner:", session.id);
+
     // Verify item belongs to user's cart
     const cartItem = await db.cartItem.findFirst({
       where: {
@@ -72,6 +74,7 @@ export async function DELETE(
     });
 
     if (!cartItem) {
+      console.log("[Cart DELETE] Item not found:", itemId);
       return NextResponse.json(
         { ok: false, error: "Cart item not found" },
         { status: 404 }
@@ -82,6 +85,7 @@ export async function DELETE(
       where: { id: itemId },
     });
 
+    console.log("[Cart DELETE] Successfully deleted item:", itemId);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Delete cart item error:", error);

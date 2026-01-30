@@ -21,12 +21,25 @@ export async function GET(request: NextRequest) {
       },
       include: {
         vendorProfile: true,
+        vendorCategories: {
+          include: {
+            category: {
+              select: { id: true, name: true },
+            },
+          },
+        },
         _count: { select: { vendorProducts: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ ok: true, data: vendors });
+    // Transform to include category names
+    const vendorsWithCategories = vendors.map((vendor) => ({
+      ...vendor,
+      categories: vendor.vendorCategories.map((vc) => vc.category),
+    }));
+
+    return NextResponse.json({ ok: true, data: vendorsWithCategories });
   } catch (error) {
     console.error("Get vendors error:", error);
     return NextResponse.json(

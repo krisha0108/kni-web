@@ -34,8 +34,18 @@ export async function GET(
         restaurant: true,
         items: {
           include: {
-            serviceItem: true,
-            partItem: true,
+            serviceItem: {
+              include: {
+                category: true,
+                subCategory: true,
+              },
+            },
+            partItem: {
+              include: {
+                category: true,
+                subCategory: true,
+              },
+            },
           },
         },
         paymentProof: true,

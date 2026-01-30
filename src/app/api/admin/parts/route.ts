@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validation.data.name,
         description: validation.data.description || null,
+        imageUrl: validation.data.imageUrl || null,
         price: validation.data.price,
         categoryId: validation.data.categoryId,
         subCategoryId: validation.data.subCategoryId || null,

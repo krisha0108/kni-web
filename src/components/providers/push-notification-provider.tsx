@@ -56,9 +56,21 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
     // Register service worker
     if ("serviceWorker" in navigator && isSupported) {
       navigator.serviceWorker
-        .register("/firebase-messaging-sw.js")
-        .then((registration) => {
+        .register("/firebase-messaging-sw.js", { updateViaCache: "none" })
+        .then(async (registration) => {
           console.log("Service Worker registered successfully:", registration);
+
+          // Force update check for the service worker
+          await registration.update();
+
+          // Auto-register token if permission is already granted
+          if (Notification.permission === "granted" && !token) {
+            console.log("Permission already granted, auto-registering token...");
+            const fcmToken = await registerDeviceToken();
+            if (fcmToken) {
+              setToken(fcmToken);
+            }
+          }
         })
         .catch((error) => {
           console.error("Service Worker registration failed:", error);

@@ -31,16 +31,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Check, X } from "lucide-react";
+import { Check, X, Eye, ExternalLink, FileText, Building2, Phone } from "lucide-react";
+import Image from "next/image";
 
 interface Restaurant {
   id: string;
   name: string;
   address: string;
   city: string;
+  pincode: string | null;
+  restaurantImageUrl: string | null;
+  fssaiNumber: string | null;
+  fssaiCertificateUrl: string | null;
   status: string;
+  rejectionReason: string | null;
   createdAt: string;
-  owner: { id: string; name: string; email: string };
+  owner: { id: string; name: string; email: string; phone: string | null };
 }
 
 export default function RestaurantRequestsPage() {
@@ -49,6 +55,7 @@ export default function RestaurantRequestsPage() {
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const { toast } = useToast();
 
@@ -146,41 +153,97 @@ export default function RestaurantRequestsPage() {
               <TableHead>Location</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead>FSSAI</TableHead>
+              <TableHead className="w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
             ) : restaurants.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No restaurants found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No restaurants found</TableCell></TableRow>
             ) : (
               restaurants.map((restaurant) => (
                 <TableRow key={restaurant.id}>
-                  <TableCell className="font-medium">{restaurant.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      {restaurant.restaurantImageUrl ? (
+                        <Image
+                          src={restaurant.restaurantImageUrl}
+                          alt={restaurant.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span>{restaurant.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div>{restaurant.owner.name}</div>
                     <div className="text-sm text-muted-foreground">{restaurant.owner.email}</div>
+                    {restaurant.owner.phone && (
+                      <div className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {restaurant.owner.phone}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div>{restaurant.address}</div>
-                    <div className="text-sm text-muted-foreground">{restaurant.city}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {restaurant.city}{restaurant.pincode ? `, ${restaurant.pincode}` : ""}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusColors[restaurant.status]}>{restaurant.status}</Badge>
                   </TableCell>
                   <TableCell>{formatDate(restaurant.createdAt)}</TableCell>
                   <TableCell>
-                    {restaurant.status === "PENDING" && (
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => handleApprove(restaurant)}>
-                          <Check className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => { setSelectedRestaurant(restaurant); setIsRejectOpen(true); }}>
-                          <X className="h-4 w-4 text-red-600" />
-                        </Button>
+                    {restaurant.fssaiNumber ? (
+                      <div className="text-sm">
+                        <div className="font-mono">{restaurant.fssaiNumber}</div>
+                        {restaurant.fssaiCertificateUrl && (
+                          <a
+                            href={restaurant.fssaiCertificateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                          >
+                            <FileText className="h-3 w-3" />
+                            View Certificate
+                          </a>
+                        )}
                       </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Not provided</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => { setSelectedRestaurant(restaurant); setIsDetailsOpen(true); }}
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {restaurant.status === "PENDING" && (
+                        <>
+                          <Button size="icon" variant="ghost" onClick={() => handleApprove(restaurant)} title="Approve">
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => { setSelectedRestaurant(restaurant); setIsRejectOpen(true); }} title="Reject">
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -210,6 +273,160 @@ export default function RestaurantRequestsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject} disabled={!rejectReason}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restaurant Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Restaurant Details</DialogTitle>
+            <DialogDescription>
+              Complete information for review
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRestaurant && (
+            <div className="space-y-6 py-4">
+              {/* Restaurant Image */}
+              <div className="flex justify-center">
+                {selectedRestaurant.restaurantImageUrl ? (
+                  <div className="relative">
+                    <Image
+                      src={selectedRestaurant.restaurantImageUrl}
+                      alt={selectedRestaurant.name}
+                      width={200}
+                      height={150}
+                      className="rounded-lg object-cover"
+                    />
+                    <a
+                      href={selectedRestaurant.restaurantImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-md hover:bg-black/70"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                ) : (
+                  <div className="w-[200px] h-[150px] rounded-lg bg-muted flex items-center justify-center">
+                    <Building2 className="h-12 w-12 text-muted-foreground" />
+                    <span className="sr-only">No image provided</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Restaurant Name</Label>
+                  <p className="font-medium">{selectedRestaurant.name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div><Badge variant={statusColors[selectedRestaurant.status]}>{selectedRestaurant.status}</Badge></div>
+                </div>
+              </div>
+
+              {/* Owner Info */}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Owner Information</Label>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium">{selectedRestaurant.owner.name}</p>
+                  <p className="text-sm">{selectedRestaurant.owner.email}</p>
+                  {selectedRestaurant.owner.phone && (
+                    <p className="text-sm flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedRestaurant.owner.phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Address</Label>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p>{selectedRestaurant.address}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRestaurant.city}
+                    {selectedRestaurant.pincode && ` - ${selectedRestaurant.pincode}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* FSSAI Details */}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">FSSAI Details</Label>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">FSSAI Number:</span>
+                    {selectedRestaurant.fssaiNumber ? (
+                      <span className="font-mono font-medium">{selectedRestaurant.fssaiNumber}</span>
+                    ) : (
+                      <Badge variant="destructive">Not Provided</Badge>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">FSSAI Certificate:</span>
+                    {selectedRestaurant.fssaiCertificateUrl ? (
+                      <a
+                        href={selectedRestaurant.fssaiCertificateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Certificate
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <Badge variant="destructive">Not Uploaded</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rejection Reason (if rejected) */}
+              {selectedRestaurant.status === "REJECTED" && selectedRestaurant.rejectionReason && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Rejection Reason</Label>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-800">{selectedRestaurant.rejectionReason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Request Date */}
+              <div>
+                <Label className="text-muted-foreground">Request Date</Label>
+                <p>{formatDate(selectedRestaurant.createdAt)}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            {selectedRestaurant?.status === "PENDING" && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => { setIsDetailsOpen(false); setIsRejectOpen(true); }}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => { handleApprove(selectedRestaurant); setIsDetailsOpen(false); }}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            )}
+            {selectedRestaurant?.status !== "PENDING" && (
+              <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>Close</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

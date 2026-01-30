@@ -5,10 +5,12 @@ import { z } from "zod";
 
 const createProductSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
   unit: z.string().min(1, "Unit is required"),
   description: z.string().optional(),
   isActive: z.boolean().optional().default(true),
+  marketplaceCategoryId: z.string().min(1, "Category is required"),
+  marketplaceSubCategoryId: z.string().optional(),
 });
 
 // GET /api/admin/marketplace/products - List all marketplace products
@@ -19,6 +21,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status"); // "active" | "inactive" | "all"
+    const categoryId = searchParams.get("categoryId");
+    const subCategoryId = searchParams.get("subCategoryId");
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
@@ -32,6 +36,8 @@ export async function GET(request: NextRequest) {
       } : {}),
       ...(status === "active" ? { isActive: true } : {}),
       ...(status === "inactive" ? { isActive: false } : {}),
+      ...(categoryId ? { marketplaceCategoryId: categoryId } : {}),
+      ...(subCategoryId ? { marketplaceSubCategoryId: subCategoryId } : {}),
     };
 
     const [products, total] = await Promise.all([
@@ -39,6 +45,12 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           creator: {
+            select: { id: true, name: true },
+          },
+          marketplaceCategory: {
+            select: { id: true, name: true },
+          },
+          marketplaceSubCategory: {
             select: { id: true, name: true },
           },
           _count: {
@@ -85,7 +97,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, imageUrl, unit, description, isActive } = validation.data;
+    const { name, imageUrl, unit, description, isActive, marketplaceCategoryId, marketplaceSubCategoryId } = validation.data;
+
+    // Verify category exists
+    const category = await db.marketplaceCategory.findUnique({
+      where: { id: marketplaceCategoryId },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { ok: false, error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify subcategory exists and belongs to the category if provided
+    if (marketplaceSubCategoryId) {
+      const subCategory = await db.marketplaceSubCategory.findFirst({
+        where: {
+          id: marketplaceSubCategoryId,
+          categoryId: marketplaceCategoryId,
+        },
+      });
+
+      if (!subCategory) {
+        return NextResponse.json(
+          { ok: false, error: "Subcategory not found or does not belong to selected category" },
+          { status: 404 }
+        );
+      }
+    }
 
     // Check for duplicate product name
     const existingProduct = await db.marketplaceProduct.findFirst({
@@ -109,10 +150,18 @@ export async function POST(request: NextRequest) {
         unit,
         description: description || null,
         isActive: isActive ?? true,
+        marketplaceCategoryId,
+        marketplaceSubCategoryId: marketplaceSubCategoryId || null,
         createdBy: session.id,
       },
       include: {
         creator: {
+          select: { id: true, name: true },
+        },
+        marketplaceCategory: {
+          select: { id: true, name: true },
+        },
+        marketplaceSubCategory: {
           select: { id: true, name: true },
         },
       },

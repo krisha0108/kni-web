@@ -1,24 +1,59 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShoppingCart, ArrowRight, Minus, Plus } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowRight, Minus, Plus, Wrench, Package, Grid3X3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+}
+
+interface ServiceItem {
+  id: string;
+  name: string;
+  price: number;
+  category?: Category;
+  subCategory?: SubCategory;
+}
+
+interface PartItem {
+  id: string;
+  name: string;
+  price: number;
+  category?: Category;
+  subCategory?: SubCategory;
+}
 
 interface CartItem {
   id: string;
   qty: number;
   priceSnapshot: number;
-  serviceItem?: { id: string; name: string; price: number };
-  partItem?: { id: string; name: string; price: number };
+  itemType: "SERVICE" | "PART";
+  serviceItem?: ServiceItem;
+  partItem?: PartItem;
 }
 
 interface Cart {
   id: string;
   items: CartItem[];
+}
+
+interface GroupedCategory {
+  categoryId: string;
+  categoryName: string;
+  services: CartItem[];
+  parts: CartItem[];
 }
 
 export default function OwnerCartPage() {
@@ -93,6 +128,37 @@ export default function OwnerCartPage() {
     }
   };
 
+  // Group items by category
+  const groupedByCategory = useMemo(() => {
+    if (!cart?.items) return [];
+
+    const groups: Record<string, GroupedCategory> = {};
+
+    cart.items.forEach((item) => {
+      const itemData = item.serviceItem || item.partItem;
+      const category = itemData?.category;
+      const categoryId = category?.id || "uncategorized";
+      const categoryName = category?.name || "Uncategorized";
+
+      if (!groups[categoryId]) {
+        groups[categoryId] = {
+          categoryId,
+          categoryName,
+          services: [],
+          parts: [],
+        };
+      }
+
+      if (item.itemType === "SERVICE" || item.serviceItem) {
+        groups[categoryId].services.push(item);
+      } else {
+        groups[categoryId].parts.push(item);
+      }
+    });
+
+    return Object.values(groups);
+  }, [cart?.items]);
+
   const calculateTotal = () => {
     if (!cart?.items) return 0;
     return cart.items.reduce((total, item) => {
@@ -101,8 +167,16 @@ export default function OwnerCartPage() {
     }, 0);
   };
 
+  const calculateCategoryTotal = (category: GroupedCategory) => {
+    const allItems = [...category.services, ...category.parts];
+    return allItems.reduce((total, item) => {
+      const price = item.serviceItem?.price || item.partItem?.price || item.priceSnapshot || 0;
+      return total + price * item.qty;
+    }, 0);
+  };
+
   const handleProceedToBooking = () => {
-    router.push("/owner/bookings/new");
+    router.push("/owner/request-now");
   };
 
   if (isLoading) {
@@ -114,12 +188,139 @@ export default function OwnerCartPage() {
   }
 
   const items = cart?.items || [];
+  const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
+
+  const renderItemRow = (item: CartItem, isService: boolean) => {
+    const itemData = item.serviceItem || item.partItem;
+    const price = itemData?.price || item.priceSnapshot || 0;
+    const subCategory = item.serviceItem?.subCategory || item.partItem?.subCategory;
+
+    return (
+      <div
+        key={item.id}
+        className={`flex items-center justify-between p-3 rounded-lg border ${
+          isService ? "bg-blue-50/50 border-blue-100" : "bg-green-50/50 border-green-100"
+        }`}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+              isService ? "bg-blue-100" : "bg-green-100"
+            }`}
+          >
+            {isService ? (
+              <Wrench className={`h-4 w-4 text-blue-600`} />
+            ) : (
+              <Package className={`h-4 w-4 text-green-600`} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-sm truncate">{itemData?.name}</p>
+            {subCategory && (
+              <p className="text-xs text-muted-foreground">{subCategory.name}</p>
+            )}
+            <p className={`text-sm font-semibold ${isService ? "text-blue-600" : "text-green-600"}`}>
+              {formatPrice(price)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => handleUpdateQuantity(item.id, item.qty - 1)}
+              disabled={isUpdating === item.id || item.qty <= 1}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => handleUpdateQuantity(item.id, item.qty + 1)}
+              disabled={isUpdating === item.id}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={() => handleRemoveItem(item.id)}
+            disabled={isUpdating === item.id}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCategoryCard = (category: GroupedCategory) => {
+    const categoryTotal = calculateCategoryTotal(category);
+    const itemCount = category.services.length + category.parts.length;
+
+    return (
+      <Card key={category.categoryId} className="overflow-hidden">
+        {/* Category Header */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 border-b">
+          <div className="flex items-center gap-2">
+            <Grid3X3 className="h-5 w-5 text-foreground" />
+            <h3 className="font-bold text-lg">{category.categoryName}</h3>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">{itemCount} items</p>
+            <p className="font-bold text-primary">{formatPrice(categoryTotal)}</p>
+          </div>
+        </div>
+
+        <CardContent className="p-4 space-y-4">
+          {/* Services Section */}
+          {category.services.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Wrench className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-600 uppercase">
+                  Services ({category.services.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {category.services.map((item) => renderItemRow(item, true))}
+              </div>
+            </div>
+          )}
+
+          {/* Parts Section */}
+          {category.parts.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Package className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-semibold text-green-600 uppercase">
+                  Parts ({category.parts.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {category.parts.map((item) => renderItemRow(item, false))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Your Cart</h1>
-        <p className="text-muted-foreground">Review items before booking a service</p>
+        <p className="text-muted-foreground">
+          Review items before booking a service ({totalItems} items in {groupedByCategory.length} categories)
+        </p>
       </div>
 
       {items.length === 0 ? (
@@ -127,80 +328,41 @@ export default function OwnerCartPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg text-muted-foreground">Your cart is empty</p>
-            <Button className="mt-4" onClick={() => router.push("/owner/feed")}>
-              Browse Services
+            <Button className="mt-4" onClick={() => router.push("/owner/equipment")}>
+              Go to My Equipment
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => {
-              const itemData = item.serviceItem || item.partItem;
-              const isService = !!item.serviceItem;
-              return (
-                <Card key={item.id}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{itemData?.name}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted">
-                          {isService ? "Service" : "Part"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {formatPrice(itemData?.price || item.priceSnapshot || 0)} each
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, item.qty - 1)}
-                          disabled={isUpdating === item.id || item.qty <= 1}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center">{item.qty}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleUpdateQuantity(item.id, item.qty + 1)}
-                          disabled={isUpdating === item.id}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="w-24 text-right font-medium">
-                        {formatPrice((itemData?.price || item.priceSnapshot || 0) * item.qty)}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveItem(item.id)}
-                        disabled={isUpdating === item.id}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {groupedByCategory.map(renderCategoryCard)}
           </div>
 
           <div>
-            <Card>
+            <Card className="sticky top-4">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Items ({items.length})</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                {/* Category breakdown */}
+                <div className="space-y-2">
+                  {groupedByCategory.map((category) => (
+                    <div key={category.categoryId} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{category.categoryName}</span>
+                      <span>{formatPrice(calculateCategoryTotal(category))}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <span>Total Items</span>
+                    <span>{totalItems}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <span>Categories</span>
+                    <span>{groupedByCategory.length}</span>
+                  </div>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between font-bold text-lg">

@@ -4,11 +4,11 @@ import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const guideUpdateSchema = z.object({
-  thumbUrl: z.string().url().optional(),
+  thumbUrl: z.string().optional(),
   title: z.string().min(3).optional(),
   description: z.string().optional(),
   minutes: z.number().int().min(0).optional(),
-  linkUrl: z.string().url().optional(),
+  linkUrl: z.string().optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
 });

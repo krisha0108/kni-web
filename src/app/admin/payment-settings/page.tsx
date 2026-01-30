@@ -7,10 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, CheckCircle2, Link as LinkIcon } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PaymentSettings {
   qrCodeImageUrl: string;
@@ -26,7 +25,6 @@ export default function PaymentSettingsPage() {
     accountHolderName: "",
     instructions: "",
   });
-  const [currentQR, setCurrentQR] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -48,7 +46,6 @@ export default function PaymentSettingsPage() {
           accountHolderName: data.data.accountHolderName || "",
           instructions: data.data.instructions || "",
         });
-        setCurrentQR(data.data.qrCodeImageUrl || "");
       }
     } catch (error) {
       toast({
@@ -90,7 +87,6 @@ export default function PaymentSettingsPage() {
           title: "Success",
           description: "Payment settings updated successfully",
         });
-        setCurrentQR(formData.qrCodeImageUrl);
       } else {
         toast({
           title: "Error",
@@ -146,63 +142,20 @@ export default function PaymentSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* QR Code Image Upload or URL */}
+            {/* QR Code Image Upload */}
             <div className="space-y-2">
-              <Label>
-                UPI QR Code Image *
-              </Label>
-              <Tabs defaultValue="url" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="url">
-                    <LinkIcon className="h-4 w-4 mr-2" />
-                    Enter URL
-                  </TabsTrigger>
-                  <TabsTrigger value="upload">Upload File</TabsTrigger>
-                </TabsList>
-                <TabsContent value="url" className="space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="https://example.com/qr-code.png or /uploads/payment-qr/image.jpg"
-                    value={formData.qrCodeImageUrl}
-                    onChange={(e) => {
-                      setFormData({ ...formData, qrCodeImageUrl: e.target.value });
-                      setCurrentQR(e.target.value);
-                    }}
-                    disabled={isSaving}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Paste image URL or local path (e.g., /uploads/payment-qr/..., /images/..., or full URL)
-                  </p>
-                  {formData.qrCodeImageUrl && (
-                    <div className="border rounded-lg p-4">
-                      <img
-                        src={formData.qrCodeImageUrl}
-                        alt="QR Code Preview"
-                        className="max-w-full h-auto max-h-64 mx-auto"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="upload">
-                  <ImageUpload
-                    value={formData.qrCodeImageUrl}
-                    onChange={(url) => {
-                      setFormData({ ...formData, qrCodeImageUrl: url });
-                      setCurrentQR(url);
-                    }}
-                    folder="payment-qr"
-                    label="Upload UPI QR Code"
-                    aspectRatio="1/1"
-                    disabled={isSaving}
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Upload your UPI QR code image (requires Cloudinary configuration)
-                  </p>
-                </TabsContent>
-              </Tabs>
+              <Label>UPI QR Code Image *</Label>
+              <ImageUpload
+                value={formData.qrCodeImageUrl}
+                onChange={(url) => setFormData({ ...formData, qrCodeImageUrl: url })}
+                folder="payment-qr"
+                label="Upload UPI QR Code"
+                aspectRatio="1/1"
+                disabled={isSaving}
+              />
+              <p className="text-sm text-muted-foreground">
+                Upload your UPI QR code image
+              </p>
             </div>
 
             {/* UPI ID */}

@@ -37,6 +37,10 @@ interface Booking {
   owner: { id: string; name: string };
   paymentProof?: { status: string };
   engineerAssignments?: Array<{ engineer?: { name: string }; status: string }>;
+  items?: Array<{
+    serviceItem?: { category?: { id: string; name: string } };
+    partItem?: { category?: { id: string; name: string } };
+  }>;
 }
 
 const statusColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
@@ -171,6 +175,7 @@ export default function AdminBookingsPage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Restaurant</TableHead>
+              <TableHead>Categories</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead>Preferred Date</TableHead>
               <TableHead>Total</TableHead>
@@ -182,47 +187,70 @@ export default function AdminBookingsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : bookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
             ) : (
-              bookings.map((booking) => (
-                <TableRow key={booking.id}>
-                  <TableCell className="font-mono text-xs">
-                    {booking.id.slice(0, 8)}...
-                  </TableCell>
-                  <TableCell>{booking.restaurant.name}</TableCell>
-                  <TableCell>{booking.owner.name}</TableCell>
-                  <TableCell>{formatDate(booking.preferredDate)}</TableCell>
-                  <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusColors[booking.status] || "default"}>
-                      {getStatusLabel(booking.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {booking.engineerAssignments && booking.engineerAssignments.length > 0
-                      ? booking.engineerAssignments[0]?.engineer?.name || "-"
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => router.push("/admin/bookings/" + booking.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              bookings.map((booking) => {
+                // Extract unique categories from items
+                const categories = new Set<string>();
+                booking.items?.forEach((item) => {
+                  const categoryName = item.serviceItem?.category?.name || item.partItem?.category?.name;
+                  if (categoryName) categories.add(categoryName);
+                });
+                const categoryList = Array.from(categories);
+
+                return (
+                  <TableRow key={booking.id}>
+                    <TableCell className="font-mono text-xs">
+                      {booking.id.slice(0, 8)}...
+                    </TableCell>
+                    <TableCell>{booking.restaurant.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {categoryList.length > 0 ? (
+                          categoryList.map((cat) => (
+                            <Badge key={cat} variant="outline" className="text-xs">
+                              {cat}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{booking.owner.name}</TableCell>
+                    <TableCell>{formatDate(booking.preferredDate)}</TableCell>
+                    <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusColors[booking.status] || "default"}>
+                        {getStatusLabel(booking.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {booking.engineerAssignments && booking.engineerAssignments.length > 0
+                        ? booking.engineerAssignments[0]?.engineer?.name || "-"
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => router.push("/admin/bookings/" + booking.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

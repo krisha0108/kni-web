@@ -41,8 +41,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Upload, Eye, EyeOff, Calendar } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Banner {
   id: string;
@@ -80,7 +81,6 @@ export default function BannersPage() {
     endDate: "",
   });
 
-  const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
 
   const fetchBanners = async () => {
@@ -108,36 +108,6 @@ export default function BannersPage() {
   useEffect(() => {
     fetchBanners();
   }, [statusFilter]);
-
-  const handleImageUpload = async (file: File) => {
-    try {
-      setUploadingImage(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "banners");
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-      if (data.ok) {
-        setFormData((prev) => ({ ...prev, imageUrl: data.url }));
-        toast({ title: "Success", description: "Image uploaded successfully" });
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload image",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingImage(false);
-    }
-  };
 
   const handleCreate = async () => {
     if (!formData.title.trim()) {
@@ -480,34 +450,13 @@ export default function BannersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="image">Banner Image *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="imageUrl"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://example.com/banner.jpg"
-                />
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <Button variant="outline" disabled={uploadingImage}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {uploadingImage ? "Uploading..." : "Upload"}
-                  </Button>
-                </div>
-              </div>
-              {formData.imageUrl && (
-                <img
-                  src={formData.imageUrl}
-                  alt="Preview"
-                  className="mt-2 h-32 w-auto object-cover rounded border"
-                />
-              )}
+              <Label>Banner Image *</Label>
+              <ImageUpload
+                value={formData.imageUrl}
+                onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                folder="banners"
+                label="Upload Banner Image"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="linkUrl">Link URL (optional)</Label>

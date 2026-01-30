@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
               { description: { contains: search } },
             ],
           } : {}),
-          ...(categoryId ? { categoryId } : {}),
+          ...(categoryId ? { marketplaceCategoryId: categoryId } : {}),
         },
         // Vendor must be approved and have active subscription
         vendor: {
@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
         // Include admin product info
         product: {
           include: {
-            category: { select: { id: true, name: true } },
+            marketplaceCategory: { select: { id: true, name: true } },
+            marketplaceSubCategory: { select: { id: true, name: true } },
           },
         },
         vendor: {
@@ -131,7 +132,8 @@ export async function GET(request: NextRequest) {
       name: vp.product!.name,
       imageUrl: vp.product!.imageUrl,
       unit: vp.product!.unit,
-      category: vp.product!.category,
+      category: vp.product!.marketplaceCategory,
+      subCategory: vp.product!.marketplaceSubCategory,
       // Vendor-specific info
       price: vp.price,
       description: vp.description || vp.product!.description, // Use vendor description if set, else admin's

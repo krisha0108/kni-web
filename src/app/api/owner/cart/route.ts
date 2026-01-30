@@ -30,8 +30,18 @@ export async function GET(request: NextRequest) {
       include: {
         items: {
           include: {
-            serviceItem: { select: { id: true, name: true, price: true } },
-            partItem: { select: { id: true, name: true, price: true } },
+            serviceItem: {
+              include: {
+                category: true,
+                subCategory: true,
+              },
+            },
+            partItem: {
+              include: {
+                category: true,
+                subCategory: true,
+              },
+            },
           },
         },
       },
@@ -47,8 +57,18 @@ export async function GET(request: NextRequest) {
         include: {
           items: {
             include: {
-              serviceItem: { select: { id: true, name: true, price: true } },
-              partItem: { select: { id: true, name: true, price: true } },
+              serviceItem: {
+                include: {
+                  category: true,
+                  subCategory: true,
+                },
+              },
+              partItem: {
+                include: {
+                  category: true,
+                  subCategory: true,
+                },
+              },
             },
           },
         },
@@ -160,7 +180,30 @@ export async function DELETE(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const itemId = searchParams.get("itemId");
+    const clearAll = searchParams.get("clearAll");
 
+    // Clear all cart items
+    if (clearAll === "true") {
+      const restaurant = await db.restaurant.findFirst({
+        where: { ownerId: session.id, status: "APPROVED" },
+      });
+
+      if (!restaurant) {
+        return NextResponse.json({ ok: false, error: "No approved restaurant" }, { status: 400 });
+      }
+
+      const cart = await db.cart.findFirst({
+        where: { ownerId: session.id, restaurantId: restaurant.id, status: "DRAFT" },
+      });
+
+      if (cart) {
+        await db.cartItem.deleteMany({ where: { cartId: cart.id } });
+      }
+
+      return NextResponse.json({ ok: true, message: "Cart cleared" });
+    }
+
+    // Delete single item
     if (!itemId) {
       return NextResponse.json({ ok: false, error: "Item ID required" }, { status: 400 });
     }

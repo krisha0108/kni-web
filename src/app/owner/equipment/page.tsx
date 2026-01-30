@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
-import { Plus, Eye, Pencil, Trash2, Search, Building2, Filter, X, ArrowUpDown } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Search, Building2, Filter, X, ArrowUpDown, Wrench } from "lucide-react";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
 import { formatDate } from "@/lib/utils";
 import { ExportButton } from "@/components/export-button";
@@ -72,7 +72,6 @@ export default function OwnerEquipmentPage() {
 
   const [formData, setFormData] = useState({
     restaurantId: "",
-    name: "",
     categoryId: "",
     subCategoryId: "",
     brand: "",
@@ -156,7 +155,7 @@ export default function OwnerEquipmentPage() {
 
   const handleCreate = async () => {
     try {
-      if (!formData.restaurantId || !formData.name || !formData.categoryId || !formData.purchaseDate) {
+      if (!formData.restaurantId || !formData.categoryId || !formData.purchaseDate) {
         toast({
           title: "Error",
           description: "Please fill in all required fields",
@@ -165,9 +164,14 @@ export default function OwnerEquipmentPage() {
         return;
       }
 
+      // Derive equipment name from category/subcategory
+      const selectedCategory = categories.find(c => c.id === formData.categoryId);
+      const selectedSubCategory = subCategories.find(sc => sc.id === formData.subCategoryId);
+      const equipmentName = selectedSubCategory?.name || selectedCategory?.name || "Equipment";
+
       const payload: any = {
         restaurantId: formData.restaurantId,
-        name: formData.name,
+        name: equipmentName,
         categoryId: formData.categoryId,
         subCategoryId: formData.subCategoryId || undefined,
         brand: formData.brand || undefined,
@@ -200,7 +204,6 @@ export default function OwnerEquipmentPage() {
         setIsCreateOpen(false);
         setFormData({
           restaurantId: selectedRestaurant?.restaurantId || "",
-          name: "",
           categoryId: "",
           subCategoryId: "",
           brand: "",
@@ -390,15 +393,6 @@ export default function OwnerEquipmentPage() {
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{selectedRestaurant?.restaurant.name}</span>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Equipment Name *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Commercial Oven"
-                />
               </div>
 
               <div className="space-y-2">
@@ -804,6 +798,24 @@ export default function OwnerEquipmentPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Request Service"
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            params.set("equipmentId", item.id);
+                            params.set("equipmentName", item.name);
+                            if (item.category?.id) params.set("categoryId", item.category.id);
+                            if (item.category?.name) params.set("categoryName", item.category.name);
+                            if (item.subCategory?.id) params.set("subCategoryId", item.subCategory.id);
+                            if (item.subCategory?.name) params.set("subCategoryName", item.subCategory.name);
+                            router.push(`/owner/request-service?${params.toString()}`);
+                          }}
+                        >
+                          <Wrench className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="View Details"
                           onClick={() => router.push(`/owner/equipment/${item.id}`)}
                         >
                           <Eye className="h-4 w-4" />
@@ -811,6 +823,7 @@ export default function OwnerEquipmentPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Delete"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-4 w-4" />

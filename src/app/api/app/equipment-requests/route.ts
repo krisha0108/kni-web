@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
       owner_equipment_id,
       urgency,
       tags,
+      total_amount,
+      items,
     } = body;
 
     // Validate required fields
@@ -54,15 +56,30 @@ export async function POST(request: NextRequest) {
     // Set status to SLOT_SELECTED if a date is provided (allows payment upload)
     const bookingStatus = slotStart ? "SLOT_SELECTED" : "DRAFT";
 
+    // Parse total amount (stored as integer)
+    const parsedTotalAmount = total_amount ? Math.round(Number(total_amount)) : 0;
+
+    // Prepare booking items if provided
+    const bookingItems = Array.isArray(items) ? items.map((item: any) => ({
+      itemType: item.item_type === 'part' || item.item_type === 'PART' ? 'PART' as const : 'SERVICE' as const,
+      serviceItemId: item.item_type === 'service' || item.item_type === 'SERVICE' ? item.item_id : null,
+      partItemId: item.item_type === 'part' || item.item_type === 'PART' ? item.item_id : null,
+      qty: Number(item.qty) || 1,
+      priceSnapshot: Math.round(Number(item.price || item.unitPrice || 0)),
+    })) : [];
+
     const booking = await db.serviceBooking.create({
       data: {
         ownerId: session.id,
         restaurantId: restaurant_id,
         equipmentId: owner_equipment_id || undefined,
         status: bookingStatus,
-        totalAmount: 0, // Will be calculated when services are added
+        totalAmount: parsedTotalAmount,
         slotStartDateTime: slotStart,
         problemDescription: description || '',
+        items: bookingItems.length > 0 ? {
+          create: bookingItems,
+        } : undefined,
       },
       include: {
         restaurant: {
@@ -72,6 +89,7 @@ export async function POST(request: NextRequest) {
             address: true,
           },
         },
+        items: true,
       },
     });
 

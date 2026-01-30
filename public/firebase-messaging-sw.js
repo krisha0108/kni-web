@@ -17,6 +17,19 @@ const firebaseConfig = {
   appId: "1:896374925078:web:9c601f2cf8f40db53c1237",
 };
 
+// Log service worker activation
+self.addEventListener("install", () => {
+  console.log("[firebase-messaging-sw.js] Service Worker installing...");
+  // Force the waiting service worker to become active
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  console.log("[firebase-messaging-sw.js] Service Worker activating...");
+  // Take control of all pages immediately
+  event.waitUntil(self.clients.claim());
+});
+
 // Initialize Firebase
 try {
   firebase.initializeApp(firebaseConfig);
@@ -26,22 +39,33 @@ try {
   messaging.onBackgroundMessage((payload) => {
     console.log("[firebase-messaging-sw.js] Received background message:", payload);
 
+    // Extract notification data from either notification or data payload
     const notificationTitle = payload.notification?.title || payload.data?.title || "New Notification";
+    const notificationBody = payload.notification?.body || payload.data?.body || "";
+
+    // Only show notification if we have content
+    if (!notificationTitle && !notificationBody) {
+      console.log("[firebase-messaging-sw.js] No notification content, skipping display");
+      return;
+    }
+
     const notificationOptions = {
-      body: payload.notification?.body || payload.data?.body || "",
+      body: notificationBody,
       icon: "/icon-192x192.png",
       badge: "/badge-72x72.png",
-      tag: payload.data?.notificationId || "default",
+      tag: payload.data?.notificationId || `notification-${Date.now()}`,
       data: {
         url: payload.data?.linkUrl || payload.fcmOptions?.link || "/",
         ...payload.data,
       },
       requireInteraction: false,
       vibrate: [200, 100, 200],
+      // Ensure notification is shown even if page is focused
+      renotify: true,
     };
 
     // Show the notification
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
   });
 
   // Handle notification click

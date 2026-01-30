@@ -21,8 +21,22 @@ export async function GET(
         },
         items: {
           include: {
-            serviceItem: { select: { id: true, name: true } },
-            partItem: { select: { id: true, name: true } },
+            serviceItem: {
+              select: {
+                id: true,
+                name: true,
+                category: { select: { id: true, name: true } },
+                subCategory: { select: { id: true, name: true } },
+              },
+            },
+            partItem: {
+              select: {
+                id: true,
+                name: true,
+                category: { select: { id: true, name: true } },
+                subCategory: { select: { id: true, name: true } },
+              },
+            },
           },
         },
         paymentProof: true,

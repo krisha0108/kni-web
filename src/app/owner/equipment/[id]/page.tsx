@@ -12,35 +12,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, CheckCircle2, XCircle, Clock, FileText, Image as ImageIcon, Shield, Wrench, IndianRupee, History, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle2, XCircle, Clock, FileText, Image as ImageIcon, Shield, Wrench, IndianRupee, AlertCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
 import { getAMCDurationLabel, getAMCStatusColor, getAMCStatusLabel } from "@/lib/amc";
-
-interface ServiceHistoryItem {
-  id: string;
-  status: string;
-  totalAmount: number;
-  problemDescription: string | null;
-  createdAt: string;
-  slotStartDateTime: string | null;
-  engineerAssignments: {
-    id: string;
-    status: string;
-    engineer: { id: string; name: string };
-    workLog?: {
-      id: string;
-      completionNote: string;
-      createdAt: string;
-    };
-  }[];
-  items: {
-    id: string;
-    qty: number;
-    serviceItem?: { id: string; name: string };
-    partItem?: { id: string; name: string };
-  }[];
-}
 
 interface ServiceTemplate {
   id: string;
@@ -76,7 +51,6 @@ interface Equipment {
     category: { id: string; name: string };
     serviceTemplates: ServiceTemplate[];
   };
-  serviceHistory: ServiceHistoryItem[];
   totalSpend: number;
   completedServicesCount: number;
   createdAt: string;
@@ -441,32 +415,13 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant={getEquipmentStatusColor(equipment.status)}>
-            {getEquipmentStatusLabel(equipment.status)}
-          </Badge>
-          <Button onClick={() => setIsServiceDialogOpen(true)}>
-            <Wrench className="mr-2 h-4 w-4" />
-            Request Service
-          </Button>
-        </div>
+        <Badge variant={getEquipmentStatusColor(equipment.status)}>
+          {getEquipmentStatusLabel(equipment.status)}
+        </Badge>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <History className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Services</p>
-                <p className="text-xl font-bold">{equipment.serviceHistory?.length || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -474,7 +429,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-sm text-muted-foreground">Completed Services</p>
                 <p className="text-xl font-bold">{equipment.completedServicesCount || 0}</p>
               </div>
             </div>
@@ -609,95 +564,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <div className="text-center py-8 text-muted-foreground">
                   <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>No documents or images uploaded</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Service History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Service History
-                </CardTitle>
-                {equipment.serviceHistory && equipment.serviceHistory.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/owner/bookings?equipmentId=${equipment.id}`)}>
-                    View All
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {equipment.serviceHistory && equipment.serviceHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {equipment.serviceHistory.slice(0, 5).map((service) => {
-                    const completedAssignment = service.engineerAssignments.find(a => a.status === "COMPLETED");
-                    const statusColor =
-                      service.status === "COMPLETED" ? "success" :
-                      service.status === "CANCELLED" ? "destructive" :
-                      service.status.includes("REJECTED") ? "destructive" :
-                      "warning";
-
-                    return (
-                      <div
-                        key={service.id}
-                        className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition"
-                        onClick={() => router.push(`/owner/bookings/${service.id}`)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-sm">
-                              {(service.items?.map(item => item.serviceItem?.name || item.partItem?.name) || []).join(", ") || "Service Request"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(service.slotStartDateTime || service.createdAt)}
-                            </p>
-                          </div>
-                          <Badge variant={statusColor} className="text-xs">
-                            {service.status.replace(/_/g, " ")}
-                          </Badge>
-                        </div>
-
-                        {service.problemDescription && (
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                            {service.problemDescription}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>₹{(service.totalAmount / 100).toLocaleString()}</span>
-                          {completedAssignment && (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3 text-green-600" />
-                              {completedAssignment.engineer.name}
-                            </span>
-                          )}
-                        </div>
-
-                        {completedAssignment?.workLog && (
-                          <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
-                            <p className="font-medium mb-1">Completion Notes:</p>
-                            <p className="text-muted-foreground line-clamp-2">{completedAssignment.workLog.completionNote}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No service history yet</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => router.push(`/owner/slot-booking?equipmentId=${equipment.id}`)}
-                  >
-                    <Wrench className="mr-2 h-4 w-4" />
-                    Request First Service
-                  </Button>
                 </div>
               )}
             </CardContent>

@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/server/db";
-import { requireEngineerMobile } from "@/server/auth/rbac";
-import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
+// import { db } from "@/server/db";
+// import { requireEngineerMobile } from "@/server/auth/rbac";
+// import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * GET /api/engineer-app/part-requests
  * Get part requests for the engineer
  */
 export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     const session = await requireEngineerMobile(request);
 
@@ -128,13 +136,22 @@ export async function GET(request: NextRequest) {
       { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
+  DISABLED - Parts request flow */
 }
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * POST /api/engineer-app/part-requests
  * Create a new part request
  */
 export async function POST(request: NextRequest) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     const session = await requireEngineerMobile(request);
 
@@ -240,4 +257,5 @@ export async function POST(request: NextRequest) {
       { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
+  DISABLED - Parts request flow */
 }

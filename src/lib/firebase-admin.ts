@@ -4,6 +4,12 @@ import * as admin from "firebase-admin";
 let app: admin.app.App | undefined;
 
 export function getFirebaseAdmin(): admin.app.App {
+  // Check if app already exists in admin.apps (handles serverless re-initialization)
+  if (admin.apps.length > 0) {
+    app = admin.apps[0]!;
+    return app;
+  }
+
   if (app) {
     return app;
   }

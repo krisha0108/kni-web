@@ -89,7 +89,7 @@ export default async function RestaurantStatusPage() {
                 {config.description}
                 <div className="mt-4">
                   <Button asChild>
-                    <Link href="/owner/feed">Browse Services</Link>
+                    <Link href="/owner/equipment">Go to My Equipment</Link>
                   </Button>
                 </div>
               </AlertDescription>

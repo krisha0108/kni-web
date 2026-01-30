@@ -4,11 +4,11 @@ import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const guideSchema = z.object({
-  thumbUrl: z.string().url("Must be a valid URL"),
+  thumbUrl: z.string().min(1, "Thumbnail is required"),
   title: z.string().min(3),
   description: z.string().optional(),
   minutes: z.number().int().min(0).default(0),
-  linkUrl: z.string().url("Must be a valid URL"),
+  linkUrl: z.string().min(1, "Link URL is required"),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(0).default(0),
 });

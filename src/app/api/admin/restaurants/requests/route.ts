@@ -18,8 +18,19 @@ export async function GET(request: NextRequest) {
     const [items, total] = await Promise.all([
       db.restaurant.findMany({
         where,
-        include: {
-          owner: { select: { id: true, name: true, email: true } },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          city: true,
+          pincode: true,
+          restaurantImageUrl: true,
+          fssaiNumber: true,
+          fssaiCertificateUrl: true,
+          status: true,
+          rejectionReason: true,
+          createdAt: true,
+          owner: { select: { id: true, name: true, email: true, phone: true } },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,

@@ -226,6 +226,7 @@ model User {
   partRequestsAsEngineer   PartRequest[]         @relation("EngineerPartRequests")
   partRequestsAsAdmin      PartRequest[]         @relation("AdminPartRequests")
   marketplaceProducts      MarketplaceProduct[]  @relation("MarketplaceProductCreator")
+  vendorCategories         VendorCategorySelection[]
 
   @@index([email])
   @@index([role])
@@ -259,6 +260,8 @@ model OwnerProfile {
 model VendorProfile {
   id                 String                    @id @default(cuid())
   userId             String                    @unique
+  city               String?
+  state              String?
   approvalStatus     VendorApprovalStatus      @default(PENDING)
   approvalNote       String?                   @db.Text
   rejectionReason    String?                   @db.Text // Mandatory when approvalStatus is REJECTED
@@ -334,9 +337,9 @@ model Category {
   serviceItems          ServiceItem[]
   partItems             PartItem[]
   restaurantCategories  RestaurantCategory[]
-  marketplaceProducts   MarketplaceProduct[]
-  vendorProducts        VendorProduct[]       // Legacy relation for migration
   equipment             Equipment[]
+  // Legacy marketplace relation - to be removed after migration
+  legacyMarketplaceProducts MarketplaceProduct[]
 
   @@index([isActive])
 }
@@ -345,6 +348,7 @@ model SubCategory {
   id         String    @id @default(cuid())
   categoryId String
   name       String
+  imageUrl   String?
   isActive   Boolean   @default(true)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -387,6 +391,7 @@ model PartItem {
   subCategoryId String?
   name          String
   description   String?
+  imageUrl      String?
   price         Int // in paise
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
@@ -671,44 +676,106 @@ model JobPartUsed {
 // G) MARKETPLACE
 // ========================================
 
-// Admin-controlled master product catalog
-model MarketplaceProduct {
-  id          String    @id @default(cuid())
-  name        String
-  imageUrl    String?
-  categoryId  String?
-  unit        String    // kg, ltr, piece, etc.
-  description String?   @db.Text  // Admin can provide default description
-  isActive    Boolean   @default(true)
-  createdBy   String    // Admin user ID
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+// Marketplace-specific category hierarchy (Admin controlled)
+model MarketplaceCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  imageUrl  String?
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  category       Category?       @relation(fields: [categoryId], references: [id])
-  creator        User            @relation("MarketplaceProductCreator", fields: [createdBy], references: [id])
-  vendorProducts VendorProduct[]
+  subCategories   MarketplaceSubCategory[]
+  products        MarketplaceProduct[]
+  vendorCategories VendorCategorySelection[]
 
   @@index([isActive])
+  @@index([sortOrder])
+}
+
+model MarketplaceSubCategory {
+  id         String    @id @default(cuid())
+  categoryId String
+  name       String
+  slug       String
+  imageUrl   String?
+  isActive   Boolean   @default(true)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  category MarketplaceCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products MarketplaceProduct[]
+
+  @@unique([categoryId, slug])
   @@index([categoryId])
+  @@index([isActive])
+}
+
+// Many-to-Many: Vendor selects categories they serve
+model VendorCategorySelection {
+  id         String   @id @default(cuid())
+  vendorId   String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  vendor   User                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category MarketplaceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, categoryId])
+  @@index([vendorId])
+  @@index([categoryId])
+}
+
+// Admin-controlled master product catalog
+model MarketplaceProduct {
+  id                  String    @id @default(cuid())
+  marketplaceCategoryId    String?   // New marketplace category
+  marketplaceSubCategoryId String?   // New marketplace subcategory
+  name                String
+  imageUrl            String?
+  unit                String    // kg, ltr, piece, etc.
+  description         String?   @db.Text  // Admin default description
+  isActive            Boolean   @default(true)
+  createdBy           String    // Admin user ID
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+  // Legacy field - to be removed after migration
+  categoryId          String?
+
+  marketplaceCategory    MarketplaceCategory?    @relation(fields: [marketplaceCategoryId], references: [id], onDelete: Cascade)
+  marketplaceSubCategory MarketplaceSubCategory? @relation(fields: [marketplaceSubCategoryId], references: [id])
+  creator                User                    @relation("MarketplaceProductCreator", fields: [createdBy], references: [id])
+  vendorProducts         VendorProduct[]
+  legacyCategory         Category?               @relation(fields: [categoryId], references: [id])
+
+  @@index([isActive])
+  @@index([marketplaceCategoryId])
+  @@index([marketplaceSubCategoryId])
   @@index([createdBy])
+  @@index([categoryId])
 }
 
 // Vendor-controlled pricing for admin products
 model VendorProduct {
   id            String    @id @default(cuid())
   vendorId      String
-  productId     String?   // FK to MarketplaceProduct (nullable for migration)
-  // Legacy fields - kept for migration, to be removed later
+  productId     String?   // FK to MarketplaceProduct
+  // Legacy fields - kept for migration
   name          String?
   categoryId    String?
   unit          String?
   imageUrl      String?
   // End legacy fields
   price         Int       // in paise (vendor sets this)
+  minOrderQty   Int       @default(1)  // Minimum order quantity
   description   String?   @db.Text  // Vendor can customize description
   stockQuantity Int       @default(0)
   deliveryTime  String?   // e.g., "2-3 days", "Same day"
+  isAvailable   Boolean   @default(true)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -716,12 +783,12 @@ model VendorProduct {
 
   vendor     User                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   product    MarketplaceProduct?    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  category   Category?              @relation(fields: [categoryId], references: [id])
   orderItems MarketplaceOrderItem[]
 
   @@index([vendorId])
   @@index([productId])
   @@index([isActive])
+  @@index([isAvailable])
   @@index([categoryId])
 }
 

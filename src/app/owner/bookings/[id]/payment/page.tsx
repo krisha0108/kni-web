@@ -4,14 +4,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle, Loader2, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Booking {
   id: string;
@@ -250,51 +248,16 @@ export default function PaymentUploadPage() {
               <>
                 <div className="space-y-2">
                   <Label>Payment Screenshot *</Label>
-                  <Tabs defaultValue="url" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="url">
-                        <LinkIcon className="h-4 w-4 mr-2" />
-                        Enter URL
-                      </TabsTrigger>
-                      <TabsTrigger value="upload">Upload File</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="url" className="space-y-2">
-                      <Input
-                        type="text"
-                        placeholder="https://example.com/payment.png or /uploads/payment-proofs/..."
-                        value={uploadedImageUrl}
-                        onChange={(e) => setUploadedImageUrl(e.target.value)}
-                        disabled={isUploading}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Paste image URL or local path from uploads
-                      </p>
-                      {uploadedImageUrl && (
-                        <div className="border rounded-lg p-4">
-                          <img
-                            src={uploadedImageUrl}
-                            alt="Payment Preview"
-                            className="max-w-full h-auto max-h-64 mx-auto"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="upload">
-                      <ImageUpload
-                        value={uploadedImageUrl}
-                        onChange={(url) => setUploadedImageUrl(url)}
-                        folder="payment-proofs"
-                        label="Upload Payment Screenshot"
-                        disabled={isUploading}
-                      />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Upload your payment screenshot (requires Cloudinary configuration)
-                      </p>
-                    </TabsContent>
-                  </Tabs>
+                  <ImageUpload
+                    value={uploadedImageUrl}
+                    onChange={(url) => setUploadedImageUrl(url)}
+                    folder="payment-proofs"
+                    label="Upload Payment Screenshot"
+                    disabled={isUploading}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Upload a clear screenshot of your payment confirmation
+                  </p>
                 </div>
 
                 {!uploadedImageUrl && (

@@ -188,10 +188,10 @@ export default async function RestaurantDetailPage({
                 <p className="mb-4">{config.description}</p>
                 <div className="flex gap-2">
                   <Button asChild size="sm">
-                    <Link href="/owner/feed">Browse Services</Link>
+                    <Link href="/owner/equipment">My Equipment</Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/owner/equipment">Manage Equipment</Link>
+                    <Link href="/owner/bookings">My Bookings</Link>
                   </Button>
                 </div>
               </AlertDescription>

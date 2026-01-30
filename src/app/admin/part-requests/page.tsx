@@ -1,3 +1,56 @@
+/**
+ * ============================================================================
+ * ADMIN PART REQUESTS PAGE
+ * ============================================================================
+ *
+ * PARTS REQUEST FLOW - ADMIN WEB ROLE:
+ * ------------------------------------
+ * This page is the central hub for admins to manage all part requests from
+ * service engineers. Admins can approve, reject, or dispatch parts.
+ *
+ * FLOW DIAGRAM:
+ *
+ *   [Engineer creates request] --> [PENDING]
+ *                                      |
+ *                         +------------+------------+
+ *                         |                         |
+ *                    [Admin Approves]         [Admin Rejects]
+ *                         |                         |
+ *                         v                         v
+ *                    [APPROVED]                [REJECTED] (END)
+ *                         |                   (Engineer notified)
+ *                         |
+ *                   [Admin Dispatches]
+ *                         |
+ *                         v
+ *                   [DISPATCHED]
+ *                         |
+ *                  [Engineer confirms]
+ *                         |
+ *                         v
+ *                    [DELIVERED] (END)
+ *
+ * API ENDPOINTS USED:
+ * - GET  /api/admin/part-requests         - Fetch all requests with filters
+ * - PATCH /api/admin/part-requests/[id]   - Approve/Reject/Dispatch a request
+ *
+ * ADMIN ACTIONS:
+ * 1. APPROVE - Changes status from PENDING to APPROVED
+ *    - Optional: Add admin note
+ *    - Triggers notification to engineer
+ *
+ * 2. REJECT - Changes status from PENDING to REJECTED
+ *    - Required: Rejection reason (mandatory)
+ *    - Optional: Admin note
+ *    - Triggers notification to engineer with reason
+ *
+ * 3. DISPATCH - Changes status from APPROVED to DISPATCHED
+ *    - Triggers notification to engineer that part is on the way
+ *    - Engineer can then confirm delivery when received
+ *
+ * ============================================================================
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -92,6 +145,17 @@ interface Summary {
   cancelled: number;
 }
 
+/**
+ * Admin Part Requests Page Component
+ *
+ * State Management:
+ * - requests: Current list of part requests (filtered by active tab)
+ * - summary: Count statistics for each status (for tab badges)
+ * - activeTab: Current filter tab (pending/approved/dispatched/delivered/rejected/all)
+ * - selectedRequest: Request being processed (for reject dialog)
+ * - rejectionReason: Text input for rejection reason (required for reject action)
+ * - adminNote: Optional note from admin (attached to any action)
+ */
 export default function AdminPartRequestsPage() {
   const [requests, setRequests] = useState<PartRequest[]>([]);
   const [summary, setSummary] = useState<Summary>({
@@ -113,6 +177,15 @@ export default function AdminPartRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
+  /**
+   * Fetch part requests from API
+   *
+   * API: GET /api/admin/part-requests?status={status}&search={query}
+   *
+   * Returns:
+   * - data: Array of PartRequest objects with engineer, partItem, assignment details
+   * - summary: Object with counts for each status (for tab badges)
+   */
   const fetchRequests = async (status?: string) => {
     try {
       setIsLoading(true);
@@ -144,6 +217,26 @@ export default function AdminPartRequestsPage() {
     fetchRequests(activeTab);
   }, [activeTab]);
 
+  /**
+   * Handle admin actions on part requests (APPROVE / REJECT / DISPATCH)
+   *
+   * API: PATCH /api/admin/part-requests/{id}
+   *
+   * Request Body:
+   * - action: "approve" | "reject" | "dispatch"
+   * - adminNote: Optional note from admin
+   * - rejectionReason: Required only for "reject" action
+   *
+   * Status Transitions:
+   * - approve: PENDING -> APPROVED (engineer notified)
+   * - reject: PENDING -> REJECTED (engineer notified with reason)
+   * - dispatch: APPROVED -> DISPATCHED (engineer notified, can now confirm delivery)
+   *
+   * Backend also:
+   * - Records timestamp (approvedAt/rejectedAt/dispatchedAt)
+   * - Creates notification for engineer
+   * - Updates adminId (who processed the request)
+   */
   const handleAction = async (requestId: string, action: "approve" | "reject" | "dispatch") => {
     if (action === "reject" && !rejectionReason.trim()) {
       toast({ title: "Error", description: "Please provide a rejection reason", variant: "destructive" });

@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validation.data.name,
         categoryId: validation.data.categoryId,
+        imageUrl: validation.data.imageUrl || null,
         isActive: true,
       },
     });

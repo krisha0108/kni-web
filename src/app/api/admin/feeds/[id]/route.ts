@@ -7,7 +7,7 @@ const feedUpdateSchema = z.object({
   text: z.string().min(3).optional(),
   tone: z.enum(["OK", "INFO", "WARN", "DANGER"]).optional(),
   icon: z.string().optional(),
-  linkUrl: z.string().url().optional().or(z.literal("")),
+  linkUrl: z.string().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
 });
 

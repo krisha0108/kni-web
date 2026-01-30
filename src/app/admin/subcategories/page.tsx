@@ -41,8 +41,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FolderOpen } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ImageUpload } from "@/components/ui/image-upload";
+import Image from "next/image";
 
 interface Category {
   id: string;
@@ -52,6 +54,7 @@ interface Category {
 interface SubCategory {
   id: string;
   name: string;
+  imageUrl: string | null;
   isActive: boolean;
   createdAt: string;
   category: Category;
@@ -70,6 +73,7 @@ export default function AdminSubCategoriesPage() {
   const [formData, setFormData] = useState({
     name: "",
     categoryId: "",
+    imageUrl: "",
   });
   const { toast } = useToast();
 
@@ -103,7 +107,7 @@ export default function AdminSubCategoriesPage() {
   }, [search, filterCategoryId]);
 
   const resetForm = () => {
-    setFormData({ name: "", categoryId: "" });
+    setFormData({ name: "", categoryId: "", imageUrl: "" });
   };
 
   const handleCreate = async () => {
@@ -173,6 +177,7 @@ export default function AdminSubCategoriesPage() {
     setFormData({
       name: subCategory.name,
       categoryId: subCategory.category.id,
+      imageUrl: subCategory.imageUrl || "",
     });
     setIsEditOpen(true);
   };
@@ -207,6 +212,15 @@ export default function AdminSubCategoriesPage() {
                       {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Image</Label>
+                  <ImageUpload
+                    value={formData.imageUrl}
+                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                    folder="subcategories"
+                    label="Upload Subcategory Image"
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -253,7 +267,24 @@ export default function AdminSubCategoriesPage() {
             ) : (
               subCategories.map((subCategory) => (
                 <TableRow key={subCategory.id}>
-                  <TableCell className="font-medium">{subCategory.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      {subCategory.imageUrl ? (
+                        <Image
+                          src={subCategory.imageUrl}
+                          alt={subCategory.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                          <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span>{subCategory.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{subCategory.category.name}</TableCell>
                   <TableCell>
                     <Badge variant={subCategory.isActive ? "success" : "secondary"}>{subCategory.isActive ? "Active" : "Inactive"}</Badge>
@@ -291,6 +322,15 @@ export default function AdminSubCategoriesPage() {
                     {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Image</Label>
+                <ImageUpload
+                  value={formData.imageUrl}
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="subcategories"
+                  label="Upload Subcategory Image"
+                />
               </div>
             </div>
             <DialogFooter>

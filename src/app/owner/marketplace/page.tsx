@@ -97,7 +97,7 @@ export default function OwnerMarketplacePage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/public/categories");
+      const response = await fetch("/api/public/marketplace-categories");
       const data = await response.json();
       if (data.ok) {
         setCategories(data.data);

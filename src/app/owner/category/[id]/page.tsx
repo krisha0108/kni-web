@@ -127,9 +127,9 @@ export default function OwnerCategoryDetailPage() {
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <p className="text-lg text-muted-foreground">Category not found</p>
         <Button asChild>
-          <Link href="/owner/feed">
+          <Link href="/owner/equipment">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Categories
+            Back to My Equipment
           </Link>
         </Button>
       </div>
@@ -144,7 +144,7 @@ export default function OwnerCategoryDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/owner/feed">
+              <Link href="/owner/equipment">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Link>

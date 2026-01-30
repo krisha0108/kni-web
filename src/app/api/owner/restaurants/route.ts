@@ -22,7 +22,18 @@ const createRestaurantSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwnerMobile(request);
+    let session;
+    try {
+      session = await requireOwnerMobile(request);
+    } catch (authError) {
+      console.error("Auth error:", authError);
+      return NextResponse.json(
+        { ok: false, error: authError instanceof Error ? authError.message : "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    console.log("Get restaurants for owner:", session.id);
 
     // Return all restaurants for this owner
     const restaurants = await db.restaurant.findMany({
@@ -35,11 +46,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log("Found restaurants:", restaurants.length);
     return NextResponse.json({ ok: true, data: restaurants });
   } catch (error) {
     console.error("Get restaurant error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : undefined;
+    console.error("Error details:", { message: errorMessage, code: errorCode });
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { ok: false, error: errorMessage },
       { status: 500 }
     );
   }

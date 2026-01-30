@@ -42,8 +42,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { ImageUpload } from "@/components/ui/image-upload";
+import Image from "next/image";
 
 interface Category {
   id: string;
@@ -59,6 +61,7 @@ interface PartItem {
   id: string;
   name: string;
   description: string | null;
+  imageUrl: string | null;
   price: number;
   isActive: boolean;
   createdAt: string;
@@ -80,6 +83,7 @@ export default function AdminPartsPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    imageUrl: "",
     price: "",
     categoryId: "",
     subCategoryId: "",
@@ -130,7 +134,7 @@ export default function AdminPartsPage() {
   }, [formData.categoryId]);
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", price: "", categoryId: "", subCategoryId: "" });
+    setFormData({ name: "", description: "", imageUrl: "", price: "", categoryId: "", subCategoryId: "" });
   };
 
   const handleCreate = async () => {
@@ -142,6 +146,7 @@ export default function AdminPartsPage() {
           ...formData,
           price: parseInt(formData.price, 10),
           subCategoryId: formData.subCategoryId || undefined,
+          imageUrl: formData.imageUrl || undefined,
         }),
       });
       const data = await response.json();
@@ -168,6 +173,7 @@ export default function AdminPartsPage() {
           ...formData,
           price: parseInt(formData.price, 10),
           subCategoryId: formData.subCategoryId || undefined,
+          imageUrl: formData.imageUrl || null,
         }),
       });
       const data = await response.json();
@@ -208,6 +214,7 @@ export default function AdminPartsPage() {
     setFormData({
       name: part.name,
       description: part.description || "",
+      imageUrl: part.imageUrl || "",
       price: part.price.toString(),
       categoryId: part.category.id,
       subCategoryId: part.subCategory?.id || "",
@@ -240,6 +247,15 @@ export default function AdminPartsPage() {
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Image</Label>
+                <ImageUpload
+                  value={formData.imageUrl}
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="parts"
+                  label="Upload Part Image"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Price (in paise)</Label>
@@ -314,8 +330,25 @@ export default function AdminPartsPage() {
               parts.map((part) => (
                 <TableRow key={part.id}>
                   <TableCell>
-                    <div className="font-medium">{part.name}</div>
-                    {part.description && <div className="text-sm text-muted-foreground">{part.description}</div>}
+                    <div className="flex items-center gap-3">
+                      {part.imageUrl ? (
+                        <Image
+                          src={part.imageUrl}
+                          alt={part.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{part.name}</div>
+                        {part.description && <div className="text-sm text-muted-foreground line-clamp-1">{part.description}</div>}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div>{part.category.name}</div>
@@ -339,7 +372,7 @@ export default function AdminPartsPage() {
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Part</DialogTitle>
           </DialogHeader>
@@ -351,6 +384,15 @@ export default function AdminPartsPage() {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Image</Label>
+              <ImageUpload
+                value={formData.imageUrl}
+                onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                folder="parts"
+                label="Upload Part Image"
+              />
             </div>
             <div className="space-y-2">
               <Label>Price (in paise)</Label>

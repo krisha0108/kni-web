@@ -5,10 +5,12 @@ import { z } from "zod";
 
 const updateProductSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
-  imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
+  imageUrl: z.string().optional().nullable().or(z.literal("")),
   unit: z.string().min(1, "Unit is required").optional(),
   description: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
+  marketplaceCategoryId: z.string().optional(),
+  marketplaceSubCategoryId: z.string().optional().nullable(),
 });
 
 // GET /api/admin/marketplace/products/[id] - Get single product
@@ -24,6 +26,12 @@ export async function GET(
       where: { id },
       include: {
         creator: {
+          select: { id: true, name: true },
+        },
+        marketplaceCategory: {
+          select: { id: true, name: true },
+        },
+        marketplaceSubCategory: {
           select: { id: true, name: true },
         },
         vendorProducts: {
@@ -87,7 +95,7 @@ export async function PATCH(
       );
     }
 
-    const { name, imageUrl, unit, description, isActive } = validation.data;
+    const { name, imageUrl, unit, description, isActive, marketplaceCategoryId, marketplaceSubCategoryId } = validation.data;
 
     // Check for duplicate name if name is being changed
     if (name && name !== existingProduct.name) {
@@ -107,6 +115,38 @@ export async function PATCH(
       }
     }
 
+    // Verify category exists if being changed
+    if (marketplaceCategoryId) {
+      const category = await db.marketplaceCategory.findUnique({
+        where: { id: marketplaceCategoryId },
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { ok: false, error: "Category not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Verify subcategory if being changed
+    const targetCategoryId = marketplaceCategoryId || existingProduct.marketplaceCategoryId;
+    if (marketplaceSubCategoryId && targetCategoryId) {
+      const subCategory = await db.marketplaceSubCategory.findFirst({
+        where: {
+          id: marketplaceSubCategoryId,
+          categoryId: targetCategoryId,
+        },
+      });
+
+      if (!subCategory) {
+        return NextResponse.json(
+          { ok: false, error: "Subcategory not found or does not belong to selected category" },
+          { status: 404 }
+        );
+      }
+    }
+
     const product = await db.marketplaceProduct.update({
       where: { id },
       data: {
@@ -115,9 +155,17 @@ export async function PATCH(
         ...(unit !== undefined ? { unit } : {}),
         ...(description !== undefined ? { description: description || null } : {}),
         ...(isActive !== undefined ? { isActive } : {}),
+        ...(marketplaceCategoryId !== undefined ? { marketplaceCategoryId } : {}),
+        ...(marketplaceSubCategoryId !== undefined ? { marketplaceSubCategoryId: marketplaceSubCategoryId || null } : {}),
       },
       include: {
         creator: {
+          select: { id: true, name: true },
+        },
+        marketplaceCategory: {
+          select: { id: true, name: true },
+        },
+        marketplaceSubCategory: {
           select: { id: true, name: true },
         },
       },

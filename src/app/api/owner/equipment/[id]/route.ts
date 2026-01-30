@@ -84,7 +84,6 @@ export async function GET(
       ok: true,
       data: {
         ...equipment,
-        serviceHistory: equipment.serviceBookings,
         totalSpend,
         completedServicesCount: completedBookings.length,
       },

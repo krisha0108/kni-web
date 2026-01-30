@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/server/db";
-import { requireEngineerMobile } from "@/server/auth/rbac";
-import { PartRequestStatus } from "@prisma/client";
+// import { db } from "@/server/db";
+// import { requireEngineerMobile } from "@/server/auth/rbac";
+// import { PartRequestStatus } from "@prisma/client";
 
 /**
+ * DISABLED: Parts request flow is currently disabled
+ *
  * POST /api/engineer-app/part-requests/:id/delivered
  * Confirm delivery of a part request
  */
@@ -11,6 +13,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return NextResponse.json(
+    { ok: false, error: "Parts request feature is currently disabled" },
+    { status: 503 }
+  );
+
+  /* DISABLED - Parts request flow
   try {
     const session = await requireEngineerMobile(request);
     const { id } = await params;
@@ -68,4 +76,5 @@ export async function POST(
       { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
+  DISABLED - Parts request flow */
 }

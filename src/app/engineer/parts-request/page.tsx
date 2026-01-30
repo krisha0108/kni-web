@@ -1,3 +1,61 @@
+/**
+ * ============================================================================
+ * SERVICE ENGINEER PARTS REQUEST PAGE (WEB)
+ * ============================================================================
+ *
+ * PARTS REQUEST FLOW - SERVICE ENGINEER WEB ROLE:
+ * ------------------------------------------------
+ * This page allows service engineers to:
+ * 1. Create new part requests for their service jobs
+ * 2. View status of all their requests
+ * 3. Cancel pending requests
+ * 4. Confirm delivery of dispatched parts
+ *
+ * FLOW DIAGRAM (Engineer's Perspective):
+ *
+ *   [Engineer creates request] --> [PENDING] ---> [Can CANCEL]
+ *                                      |
+ *                              [Admin processes]
+ *                                      |
+ *                    +-----------------+-----------------+
+ *                    |                                   |
+ *               [APPROVED]                          [REJECTED]
+ *                    |                             (View reason)
+ *                    |
+ *             [Admin dispatches]
+ *                    |
+ *                    v
+ *              [DISPATCHED] ---> [CONFIRM DELIVERY]
+ *                                       |
+ *                                       v
+ *                                  [DELIVERED]
+ *
+ * API ENDPOINTS USED:
+ * - GET  /api/engineer-app/part-requests              - Fetch engineer's requests
+ * - POST /api/engineer-app/part-requests              - Create new request
+ * - POST /api/engineer-app/part-requests/[id]/cancel  - Cancel pending request
+ * - POST /api/engineer-app/part-requests/[id]/delivered - Confirm delivery
+ * - GET  /api/service-engineer/parts                  - Fetch available parts list
+ *
+ * ENGINEER ACTIONS:
+ * 1. CREATE REQUEST - Submit new part request with:
+ *    - part_id (required): Which part to request
+ *    - quantity (default: 1): How many units needed
+ *    - priority (low/medium/high/urgent): Request urgency
+ *    - reason (optional): Why the part is needed
+ *
+ * 2. CANCEL REQUEST - Only for PENDING status
+ *    - Changes status to CANCELLED
+ *    - Records cancelledAt timestamp
+ *
+ * 3. CONFIRM DELIVERY - Only for DISPATCHED status
+ *    - Changes status to DELIVERED
+ *    - Records deliveredAt timestamp
+ *    - Part is now in engineer's inventory
+ *
+ * ============================================================================
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -112,6 +170,16 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "secondary", icon: XCircle },
 };
 
+/**
+ * Parts Request Page Component (Service Engineer Web)
+ *
+ * State Management:
+ * - requests: Engineer's part requests (filtered by status)
+ * - parts: Available parts catalog for creating new requests
+ * - summary: Count statistics for each status
+ * - form: New request form state (part_id, quantity, priority, reason)
+ * - mounted: Hydration-safe flag (prevents SSR/client mismatch)
+ */
 export default function PartsRequestPage() {
   const [mounted, setMounted] = useState(false);
   const [requests, setRequests] = useState<PartRequest[]>([]);
@@ -135,6 +203,7 @@ export default function PartsRequestPage() {
   const [selectedRequest, setSelectedRequest] = useState<PartRequest | null>(null);
   const { toast } = useToast();
 
+  // Form state for creating new part request
   const [form, setForm] = useState({
     part_id: "",
     quantity: "1",
@@ -154,6 +223,14 @@ export default function PartsRequestPage() {
     }
   }, [activeTab, mounted]);
 
+  /**
+   * Fetch engineer's part requests
+   *
+   * API: GET /api/engineer-app/part-requests?status={status}
+   *
+   * Returns only requests belonging to the logged-in engineer.
+   * Includes part details, status, timestamps, and any admin notes/rejection reasons.
+   */
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
@@ -199,6 +276,20 @@ export default function PartsRequestPage() {
     }
   };
 
+  /**
+   * Submit new part request
+   *
+   * API: POST /api/engineer-app/part-requests
+   *
+   * Request Body:
+   * - part_id: ID of the part to request (required)
+   * - quantity: Number of units needed (default: 1)
+   * - priority: "low" | "medium" | "high" | "urgent"
+   * - reason: Optional text explaining why part is needed
+   *
+   * Creates a new request with status PENDING.
+   * Admin will be notified and can approve/reject from admin panel.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -253,6 +344,15 @@ export default function PartsRequestPage() {
     }
   };
 
+  /**
+   * Cancel a pending part request
+   *
+   * API: POST /api/engineer-app/part-requests/{id}/cancel
+   *
+   * Only allowed for requests with status PENDING.
+   * Changes status to CANCELLED and records cancelledAt timestamp.
+   * Request cannot be recovered after cancellation.
+   */
   const handleCancel = async () => {
     if (!selectedRequest) return;
 
@@ -289,6 +389,18 @@ export default function PartsRequestPage() {
     }
   };
 
+  /**
+   * Confirm delivery of a dispatched part
+   *
+   * API: POST /api/engineer-app/part-requests/{id}/delivered
+   *
+   * Only allowed for requests with status DISPATCHED.
+   * Changes status to DELIVERED and records deliveredAt timestamp.
+   *
+   * After confirmation:
+   * - Part is added to engineer's inventory (parts-inventory API)
+   * - Request flow is complete
+   */
   const handleConfirmDelivery = async () => {
     if (!selectedRequest) return;
 

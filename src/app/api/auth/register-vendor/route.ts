@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, phone, password } = validation.data;
+    const { name, email, phone, city, state, categoryIds, password } = validation.data;
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -30,10 +30,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify all category IDs exist and are active
+    const categories = await db.marketplaceCategory.findMany({
+      where: {
+        id: { in: categoryIds },
+        isActive: true,
+      },
+    });
+
+    if (categories.length !== categoryIds.length) {
+      return NextResponse.json(
+        { ok: false, error: "One or more selected categories are invalid" },
+        { status: 400 }
+      );
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user with vendor profile (pending approval)
+    // Create user with vendor profile and category selections (pending approval)
     const user = await db.user.create({
       data: {
         name,
@@ -44,8 +59,15 @@ export async function POST(request: NextRequest) {
         isActive: true,
         vendorProfile: {
           create: {
+            city,
+            state,
             approvalStatus: VendorApprovalStatus.PENDING,
           },
+        },
+        vendorCategories: {
+          create: categoryIds.map((categoryId) => ({
+            categoryId,
+          })),
         },
       },
     });

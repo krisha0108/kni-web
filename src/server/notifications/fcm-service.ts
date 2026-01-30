@@ -21,6 +21,10 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
   }
 
   try {
+    console.log(`📤 Sending push notification to user ${payload.userId}`);
+    console.log(`   Title: ${payload.title}`);
+    console.log(`   Body: ${payload.body}`);
+
     // Get user's notification preferences
     const preferences = await db.notificationPreference.findUnique({
       where: { userId: payload.userId },
@@ -28,7 +32,7 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
 
     // Check if push notifications are enabled
     if (preferences && !preferences.enablePush) {
-      console.log(`Push notifications disabled for user ${payload.userId}`);
+      console.log(`❌ Push notifications disabled for user ${payload.userId}`);
       return false;
     }
 
@@ -40,24 +44,37 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
       },
     });
 
+    console.log(`📱 Found ${deviceTokens.length} active device token(s) for user ${payload.userId}`);
+
     if (deviceTokens.length === 0) {
-      console.log(`No active device tokens found for user ${payload.userId}`);
+      console.log(`❌ No active device tokens found for user ${payload.userId}`);
       return false;
     }
+
+    // Log token info (first 20 chars only for security)
+    deviceTokens.forEach((t, i) => {
+      console.log(`   Token ${i + 1}: ${t.token.substring(0, 20)}... (platform: ${t.platform})`);
+    });
 
     const messaging = getMessaging();
     if (!messaging) {
-      console.error("Firebase Messaging not available");
+      console.error("❌ Firebase Messaging not available");
       return false;
     }
 
-    // Prepare FCM message
-    const fcmData = {
+    // Prepare FCM data - ALL values must be strings
+    const fcmData: Record<string, string> = {
       title: payload.title,
       body: payload.body,
       ...(payload.linkUrl && { linkUrl: payload.linkUrl }),
-      ...(payload.data || {}),
     };
+
+    // Convert any additional data to strings
+    if (payload.data) {
+      Object.entries(payload.data).forEach(([key, value]) => {
+        fcmData[key] = String(value);
+      });
+    }
 
     // Send to all device tokens
     const results = await Promise.allSettled(
@@ -70,14 +87,49 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
               body: payload.body,
             },
             data: fcmData,
+            // Android-specific configuration for background notifications
+            android: {
+              priority: "high" as const,
+              notification: {
+                channelId: "high_importance_channel",
+                priority: "high" as const,
+                defaultSound: true,
+                defaultVibrateTimings: true,
+              },
+            },
+            // iOS-specific configuration for background notifications
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: payload.title,
+                    body: payload.body,
+                  },
+                  sound: "default",
+                  badge: 1,
+                  "content-available": 1,
+                },
+              },
+              headers: {
+                "apns-priority": "10",
+              },
+            },
+            // Web-specific configuration
             webpush: {
               fcmOptions: {
                 link: payload.linkUrl || "/",
               },
+              notification: {
+                icon: "/icon-192x192.png",
+                badge: "/badge-72x72.png",
+                requireInteraction: false,
+              },
             },
           };
 
+          console.log(`📤 Sending to token: ${deviceToken.token.substring(0, 20)}...`);
           const response = await messaging.send(message);
+          console.log(`✅ FCM send successful! Message ID: ${response}`);
 
           // Log successful delivery
           await db.pushNotificationLog.create({
@@ -100,11 +152,16 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
 
           return { success: true, messageId: response };
         } catch (error: any) {
+          console.error(`❌ FCM send failed for token ${deviceToken.token.substring(0, 20)}...`);
+          console.error(`   Error code: ${error.code}`);
+          console.error(`   Error message: ${error.message}`);
+
           // Handle token errors (expired, invalid, unregistered)
           if (
             error.code === "messaging/invalid-registration-token" ||
             error.code === "messaging/registration-token-not-registered"
           ) {
+            console.log(`   ⚠️ Token is invalid/expired, deactivating...`);
             // Deactivate the token
             await db.deviceToken.update({
               where: { id: deviceToken.id },

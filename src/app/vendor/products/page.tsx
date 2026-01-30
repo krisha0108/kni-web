@@ -267,6 +267,7 @@ export default function VendorProductsPage() {
   };
 
   return (
+    <ClientOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -697,5 +698,6 @@ export default function VendorProductsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </ClientOnly>
   );
 }

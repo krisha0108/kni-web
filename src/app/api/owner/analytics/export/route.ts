@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
-import { pdf } from "@react-pdf/renderer";
-import { OwnerAnalyticsDocument } from "@/lib/pdf/owner-analytics-document";
+import { getSession } from "@/server/auth/session";
+import { getMobileSession } from "@/server/auth/mobile-session";
 import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwnerMobile(request);
+    // Try cookie-based session first, then mobile bearer token
+    let session = await getSession();
+    if (!session) {
+      session = await getMobileSession(request);
+    }
+
+    if (!session) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const period = request.nextUrl.searchParams.get("period") || "30";
 
@@ -18,18 +28,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check restaurant access
-    await requireRestaurantAccess(session, restaurantId, "bookings:read");
-
-    // Get restaurant name
-    const restaurant = await db.restaurant.findUnique({
-      where: { id: restaurantId },
-      select: { name: true },
+    // Verify restaurant access and get restaurant name
+    const restaurant = await db.restaurant.findFirst({
+      where: {
+        id: restaurantId,
+        ownerId: session.id,
+      },
+      select: { id: true, name: true },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "Restaurant not found" },
+        { ok: false, error: "Restaurant not found or access denied" },
         { status: 404 }
       );
     }
@@ -38,13 +48,11 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - periodDays);
 
-    // Fetch analytics data (same as analytics route)
+    // Fetch analytics data
     const [
       bookingStats,
       expenseStats,
       equipmentCount,
-      amcStats,
-      marketplaceOrderStats,
       recentBookings,
       recentExpenses,
     ] = await Promise.all([
@@ -61,16 +69,6 @@ export async function GET(request: NextRequest) {
       db.equipment.count({
         where: { restaurantId },
       }),
-      db.aMCSubscription.aggregate({
-        where: { restaurantId },
-        _count: { id: true },
-        _sum: { totalAmount: true },
-      }),
-      db.marketplaceOrder.aggregate({
-        where: { restaurantId, createdAt: { gte: startDate } },
-        _count: { id: true },
-        _sum: { totalAmount: true },
-      }),
       db.serviceBooking.findMany({
         where: { restaurantId, createdAt: { gte: startDate } },
         select: {
@@ -80,7 +78,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
         },
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 10,
       }),
       db.expense.findMany({
         where: { restaurantId, expenseDate: { gte: startDate } },
@@ -92,7 +90,7 @@ export async function GET(request: NextRequest) {
           description: true,
         },
         orderBy: { expenseDate: "desc" },
-        take: 5,
+        take: 10,
       }),
     ]);
 
@@ -109,13 +107,7 @@ export async function GET(request: NextRequest) {
       _sum: { amount: true },
     });
 
-    const marketplaceOrdersByStatus = await db.marketplaceOrder.groupBy({
-      by: ["status"],
-      where: { restaurantId, createdAt: { gte: startDate } },
-      _count: { id: true },
-    });
-
-    // Calculate net revenue
+    // Calculate totals
     const bookingRevenue = bookingStats._sum.totalAmount || 0;
     const expensesTotal = expenseStats._sum?.amount || 0;
     const netRevenue = bookingRevenue - expensesTotal;
@@ -136,14 +128,6 @@ export async function GET(request: NextRequest) {
         equipment: {
           count: equipmentCount,
         },
-        amcSubscriptions: {
-          count: Number(amcStats._count.id),
-          value: amcStats._sum.totalAmount || 0,
-        },
-        marketplaceOrders: {
-          count: Number(marketplaceOrderStats._count.id),
-          total: marketplaceOrderStats._sum.totalAmount || 0,
-        },
         netRevenue,
       },
       breakdowns: {
@@ -155,10 +139,6 @@ export async function GET(request: NextRequest) {
           category: item.category,
           count: Number(item._count?.id || 0),
           total: item._sum?.amount || 0,
-        })),
-        marketplaceOrdersByStatus: marketplaceOrdersByStatus.map((item) => ({
-          status: item.status,
-          count: Number(item._count?.id || 0),
         })),
       },
       recent: {
@@ -178,20 +158,11 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Generate PDF
-    const pdfDoc = pdf(OwnerAnalyticsDocument({ data: analyticsData }));
-    const blob = await pdfDoc.toBlob();
-    const buffer = await blob.arrayBuffer();
-
-    // Create filename
-    const filename = `analytics-${restaurant.name.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
-
-    // Return PDF as download
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-      },
+    // Return JSON data for now (PDF generation can be done client-side)
+    // Mobile app can use this data to generate PDF locally
+    return NextResponse.json({
+      ok: true,
+      data: analyticsData,
     });
   } catch (error) {
     console.error("Export analytics error:", error);

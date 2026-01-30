@@ -90,23 +90,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify product exists and is available
-    const product = await db.vendorProduct.findUnique({
+    const vendorProduct = await db.vendorProduct.findUnique({
       where: { id: productId },
       include: {
+        product: true,
         vendor: {
           select: { id: true, name: true }
         }
       }
     });
 
-    if (!product) {
+    if (!vendorProduct) {
       return NextResponse.json(
         { ok: false, error: "Product not found" },
         { status: 404 }
       );
     }
 
-    if (!product.isActive) {
+    if (!vendorProduct.isActive) {
       return NextResponse.json(
         { ok: false, error: "Product is no longer available" },
         { status: 400 }
@@ -114,15 +115,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check stock - warn if low but still allow adding
-    if (product.stockQuantity < quantity) {
-      if (product.stockQuantity === 0) {
+    if (vendorProduct.stockQuantity < quantity) {
+      if (vendorProduct.stockQuantity === 0) {
         return NextResponse.json(
           { ok: false, error: "Product is out of stock" },
           { status: 400 }
         );
       }
       return NextResponse.json(
-        { ok: false, error: `Only ${product.stockQuantity} items available in stock` },
+        { ok: false, error: `Only ${vendorProduct.stockQuantity} items available in stock` },
         { status: 400 }
       );
     }
@@ -131,14 +132,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        productId: product.id,
-        name: product.name,
-        price: product.price,
+        productId: vendorProduct.id,
+        name: vendorProduct.product?.name || vendorProduct.name,
+        price: vendorProduct.price,
         quantity,
-        vendorId: product.vendorId,
-        vendorName: product.vendor.name,
-        imageUrl: product.imageUrl,
-        stockQuantity: product.stockQuantity,
+        vendorId: vendorProduct.vendorId,
+        vendorName: vendorProduct.vendor.name,
+        imageUrl: vendorProduct.product?.imageUrl || vendorProduct.imageUrl,
+        stockQuantity: vendorProduct.stockQuantity,
       }
     });
   } catch (error: any) {

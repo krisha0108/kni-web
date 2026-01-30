@@ -177,7 +177,7 @@ export default function NewBookingPage() {
       </Button>
 
       <div>
-        <h1 className="text-3xl font-bold">Book Service</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Book Service</h1>
         <p className="text-muted-foreground">Select your preferred date and time slot</p>
       </div>
 

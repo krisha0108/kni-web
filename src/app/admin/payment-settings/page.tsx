@@ -116,7 +116,7 @@ export default function PaymentSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
           <CreditCard className="h-8 w-8" />
           Payment Settings
         </h1>

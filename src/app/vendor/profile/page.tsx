@@ -273,7 +273,7 @@ export default function VendorProfilePage() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-6">
               <div className="relative">
-                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
+                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
                   {formData.name?.charAt(0)?.toUpperCase() || "V"}
                 </div>
                 <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
@@ -303,7 +303,7 @@ export default function VendorProfilePage() {
 
             {/* Stats */}
             {profile?.stats && (
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 text-2xl font-bold">
                     <Package className="h-5 w-5 text-muted-foreground" />

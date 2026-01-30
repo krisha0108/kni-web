@@ -133,7 +133,7 @@ export default function TemplatesPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
           <Sparkles className="h-8 w-8" />
           Content Templates
         </h1>

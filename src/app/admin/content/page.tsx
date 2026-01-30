@@ -9,7 +9,7 @@ export default function ContentManagementPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Mobile App Content Management</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Mobile App Content Management</h1>
         <p className="text-muted-foreground mt-1">
           Manage banners, feeds, guides, and sponsored content for your mobile applications
         </p>
@@ -19,7 +19,7 @@ export default function ContentManagementPage() {
         {/* Banners */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <Image className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/content/banners">
@@ -47,7 +47,7 @@ export default function ContentManagementPage() {
         {/* Feeds */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <MessageSquare className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/content">
@@ -75,7 +75,7 @@ export default function ContentManagementPage() {
         {/* Guides */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <BookOpen className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/content">
@@ -103,7 +103,7 @@ export default function ContentManagementPage() {
         {/* Sponsored Content */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <Megaphone className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/content">

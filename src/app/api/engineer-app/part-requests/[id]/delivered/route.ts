@@ -1,13 +1,65 @@
+/**
+ * ============================================================================
+ * ENGINEER CONFIRM DELIVERY API
+ * ============================================================================
+ *
+ * CONFIRM DELIVERY ACTION (Engineer):
+ * ------------------------------------
+ * Final step in the parts request flow. Engineer confirms they have physically
+ * received the dispatched part. This completes the request lifecycle.
+ *
+ * USE CASES:
+ * - Part delivered by courier/mail
+ * - Part picked up from warehouse
+ * - Part handed over by admin/logistics
+ *
+ * FLOW:
+ *
+ *   ┌─────────────┐
+ *   │ DISPATCHED  │ ─── [Engineer clicks Confirm Delivery] ───► ┌─────────────┐
+ *   └─────────────┘                                              │  DELIVERED  │ (End)
+ *                                                                └─────────────┘
+ *
+ * VALIDATION:
+ * - Request must belong to the logged-in engineer
+ * - Request status must be DISPATCHED
+ * - Only dispatched parts can be marked as delivered
+ *
+ * POST-DELIVERY:
+ * - Part is now considered in engineer's possession
+ * - Can be used for service jobs
+ * - May update engineer's inventory (if inventory tracking enabled)
+ *
+ * IMPORTANT:
+ * Engineer should ONLY confirm after physically receiving the part.
+ * False confirmation may cause inventory discrepancies.
+ *
+ * ============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 // import { db } from "@/server/db";
 // import { requireEngineerMobile } from "@/server/auth/rbac";
 // import { PartRequestStatus } from "@prisma/client";
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * POST /api/engineer-app/part-requests/:id/delivered
- * Confirm delivery of a part request
+ *
+ * Confirm physical delivery of a dispatched part.
+ *
+ * Validation:
+ * - Only DISPATCHED requests can be marked as delivered
+ * - Request must belong to the authenticated engineer
+ *
+ * Side Effects:
+ * - Updates status to DELIVERED
+ * - Records deliveredAt timestamp
+ * - May update engineer's parts inventory
+ *
+ * Response:
+ * - data: { id, status: "delivered", delivered_at }
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function POST(
   request: NextRequest,

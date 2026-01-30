@@ -70,7 +70,7 @@ export default function OwnerCategoryRequestPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -79,7 +79,7 @@ export default function OwnerCategoryRequestPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Request New Category</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Request New Category</h1>
           <p className="text-muted-foreground">Submit a request for a new service or part category</p>
         </div>
       </div>

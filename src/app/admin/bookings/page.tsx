@@ -132,12 +132,12 @@ export default function AdminBookingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Bookings</h1>
-        <p className="text-muted-foreground">Manage all service bookings</p>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Bookings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage all service bookings</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by restaurant or owner..."
@@ -148,7 +148,7 @@ export default function AdminBookingsPage() {
         </div>
         <ClientOnly>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -173,15 +173,15 @@ export default function AdminBookingsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
+              <TableHead className="hidden md:table-cell">ID</TableHead>
               <TableHead>Restaurant</TableHead>
-              <TableHead>Categories</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Preferred Date</TableHead>
+              <TableHead className="hidden lg:table-cell">Categories</TableHead>
+              <TableHead className="hidden sm:table-cell">Owner</TableHead>
+              <TableHead>Date</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Engineer</TableHead>
-              <TableHead className="w-[80px]">Actions</TableHead>
+              <TableHead className="hidden md:table-cell">Engineer</TableHead>
+              <TableHead className="w-[60px] sm:w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -209,11 +209,11 @@ export default function AdminBookingsPage() {
 
                 return (
                   <TableRow key={booking.id}>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell className="hidden md:table-cell font-mono text-xs">
                       {booking.id.slice(0, 8)}...
                     </TableCell>
-                    <TableCell>{booking.restaurant.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[120px] sm:max-w-none truncate">{booking.restaurant.name}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
                         {categoryList.length > 0 ? (
                           categoryList.map((cat) => (
@@ -226,15 +226,15 @@ export default function AdminBookingsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{booking.owner.name}</TableCell>
-                    <TableCell>{formatDate(booking.preferredDate)}</TableCell>
-                    <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{booking.owner.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(booking.preferredDate)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatPrice(booking.totalAmount)}</TableCell>
                     <TableCell>
-                      <Badge variant={statusColors[booking.status] || "default"}>
+                      <Badge variant={statusColors[booking.status] || "default"} className="text-xs whitespace-nowrap">
                         {getStatusLabel(booking.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {booking.engineerAssignments && booking.engineerAssignments.length > 0
                         ? booking.engineerAssignments[0]?.engineer?.name || "-"
                         : "-"}

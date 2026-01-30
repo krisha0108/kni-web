@@ -226,7 +226,7 @@ export default function AdminCategoryRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Category Requests</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Category Requests</h1>
         <p className="text-muted-foreground">Review and manage category requests from restaurant owners</p>
       </div>
 

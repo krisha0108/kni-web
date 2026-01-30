@@ -356,7 +356,7 @@ export default function EngineerJobDetailPage() {
         Back to Jobs
       </Button>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Job Details</h1>
           <p className="text-muted-foreground">{job.booking.restaurant.name}</p>
@@ -724,7 +724,7 @@ export default function EngineerJobDetailPage() {
                 <div className="flex flex-wrap gap-2">
                   {job.workLog.partsUsed.map((part, i) => (
                     <Badge key={i} variant="secondary">
-                      {part}
+                      {typeof part === 'object' ? (part as { name?: string }).name || 'Unknown Part' : part}
                     </Badge>
                   ))}
                 </div>
@@ -888,7 +888,7 @@ export default function EngineerJobDetailPage() {
 
           <div className="space-y-4 py-4">
             {/* Work Summary */}
-            <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 p-2 sm:p-3 bg-muted rounded-lg text-xs sm:text-sm">
               <div className="text-center">
                 <Timer className="h-5 w-5 mx-auto mb-1 text-blue-500" />
                 <p className="font-mono font-bold">{formatTime(timeSpent)}</p>

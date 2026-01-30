@@ -245,9 +245,9 @@ export default function AdminPayoutsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Engineer Payouts</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Engineer Payouts</h1>
           <p className="text-muted-foreground mt-1">
             Manage engineer commission payouts
           </p>
@@ -259,7 +259,7 @@ export default function AdminPayoutsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">

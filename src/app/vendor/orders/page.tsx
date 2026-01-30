@@ -350,7 +350,7 @@ export default function VendorOrdersPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">My Orders</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Orders</h1>
             <p className="text-muted-foreground">
               Manage orders from restaurant owners
             </p>
@@ -374,7 +374,7 @@ export default function VendorOrdersPage() {
 
               {/* Sort */}
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-full md:w-[200px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <ArrowUpDown className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
@@ -444,7 +444,7 @@ export default function VendorOrdersPage() {
                     </div>
 
                     {/* Order Date Range */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Order From</Label>
                         <Input
@@ -464,7 +464,7 @@ export default function VendorOrdersPage() {
                     </div>
 
                     {/* Amount Range */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Min Amount (₹)</Label>
                         <Input

@@ -187,7 +187,7 @@ export default function AdminSupportPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Support Tickets</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Support Tickets</h1>
         <p className="text-muted-foreground mt-1">
           Manage customer support tickets and inquiries
         </p>
@@ -325,12 +325,12 @@ export default function AdminSupportPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Ticket</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Restaurant</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead className="hidden md:table-cell">Owner</TableHead>
+                  <TableHead className="hidden lg:table-cell">Restaurant</TableHead>
+                  <TableHead className="hidden sm:table-cell">Category</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Replies</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="hidden md:table-cell">Replies</TableHead>
+                  <TableHead className="hidden lg:table-cell">Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -361,7 +361,7 @@ export default function AdminSupportPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div>
                         <p className="font-medium">{ticket.owner.name}</p>
                         <p className="text-sm text-muted-foreground">{ticket.owner.email}</p>
@@ -370,20 +370,20 @@ export default function AdminSupportPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       {ticket.restaurant ? ticket.restaurant.name : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline">{ticket.category}</Badge>
                     </TableCell>
                     <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-1">
                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                         {ticket._count.threads}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       <div className="text-sm">
                         <p>{formatDate(ticket.createdAt)}</p>
                       </div>

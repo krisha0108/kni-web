@@ -224,7 +224,7 @@ export default function EngineerProfilePage() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-6">
               <div className="relative">
-                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
+                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
                   {formData.name?.charAt(0)?.toUpperCase() || "E"}
                 </div>
                 <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">

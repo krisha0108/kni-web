@@ -309,9 +309,9 @@ export default function VendorLedgerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Vendor Ledger</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Vendor Ledger</h1>
           <p className="text-muted-foreground">Manage vendor purchases and payments</p>
         </div>
         <div className="flex gap-2">
@@ -327,7 +327,7 @@ export default function VendorLedgerPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
@@ -585,7 +585,7 @@ export default function VendorLedgerPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="vendorName">
                     Vendor Name <span className="text-red-500">*</span>
@@ -628,7 +628,7 @@ export default function VendorLedgerPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="entryType">
                     Entry Type <span className="text-red-500">*</span>
@@ -700,7 +700,7 @@ export default function VendorLedgerPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="billNumber">Bill Number</Label>
                   <Input

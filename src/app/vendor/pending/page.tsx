@@ -38,7 +38,7 @@ export default async function VendorPendingPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Account Status</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Account Status</h1>
         <p className="text-muted-foreground">
           Your vendor account approval status
         </p>

@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
             id: `booking-${booking.id}`,
             type: "BOOKING",
             title: "Payment Required",
-            description: `Booking requires payment of ₹${((booking.totalAmount || 0) / 100).toLocaleString()}`,
+            description: `Booking requires payment of ₹${(booking.totalAmount || 0).toLocaleString()}`,
             status: "PENDING",
             createdAt: booking.createdAt.toISOString(),
             metadata: { bookingId: booking.id },

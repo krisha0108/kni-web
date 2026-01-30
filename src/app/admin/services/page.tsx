@@ -218,9 +218,9 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Services</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Services</h1>
           <p className="text-muted-foreground">Manage service items</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
@@ -242,8 +242,8 @@ export default function AdminServicesPage() {
                 <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Price (in paise)</Label>
-                <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="100000 = Rs.1000" />
+                <Label>Price (₹)</Label>
+                <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="e.g., 1000" />
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
@@ -278,14 +278,14 @@ export default function AdminServicesPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search services..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <ClientOnly>
           <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="All categories" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All categories" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
               {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
@@ -299,10 +299,10 @@ export default function AdminServicesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead className="hidden sm:table-cell">Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[80px] sm:w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -317,7 +317,7 @@ export default function AdminServicesPage() {
                     <div className="font-medium">{service.name}</div>
                     {service.description && <div className="text-sm text-muted-foreground">{service.description}</div>}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <div>{service.category.name}</div>
                     {service.subCategory && <div className="text-sm text-muted-foreground">{service.subCategory.name}</div>}
                   </TableCell>
@@ -353,7 +353,7 @@ export default function AdminServicesPage() {
               <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Price (in paise)</Label>
+              <Label>Price (₹)</Label>
               <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
             </div>
           </div>

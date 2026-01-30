@@ -57,7 +57,7 @@ export async function GET() {
         if (!acc[monthKey]) {
           acc[monthKey] = { month: monthName, revenue: 0, bookings: 0 };
         }
-        acc[monthKey].revenue += (booking.totalAmount || 0) / 100;
+        acc[monthKey].revenue += (booking.totalAmount || 0);
         acc[monthKey].bookings += 1;
       }
       return acc;
@@ -105,7 +105,7 @@ export async function GET() {
         return {
           name: service?.name || 'Unknown',
           bookings: item._count,
-          revenue: (item._sum.priceSnapshot || 0) / 100
+          revenue: (item._sum.priceSnapshot || 0)
         };
       })
     );
@@ -149,7 +149,7 @@ export async function GET() {
     const statCards = [
       {
         title: "Total Revenue",
-        value: `₹${(totalRevenue / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        value: `₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         icon: "DollarSign",
         description: "From completed bookings",
       },
@@ -161,7 +161,7 @@ export async function GET() {
       },
       {
         title: "Average Booking Value",
-        value: `₹${(averageBookingValue / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        value: `₹${averageBookingValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         icon: "TrendingUp",
         description: "Per booking",
       },

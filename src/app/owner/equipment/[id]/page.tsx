@@ -180,7 +180,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           duration: amcFormData.duration,
           serviceLimit: amcFormData.serviceLimit,
           featuresJson: amcFormData.featuresJson.length > 0 ? amcFormData.featuresJson : undefined,
-          totalAmount: Math.round(amcFormData.totalAmount * 100), // Convert to paise
+          totalAmount: amcFormData.totalAmount,
           startDate: new Date(amcFormData.startDate).toISOString(),
           autoRenew: amcFormData.autoRenew,
         }),
@@ -402,8 +402,8 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push("/owner/equipment")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -443,7 +443,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Spend</p>
-                <p className="text-xl font-bold">₹{((equipment.totalSpend || 0) / 100).toLocaleString()}</p>
+                <p className="text-xl font-bold">₹{(equipment.totalSpend || 0).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -543,7 +543,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
               {photoUrls.length > 0 && (
                 <div>
                   <Label className="text-muted-foreground mb-2 block">Equipment Photos</Label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {photoUrls.map((url, index) => (
                       <div
                         key={index}
@@ -572,7 +572,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           {/* AMC Subscriptions */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
                   AMC Subscriptions
@@ -734,7 +734,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                           <div>
                             <p className="text-muted-foreground">Amount</p>
-                            <p className="font-medium">₹{(amc.totalAmount / 100).toLocaleString()}</p>
+                            <p className="font-medium">₹{amc.totalAmount.toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Period</p>
@@ -884,7 +884,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                           {service.estimatedPrice && (
                             <p className="font-medium text-sm ml-2">
-                              ₹{(service.estimatedPrice / 100).toFixed(2)}
+                              ₹{service.estimatedPrice.toLocaleString()}
                             </p>
                           )}
                         </div>
@@ -941,11 +941,11 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                   {selectedServices.map((serviceId) => {
                     const service = equipment.equipmentType?.serviceTemplates.find(s => s.id === serviceId);
                     return service ? (
-                      <li key={serviceId} className="flex items-center justify-between">
+                      <li key={serviceId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <span>• {service.name}</span>
                         {service.estimatedPrice && (
                           <span className="text-muted-foreground">
-                            ₹{(service.estimatedPrice / 100).toFixed(2)}
+                            ₹{service.estimatedPrice.toLocaleString()}
                           </span>
                         )}
                       </li>

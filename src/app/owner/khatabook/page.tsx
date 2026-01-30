@@ -120,7 +120,7 @@ export default function KhatabookDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Khatabook</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Khatabook</h1>
         <p className="text-muted-foreground">
           Complete finance management for {selectedRestaurant.restaurant.name}
         </p>
@@ -207,7 +207,7 @@ export default function KhatabookDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">
                   {formatPrice(stats.summary.totalIncome)}
                 </div>
                 <div className="space-y-2 text-sm">
@@ -231,7 +231,7 @@ export default function KhatabookDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="text-3xl font-bold text-red-600">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600">
                   {formatPrice(stats.summary.totalExpenses)}
                 </div>
                 <div className="space-y-2 text-sm">

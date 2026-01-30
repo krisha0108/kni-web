@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert amount to paise
-    const amountInPaise = Math.round(validated.amount * 100);
+    // Amount is stored in rupees directly
+    const amount = validated.amount;
 
     // Calculate running balance for this vendor
     const previousEntries = await db.vendorLedger.findMany({
@@ -117,9 +117,9 @@ export async function POST(request: NextRequest) {
     // PAYMENT and CREDIT_NOTE decrease balance
     let balanceChange = 0;
     if (validated.entryType === "PURCHASE" || validated.entryType === "DEBIT_NOTE") {
-      balanceChange = amountInPaise;
+      balanceChange = amount;
     } else if (validated.entryType === "PAYMENT" || validated.entryType === "CREDIT_NOTE") {
-      balanceChange = -amountInPaise;
+      balanceChange = -amount;
     }
 
     const newBalance = previousBalance + balanceChange;
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         vendorPhone: validated.vendorPhone,
         vendorGST: validated.vendorGST,
         entryType: validated.entryType,
-        amount: amountInPaise,
+        amount: amount,
         paymentMode: validated.paymentMode,
         description: validated.description,
         billNumber: validated.billNumber,

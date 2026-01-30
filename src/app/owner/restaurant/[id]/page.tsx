@@ -1,35 +1,109 @@
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ClickableImage } from "@/components/ui/clickable-image";
 import { ExternalLinkButton } from "@/components/ui/external-link-button";
-import { db } from "@/server/db";
-import { getSession } from "@/server/auth/session";
-import { redirect, notFound } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import Image from "next/image";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText, Pencil, Trash2, Loader2 } from "lucide-react";
 
-export default async function RestaurantDetailPage({
+interface Restaurant {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  pincode: string | null;
+  restaurantImageUrl: string | null;
+  fssaiNumber: string | null;
+  fssaiCertificateUrl: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+export default function RestaurantDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const { id } = use(params);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const { id } = await params;
+  useEffect(() => {
+    const fetchRestaurant = async () => {
+      try {
+        const response = await fetch(`/api/owner/restaurants/${id}`);
+        const data = await response.json();
 
-  const restaurant = await db.restaurant.findFirst({
-    where: {
-      id,
-      ownerId: session.id,
-    },
-  });
+        if (data.ok) {
+          setRestaurant(data.data);
+        } else {
+          toast({ title: "Error", description: data.error, variant: "destructive" });
+          router.push("/owner/restaurants");
+        }
+      } catch {
+        toast({ title: "Error", description: "Failed to fetch restaurant", variant: "destructive" });
+        router.push("/owner/restaurants");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRestaurant();
+  }, [id, router, toast]);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/owner/restaurants/${id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({ title: "Success", description: "Restaurant deleted successfully" });
+        router.push("/owner/restaurants");
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete restaurant", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!restaurant) {
-    notFound();
+    return null;
   }
 
   const statusConfig = {
@@ -56,14 +130,37 @@ export default async function RestaurantDetailPage({
   const config = statusConfig[restaurant.status];
   const StatusIcon = config.icon;
 
+  // Can only delete restaurants that are PENDING or REJECTED (not active with bookings)
+  const canDelete = restaurant.status === "PENDING" || restaurant.status === "REJECTED";
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <Button variant="ghost" asChild>
-        <Link href="/owner/restaurants">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Restaurants
-        </Link>
-      </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Button variant="ghost" asChild>
+          <Link href="/owner/restaurants">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Restaurants
+          </Link>
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/owner/restaurant/${id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
+          {canDelete && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          )}
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -172,7 +269,7 @@ export default async function RestaurantDetailPage({
       {/* Status Alerts */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-            {restaurant.status === "PENDING" && (
+          {restaurant.status === "PENDING" && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{config.title}</AlertTitle>
@@ -209,6 +306,36 @@ export default async function RestaurantDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Restaurant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{restaurant.name}&quot;? This action cannot be undone
+              and will remove all associated data including equipment, bookings history, and expenses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

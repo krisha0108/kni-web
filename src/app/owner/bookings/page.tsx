@@ -228,9 +228,9 @@ export default function OwnerBookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">My Bookings</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Bookings</h1>
           <p className="text-muted-foreground">View and manage your service bookings for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex gap-2">
@@ -317,7 +317,7 @@ export default function OwnerBookingsPage() {
                   </div>
 
                   {/* Date Range */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>From Date</Label>
                       <Input
@@ -337,7 +337,7 @@ export default function OwnerBookingsPage() {
                   </div>
 
                   {/* Amount Range */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Min Amount (₹)</Label>
                       <Input
@@ -472,34 +472,34 @@ export default function OwnerBookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Booking ID</TableHead>
+                <TableHead className="hidden lg:table-cell">Booking ID</TableHead>
                 <TableHead>Restaurant</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Preferred Date</TableHead>
+                <TableHead className="hidden md:table-cell">Items</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Engineer</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="hidden md:table-cell">Engineer</TableHead>
+                <TableHead className="w-[80px] sm:w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBookings.map((booking) => (
                 <TableRow key={booking.id}>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="hidden lg:table-cell font-mono text-sm">
                     {booking.id.slice(0, 8)}...
                   </TableCell>
                   <TableCell>{booking.restaurant.name}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {booking.items.length} item{booking.items.length !== 1 ? "s" : ""}
                   </TableCell>
-                  <TableCell>{formatDate(booking.preferredDate)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDate(booking.preferredDate)}</TableCell>
                   <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
                   <TableCell>
                     <Badge variant={statusColors[booking.status] || "default"}>
                       {getStatusLabel(booking.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {booking.engineerAssignment?.engineer?.name || "-"}
                   </TableCell>
                   <TableCell>

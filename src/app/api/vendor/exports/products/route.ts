@@ -23,7 +23,7 @@ export async function GET() {
       { key: 'id', header: 'Product ID' },
       { key: 'name', header: 'Name' },
       { key: 'category', header: 'Category' },
-      { key: 'price', header: 'Price (₹)', formatter: (v) => `₹${(v / 100).toFixed(2)}` },
+      { key: 'price', header: 'Price (₹)', formatter: (v) => `₹${v.toLocaleString('en-IN')}` },
       { key: 'stock', header: 'Stock' },
       { key: 'isActive', header: 'Active', formatter: (v) => v ? 'Yes' : 'No' },
       { key: 'createdAt', header: 'Created At', formatter: (v) => new Date(v).toLocaleString('en-IN') },

@@ -4,9 +4,9 @@
 
 /**
  * Calculate commission amount based on booking total and commission rate
- * @param bookingAmount - Total booking amount in paise
+ * @param bookingAmount - Total booking amount in rupees
  * @param commissionRate - Commission percentage (default 20%)
- * @returns Commission amount in paise
+ * @returns Commission amount in rupees
  */
 export function calculateCommission(
   bookingAmount: number,
@@ -24,17 +24,17 @@ export function calculateCommission(
 }
 
 /**
- * Format amount from paise to rupees
- * @param paise - Amount in paise
+ * Format amount in rupees
+ * @param amount - Amount in rupees
  * @returns Formatted string in rupees
  */
-export function formatAmount(paise: number): string {
-  return `₹${(paise / 100).toFixed(2)}`;
+export function formatAmount(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
  * Calculate engineer earnings breakdown
- * @param bookingAmount - Total booking amount in paise
+ * @param bookingAmount - Total booking amount in rupees
  * @param commissionRate - Commission percentage
  * @returns Object with total, commission, and platform fee
  */

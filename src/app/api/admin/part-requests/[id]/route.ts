@@ -1,3 +1,50 @@
+/**
+ * ============================================================================
+ * ADMIN PART REQUEST ACTIONS API
+ * ============================================================================
+ *
+ * ADMIN ACTIONS ON PART REQUESTS:
+ * -------------------------------
+ * This API handles admin actions (approve, reject, dispatch) on individual
+ * part requests. Each action triggers notifications to the engineer.
+ *
+ * AVAILABLE ACTIONS:
+ *
+ * 1. APPROVE (PENDING → APPROVED)
+ *    ─────────────────────────────
+ *    - Admin approves the part request
+ *    - Optional: Add admin note
+ *    - Records approvedAt timestamp and adminId
+ *    - Engineer notified: "Your request for {part} has been approved"
+ *    - Request moves to "Ready to Dispatch" queue
+ *
+ * 2. REJECT (PENDING → REJECTED)
+ *    ────────────────────────────
+ *    - Admin rejects the part request
+ *    - Required: Rejection reason (displayed to engineer)
+ *    - Optional: Admin note
+ *    - Records rejectedAt timestamp and adminId
+ *    - Engineer notified: "Your request for {part} was rejected. Reason: {reason}"
+ *    - Request is terminal (cannot be recovered)
+ *
+ * 3. DISPATCH (APPROVED → DISPATCHED)
+ *    ─────────────────────────────────
+ *    - Admin marks part as shipped/dispatched
+ *    - Records dispatchedAt timestamp
+ *    - Engineer notified: "{part} has been dispatched and is on its way"
+ *    - Engineer can now use "Confirm Delivery" button
+ *
+ * STATUS FLOW:
+ *
+ *   PENDING ──┬──► APPROVED ──► DISPATCHED ──► DELIVERED (by engineer)
+ *             │
+ *             ├──► REJECTED (terminal)
+ *             │
+ *             └──► CANCELLED (by engineer, terminal)
+ *
+ * ============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 // import { db } from "@/server/db";
 // import { requireAdmin } from "@/server/auth/rbac";
@@ -6,10 +53,15 @@ import { NextRequest, NextResponse } from "next/server";
 // import { NotificationType } from "@prisma/client";
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * GET /api/admin/part-requests/:id
- * Get a single part request details
+ *
+ * Fetch single part request with full details including:
+ * - Part info (name, description, price, category, current stock)
+ * - Engineer info (name, email, phone)
+ * - Assignment info (job, restaurant address)
+ * - Processing admin info (who approved/rejected)
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function GET(
   request: NextRequest,
@@ -111,10 +163,26 @@ export async function GET(
 }
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * PATCH /api/admin/part-requests/:id
- * Update a part request (approve, reject, dispatch)
+ *
+ * Process admin actions on a part request.
+ *
+ * Request Body:
+ * - action (required): "approve" | "reject" | "dispatch"
+ * - adminNote (optional): Note from admin (visible to engineer)
+ * - rejectionReason (required for reject): Reason for rejection
+ *
+ * Action Validations:
+ * - approve: Only PENDING requests can be approved
+ * - reject: Only PENDING requests can be rejected, reason required
+ * - dispatch: Only APPROVED requests can be dispatched
+ *
+ * Side Effects:
+ * - Updates request status and timestamp
+ * - Records adminId who processed the request
+ * - Creates notification for engineer
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function PATCH(
   request: NextRequest,

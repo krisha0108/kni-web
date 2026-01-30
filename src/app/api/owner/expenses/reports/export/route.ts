@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       const restaurant = expense.restaurant.name;
       const category = getExpenseCategoryLabel(expense.category as any);
       const description = expense.description.replace(/"/g, '""'); // Escape quotes
-      const amount = (expense.amount / 100).toFixed(2);
+      const amount = expense.amount.toFixed(2);
 
       return [date, restaurant, category, `"${description}"`, amount];
     });
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate total
     const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const totalRow = `\n\nTotal:,,,,"${(totalAmount / 100).toFixed(2)}"`;
+    const totalRow = `\n\nTotal:,,,,"${totalAmount.toFixed(2)}"`;
 
     // Return CSV response
     return new NextResponse(csvContent + totalRow, {

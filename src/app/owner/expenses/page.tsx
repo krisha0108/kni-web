@@ -175,7 +175,7 @@ export default function OwnerExpensesPage() {
       if (formData.category !== editingExpense.category) payload.category = formData.category;
       if (formData.amount) {
         const amount = parseFloat(formData.amount);
-        if (amount !== editingExpense.amount / 100) payload.amount = amount;
+        if (amount !== editingExpense.amount) payload.amount = amount;
       }
       if (formData.expenseDate !== editingExpense.expenseDate.split("T")[0])
         payload.expenseDate = new Date(formData.expenseDate).toISOString();
@@ -260,7 +260,7 @@ export default function OwnerExpensesPage() {
     setFormData({
       restaurantId: expense.restaurant.id,
       category: expense.category as any,
-      amount: (expense.amount / 100).toString(),
+      amount: expense.amount.toString(),
       expenseDate: expense.expenseDate.split("T")[0],
       description: expense.description,
       receiptImageUrl: expense.receiptImageUrl || "",
@@ -284,9 +284,9 @@ export default function OwnerExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">My Expenses</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Expenses</h1>
           <p className="text-muted-foreground">Track and manage your restaurant expenses for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ export default function OwnerExpensesPage() {
           <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{formatPrice(totalAmount)}</div>
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatPrice(totalAmount)}</div>
           <p className="text-sm text-muted-foreground mt-1">
             Based on {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
           </p>
@@ -407,7 +407,7 @@ export default function OwnerExpensesPage() {
           <Label className="text-sm">Category:</Label>
           <ClientOnly>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -453,11 +453,11 @@ export default function OwnerExpensesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead>Restaurant</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="hidden sm:table-cell">Restaurant</TableHead>
+              <TableHead className="hidden md:table-cell">Category</TableHead>
+              <TableHead className="hidden lg:table-cell">Description</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead className="w-[80px] sm:w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -477,13 +477,13 @@ export default function OwnerExpensesPage() {
               expenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell>{formatDate(expense.expenseDate)}</TableCell>
-                  <TableCell>{expense.restaurant.name}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{expense.restaurant.name}</TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge variant="outline">
                       {getExpenseCategoryLabel(expense.category as any)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-xs truncate">{expense.description}</TableCell>
+                  <TableCell className="hidden lg:table-cell max-w-xs truncate">{expense.description}</TableCell>
                   <TableCell className="font-medium">{formatPrice(expense.amount)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

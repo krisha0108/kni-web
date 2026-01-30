@@ -106,13 +106,13 @@ export default function VendorCategoriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">My Categories</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Categories</h1>
         <p className="text-muted-foreground">
           Select the categories you want to sell products from. You can only add products from selected categories.
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <Badge variant="outline" className="text-base px-4 py-2">
           {selectedCount} of {categories.length} categories selected
         </Badge>

@@ -55,8 +55,8 @@ interface Staff {
   status: "ACTIVE" | "ON_LEAVE" | "RESIGNED" | "TERMINATED";
   joiningDate: string;
   leavingDate?: string;
-  monthlySalary?: number; // in paise
-  dailyWage?: number; // in paise
+  monthlySalary?: number;
+  dailyWage?: number;
   _count?: {
     attendance: number;
     salaryRecords: number;
@@ -289,8 +289,8 @@ export default function StaffManagementPage() {
       staffType: member.staffType,
       status: member.status,
       joiningDate: member.joiningDate ? member.joiningDate.split("T")[0] : "",
-      monthlySalary: member.monthlySalary ? (member.monthlySalary / 100).toString() : "",
-      dailyWage: member.dailyWage ? (member.dailyWage / 100).toString() : "",
+      monthlySalary: member.monthlySalary ? member.monthlySalary.toString() : "",
+      dailyWage: member.dailyWage ? member.dailyWage.toString() : "",
     });
     setIsDialogOpen(true);
   };
@@ -397,9 +397,9 @@ export default function StaffManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Staff Management</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Staff Management</h1>
           <p className="text-muted-foreground">Manage your restaurant staff</p>
         </div>
         <Button onClick={openAddDialog}>
@@ -409,7 +409,7 @@ export default function StaffManagementPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by name, designation, or phone..."
@@ -455,12 +455,12 @@ export default function StaffManagementPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Designation</TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Salary/Wage</TableHead>
-                  <TableHead>Joining Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                  <TableHead className="hidden md:table-cell">Salary/Wage</TableHead>
+                  <TableHead className="hidden lg:table-cell">Joining Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -468,8 +468,8 @@ export default function StaffManagementPage() {
                 {filteredStaff.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell>{member.designation}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">{member.designation}</TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Badge variant="outline">{staffTypeLabels[member.staffType]}</Badge>
                     </TableCell>
                     <TableCell>
@@ -477,20 +477,20 @@ export default function StaffManagementPage() {
                         {staffStatusLabels[member.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3 text-muted-foreground" />
                         {member.phone}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {member.monthlySalary
-                        ? formatPrice(member.monthlySalary / 100) + "/month"
+                        ? formatPrice(member.monthlySalary) + "/month"
                         : member.dailyWage
-                        ? formatPrice(member.dailyWage / 100) + "/day"
+                        ? formatPrice(member.dailyWage) + "/day"
                         : "-"}
                     </TableCell>
-                    <TableCell>{formatDate(member.joiningDate)}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{formatDate(member.joiningDate)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -554,7 +554,7 @@ export default function StaffManagementPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">
                     Name <span className="text-red-500">*</span>
@@ -581,7 +581,7 @@ export default function StaffManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="designation">
                     Designation <span className="text-red-500">*</span>
@@ -615,7 +615,7 @@ export default function StaffManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="joiningDate">
                     Joining Date <span className="text-red-500">*</span>

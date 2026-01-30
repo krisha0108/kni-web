@@ -285,13 +285,13 @@ export default function StaffAttendancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Staff Attendance</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Staff Attendance</h1>
         <p className="text-muted-foreground">Mark and manage daily attendance</p>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <CardTitle>Attendance for {formatDate(selectedDate)}</CardTitle>
               <CardDescription>

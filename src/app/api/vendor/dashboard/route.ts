@@ -61,7 +61,7 @@ export async function GET() {
         });
         return {
           name: product?.name || 'Unknown',
-          revenue: (item._sum.priceSnapshot || 0) / 100,
+          revenue: (item._sum.priceSnapshot || 0),
           quantity: item._sum.qty || 0
         };
       })
@@ -95,7 +95,7 @@ export async function GET() {
         userName: session.name,
         products,
         orders,
-        totalRevenue: totalRevenue / 100,
+        totalRevenue: totalRevenue,
         topProductsData,
         subInfo
       }

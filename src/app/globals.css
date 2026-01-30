@@ -110,3 +110,41 @@
 .animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
 }
+
+/* Responsive utilities */
+@layer utilities {
+  /* Hide on mobile, show on larger screens */
+  .responsive-hide-mobile {
+    @apply hidden sm:table-cell;
+  }
+
+  /* Page title sizing */
+  .page-title {
+    @apply text-xl sm:text-2xl lg:text-3xl font-bold;
+  }
+
+  /* Page description */
+  .page-description {
+    @apply text-sm sm:text-base text-muted-foreground;
+  }
+
+  /* Responsive flex wrap for filters */
+  .filter-bar {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center;
+  }
+
+  /* Responsive select width */
+  .responsive-select {
+    @apply w-full sm:w-[180px] md:w-[200px];
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    @apply grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4;
+  }
+
+  /* Content grid */
+  .content-grid {
+    @apply grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+}

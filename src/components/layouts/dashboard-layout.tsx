@@ -45,7 +45,7 @@ export function DashboardLayout({
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar items={sidebarItems} title={sidebarTitle} />
+        <Sidebar items={sidebarItems} title={sidebarTitle} mobile />
       </div>
 
       <div className="lg:pl-64">

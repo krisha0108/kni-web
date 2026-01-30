@@ -361,9 +361,9 @@ export default function OwnerEquipmentPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">My Equipment</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Equipment</h1>
           <p className="text-muted-foreground">Manage your kitchen equipment and appliances for {selectedRestaurant.restaurant.name}</p>
         </div>
         <div className="flex gap-2">
@@ -441,7 +441,7 @@ export default function OwnerEquipmentPage() {
                 </ClientOnly>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Brand</Label>
                   <Input
@@ -634,7 +634,7 @@ export default function OwnerEquipmentPage() {
                   </div>
 
                   {/* Purchase Date Range */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Purchased From</Label>
                       <Input
@@ -730,13 +730,13 @@ export default function OwnerEquipmentPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Brand</TableHead>
-              <TableHead>Serial Number</TableHead>
-              <TableHead>Purchase Date</TableHead>
-              <TableHead>Warranty Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Category</TableHead>
+              <TableHead className="hidden md:table-cell">Brand</TableHead>
+              <TableHead className="hidden lg:table-cell">Serial Number</TableHead>
+              <TableHead className="hidden lg:table-cell">Purchase Date</TableHead>
+              <TableHead className="hidden md:table-cell">Warranty</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead className="w-[100px] sm:w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -770,7 +770,7 @@ export default function OwnerEquipmentPage() {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div>
                         <p>{item.category?.name || "-"}</p>
                         {item.subCategory && (
@@ -778,12 +778,12 @@ export default function OwnerEquipmentPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{item.brand || "-"}</TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="hidden md:table-cell">{item.brand || "-"}</TableCell>
+                    <TableCell className="hidden lg:table-cell font-mono text-sm">
                       {item.serialNumber || "-"}
                     </TableCell>
-                    <TableCell>{formatDate(item.purchaseDate)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">{formatDate(item.purchaseDate)}</TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Badge variant={warrantyStatus.color === "green" ? "success" : warrantyStatus.color === "yellow" ? "warning" : warrantyStatus.color === "red" ? "destructive" : "secondary"}>
                         {warrantyStatus.label}
                       </Badge>

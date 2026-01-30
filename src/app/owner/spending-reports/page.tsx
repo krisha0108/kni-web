@@ -211,7 +211,7 @@ export default function SpendingReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Spending</p>
                     <p className="text-2xl font-bold">{formatPrice(data.totalSpending)}</p>
@@ -239,7 +239,7 @@ export default function SpendingReportsPage() {
 
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Services</p>
                     <p className="text-2xl font-bold">{formatPrice(data.serviceSpending)}</p>
@@ -254,7 +254,7 @@ export default function SpendingReportsPage() {
 
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Parts & Equipment</p>
                     <p className="text-2xl font-bold">{formatPrice(data.partsSpending)}</p>
@@ -269,7 +269,7 @@ export default function SpendingReportsPage() {
 
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">AMC Subscriptions</p>
                     <p className="text-2xl font-bold">{formatPrice(data.amcSpending)}</p>
@@ -361,7 +361,7 @@ export default function SpendingReportsPage() {
                     key={expense.id}
                     className="flex items-center justify-between p-4 rounded-lg border"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
                         #{index + 1}
                       </div>

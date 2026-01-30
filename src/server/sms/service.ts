@@ -482,7 +482,7 @@ export async function sendBookingConfirmationSMS(
   amount: number,
   slotDate: string
 ): Promise<void> {
-  const message = `Your service booking #${bookingId.slice(-8)} is confirmed for ${slotDate}. Amount: ₹${(amount / 100).toFixed(2)}. Thank you for choosing KNI Super App!`;
+  const message = `Your service booking #${bookingId.slice(-8)} is confirmed for ${slotDate}. Amount: ₹${amount.toLocaleString('en-IN')}. Thank you for choosing KNI Super App!`;
 
   await sendSMS({
     phone,
@@ -499,7 +499,7 @@ export async function sendPaymentReceivedSMS(
   amount: number,
   bookingId: string
 ): Promise<void> {
-  const message = `Payment of ₹${(amount / 100).toFixed(2)} received for booking #${bookingId.slice(-8)}. Your booking will be processed shortly.`;
+  const message = `Payment of ₹${amount.toLocaleString('en-IN')} received for booking #${bookingId.slice(-8)}. Your booking will be processed shortly.`;
 
   await sendSMS({
     phone,
@@ -551,7 +551,7 @@ export async function sendOrderPlacedSMS(
   amount: number,
   vendorName: string
 ): Promise<void> {
-  const message = `Your order #${orderId.slice(-8)} from ${vendorName} for ₹${(amount / 100).toFixed(2)} has been placed successfully.`;
+  const message = `Your order #${orderId.slice(-8)} from ${vendorName} for ₹${amount.toLocaleString('en-IN')} has been placed successfully.`;
 
   await sendSMS({
     phone,

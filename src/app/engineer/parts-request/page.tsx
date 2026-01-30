@@ -477,7 +477,7 @@ export default function PartsRequestPage() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
             <div>
               <p className="text-muted-foreground">Quantity</p>
               <p className="font-medium">{request.quantity}</p>
@@ -556,9 +556,9 @@ export default function PartsRequestPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Parts Request</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Parts Request</h1>
           <p className="text-muted-foreground">Request parts for your service jobs</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)}>
@@ -568,7 +568,7 @@ export default function PartsRequestPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
@@ -742,7 +742,7 @@ export default function PartsRequestPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">
                     Quantity <span className="text-red-500">*</span>

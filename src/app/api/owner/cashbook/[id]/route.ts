@@ -42,7 +42,7 @@ export async function PATCH(
     const updateData: any = {};
 
     if (validated.entryType) updateData.entryType = validated.entryType;
-    if (validated.amount) updateData.amount = Math.round(validated.amount * 100);
+    if (validated.amount) updateData.amount = validated.amount;
     if (validated.paymentMode) updateData.paymentMode = validated.paymentMode;
     if (validated.category !== undefined) updateData.category = validated.category;
     if (validated.description) updateData.description = validated.description;

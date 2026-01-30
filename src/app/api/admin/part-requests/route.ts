@@ -1,13 +1,94 @@
+/**
+ * ============================================================================
+ * ADMIN PART REQUESTS API
+ * ============================================================================
+ *
+ * PARTS REQUEST FLOW - ADMIN PERSPECTIVE:
+ * ---------------------------------------
+ * Admins are responsible for reviewing, approving, rejecting, and dispatching
+ * part requests submitted by service engineers.
+ *
+ * ADMIN WORKFLOW:
+ *
+ *   ┌─────────────────────────────────────────────────────────────────────┐
+ *   │                     ADMIN PART REQUEST WORKFLOW                      │
+ *   └─────────────────────────────────────────────────────────────────────┘
+ *
+ *   [Engineer submits request]
+ *            │
+ *            ▼
+ *   ┌────────────────────────────────────────────────────────────────────┐
+ *   │  PENDING REQUESTS QUEUE                                            │
+ *   │  ┌──────────────────────────────────────────────────────────────┐ │
+ *   │  │ Admin reviews:                                                │ │
+ *   │  │ • Part name, quantity, price                                  │ │
+ *   │  │ • Engineer info (name, phone)                                 │ │
+ *   │  │ • Priority level (URGENT requests at top)                     │ │
+ *   │  │ • Reason/justification                                        │ │
+ *   │  │ • Current stock availability                                  │ │
+ *   │  │ • Associated job/restaurant (if linked)                       │ │
+ *   │  └──────────────────────────────────────────────────────────────┘ │
+ *   └────────────────────────────────────────────────────────────────────┘
+ *            │
+ *            ├─────────────────────┬─────────────────────┐
+ *            ▼                     ▼                     │
+ *   ┌─────────────────┐    ┌─────────────────┐          │
+ *   │     APPROVE     │    │     REJECT      │          │
+ *   │  (one-click)    │    │ (requires       │          │
+ *   │                 │    │  reason)        │          │
+ *   └─────────────────┘    └─────────────────┘          │
+ *            │                     │                     │
+ *            ▼                     ▼                     │
+ *   Engineer notified      Engineer notified            │
+ *   "Request approved"     with rejection reason        │
+ *            │                                          │
+ *            ▼                                          │
+ *   ┌─────────────────┐                                │
+ *   │    DISPATCH     │◄────────────────────────────────┘
+ *   │  (when ready    │
+ *   │   to ship)      │
+ *   └─────────────────┘
+ *            │
+ *            ▼
+ *   Engineer notified "Part dispatched"
+ *   Engineer can now "Confirm Delivery"
+ *
+ * API ENDPOINT:
+ * -------------
+ * GET /api/admin/part-requests
+ *     - Fetch all part requests with filtering and pagination
+ *     - Admin-only endpoint (requires admin authentication)
+ *
+ * Query Parameters:
+ * - status: Filter by status (pending, approved, rejected, dispatched, delivered, cancelled)
+ * - priority: Filter by priority (low, medium, high, urgent)
+ * - engineerId: Filter by specific engineer
+ * - search: Search by part name, engineer name, or reason
+ * - page: Page number (default: 1)
+ * - limit: Items per page (default: 20)
+ *
+ * Response:
+ * - data: Array of part requests with full details (part, engineer, assignment)
+ * - pagination: { page, limit, total, totalPages }
+ * - summary: Counts for each status (for dashboard cards and tab badges)
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
+ *
+ * ============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 // import { db } from "@/server/db";
 // import { requireAdmin } from "@/server/auth/rbac";
 // import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * GET /api/admin/part-requests
- * Get all part requests with filters
+ *
+ * Fetch all part requests with filters for admin review.
+ * Requests are sorted by priority (URGENT first) then by creation date.
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function GET(request: NextRequest) {
   return NextResponse.json(

@@ -193,7 +193,7 @@ export default function CashbookPage() {
     setEditingEntry(entry);
     setFormData({
       entryType: entry.entryType,
-      amount: (entry.amount / 100).toString(),
+      amount: entry.amount.toString(),
       paymentMode: entry.paymentMode,
       category: entry.category || "",
       description: entry.description,
@@ -331,7 +331,7 @@ export default function CashbookPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Daily Cashbook</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Daily Cashbook</h1>
           <p className="text-muted-foreground">
             Track cash and bank transactions for {selectedRestaurant.restaurant.name}
           </p>
@@ -544,7 +544,7 @@ export default function CashbookPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="entryType">
                   Entry Type <span className="text-destructive">*</span>
@@ -585,7 +585,7 @@ export default function CashbookPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="paymentMode">Payment Mode</Label>
                 <Select
@@ -639,7 +639,7 @@ export default function CashbookPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="referenceNo">Reference Number</Label>
                 <Input

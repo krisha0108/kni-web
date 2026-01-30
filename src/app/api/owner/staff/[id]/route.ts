@@ -97,10 +97,10 @@ export async function PATCH(
     if (validated.staffType) updateData.staffType = validated.staffType;
     if (validated.status) updateData.status = validated.status;
     if (validated.monthlySalary !== undefined) {
-      updateData.monthlySalary = validated.monthlySalary ? Math.round(validated.monthlySalary * 100) : null;
+      updateData.monthlySalary = validated.monthlySalary || null;
     }
     if (validated.dailyWage !== undefined) {
-      updateData.dailyWage = validated.dailyWage ? Math.round(validated.dailyWage * 100) : null;
+      updateData.dailyWage = validated.dailyWage || null;
     }
 
     const staff = await db.staff.update({

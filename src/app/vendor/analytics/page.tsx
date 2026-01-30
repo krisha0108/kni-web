@@ -150,7 +150,7 @@ export default function VendorAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Vendor Analytics</h1>
+          <h1 className="text-2xl sm:text-xl sm:text-2xl lg:text-3xl font-bold">Vendor Analytics</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Track your marketplace performance</p>
         </div>
         <ClientOnly>

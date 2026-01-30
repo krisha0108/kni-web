@@ -86,7 +86,7 @@ export async function PATCH(
     const updateData: any = {};
     if (validation.data.category !== undefined) updateData.category = validation.data.category;
     if (validation.data.amount !== undefined)
-      updateData.amount = Math.round(validation.data.amount * 100);
+      updateData.amount = validation.data.amount;
     if (validation.data.expenseDate !== undefined)
       updateData.expenseDate = new Date(validation.data.expenseDate);
     if (validation.data.description !== undefined)

@@ -60,7 +60,7 @@ export default function EngineerCompletedPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Completed Jobs</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Completed Jobs</h1>
         <p className="text-muted-foreground">View your completed work history</p>
       </div>
 

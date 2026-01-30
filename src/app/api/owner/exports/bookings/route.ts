@@ -51,7 +51,7 @@ export async function GET() {
       { key: 'id', header: 'Booking ID' },
       { key: 'restaurantName', header: 'Restaurant' },
       { key: 'status', header: 'Status', formatter: (v) => v.replace(/_/g, ' ') },
-      { key: 'totalAmount', header: 'Total Amount (₹)', formatter: (v) => `₹${(v / 100).toFixed(2)}` },
+      { key: 'totalAmount', header: 'Total Amount (₹)', formatter: (v) => `₹${v.toLocaleString('en-IN')}` },
       { key: 'preferredSlotStart', header: 'Preferred Slot Start', formatter: (v) => v ? new Date(v).toLocaleString('en-IN') : '' },
       { key: 'preferredSlotEnd', header: 'Preferred Slot End', formatter: (v) => v ? new Date(v).toLocaleString('en-IN') : '' },
       { key: 'assignedEngineer', header: 'Assigned Engineer' },

@@ -311,8 +311,8 @@ export default function AdminPartRequestsPage() {
     }
   };
 
-  const formatPrice = (paise: number) => {
-    return `₹${(paise / 100).toFixed(2)}`;
+  const formatPrice = (amount: number) => {
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const renderRequest = (request: PartRequest) => (
@@ -474,7 +474,7 @@ export default function AdminPartRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Part Requests</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Part Requests</h1>
         <p className="text-muted-foreground">
           Review and manage part requests from service engineers
         </p>

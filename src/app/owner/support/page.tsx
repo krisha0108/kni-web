@@ -508,7 +508,7 @@ export default function OwnerSupportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {STATUS_OPTIONS.slice(1).map((status) => {
           const config = getStatusConfig(status.value);
           const Icon = config.icon;
@@ -579,12 +579,12 @@ export default function OwnerSupportPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticket ID</TableHead>
+                  <TableHead className="hidden md:table-cell">Ticket ID</TableHead>
                   <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead className="hidden sm:table-cell">Category</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Replies</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="hidden lg:table-cell">Replies</TableHead>
+                  <TableHead className="hidden md:table-cell">Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -594,7 +594,7 @@ export default function OwnerSupportPage() {
                   const StatusIcon = statusConfig.icon;
                   return (
                     <TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openTicketDetail(ticket)}>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="hidden md:table-cell font-mono text-sm">
                         #{ticket.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
@@ -605,7 +605,7 @@ export default function OwnerSupportPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline">{ticket.category}</Badge>
                       </TableCell>
                       <TableCell>
@@ -614,13 +614,13 @@ export default function OwnerSupportPage() {
                           {statusConfig.label}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           {ticket._count.threads}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                         {formatDate(ticket.createdAt)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -648,7 +648,7 @@ export default function OwnerSupportPage() {
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <span>Ticket #{selectedTicket?.id.slice(0, 8)}</span>
               {selectedTicket && (
                 <Badge variant={getStatusConfig(selectedTicket.status).color}>

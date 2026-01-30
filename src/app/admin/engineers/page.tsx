@@ -79,9 +79,9 @@ export default function AdminEngineersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Engineers</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Engineers</h1>
           <p className="text-muted-foreground">Manage engineer accounts</p>
         </div>
         <Button onClick={() => router.push("/admin/engineers/create")}>
@@ -105,11 +105,11 @@ export default function AdminEngineersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden sm:table-cell">Phone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Registered</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead className="hidden md:table-cell">Registered</TableHead>
+              <TableHead className="w-[100px] sm:w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,14 +129,14 @@ export default function AdminEngineersPage() {
               engineers.map((engineer) => (
                 <TableRow key={engineer.id}>
                   <TableCell className="font-medium">{engineer.name}</TableCell>
-                  <TableCell>{engineer.email}</TableCell>
-                  <TableCell>{engineer.phone}</TableCell>
+                  <TableCell className="hidden md:table-cell">{engineer.email}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{engineer.phone}</TableCell>
                   <TableCell>
                     <Badge variant={engineer.isActive ? "success" : "secondary"}>
                       {engineer.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(engineer.createdAt)}</TableCell>
+                  <TableCell className="hidden md:table-cell">{formatDate(engineer.createdAt)}</TableCell>
                   <TableCell>
                     <Button
                       size="sm"

@@ -119,10 +119,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert to paise
-    const basicSalary = Math.round(validated.basicSalary * 100);
-    const allowances = Math.round(validated.allowances * 100);
-    const deductions = Math.round(validated.deductions * 100);
+    // Calculate total payable
+    const basicSalary = validated.basicSalary;
+    const allowances = validated.allowances;
+    const deductions = validated.deductions;
     const totalPayable = basicSalary + allowances - deductions;
 
     const salaryRecord = await db.staffSalary.create({

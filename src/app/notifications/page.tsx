@@ -201,9 +201,9 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Notifications</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Notifications</h1>
           <p className="text-muted-foreground">
             {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
           </p>
@@ -213,9 +213,9 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by type" />
           </SelectTrigger>
           <SelectContent>

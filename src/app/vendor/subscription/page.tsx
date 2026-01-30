@@ -81,7 +81,7 @@ export default async function VendorSubscriptionPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Subscription</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Subscription</h1>
         <p className="text-muted-foreground">
           Manage your vendor subscription
         </p>

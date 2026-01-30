@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
           <BarChart3 className="h-8 w-8" />
           Content Analytics Dashboard
         </h1>
@@ -202,7 +202,7 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
               {analytics.performance.sponsored.totalImpressions.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -219,7 +219,7 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
               {analytics.performance.sponsored.totalClicks.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -236,7 +236,7 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{analytics.performance.sponsored.overallCTR}%</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{analytics.performance.sponsored.overallCTR}%</div>
             <p className="text-xs text-muted-foreground mt-1">
               Click-through rate
             </p>

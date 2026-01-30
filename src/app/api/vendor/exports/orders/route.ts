@@ -22,7 +22,7 @@ export async function GET() {
       { key: 'ownerName', header: 'Owner Name' },
       { key: 'restaurantName', header: 'Restaurant' },
       { key: 'status', header: 'Status' },
-      { key: 'totalAmount', header: 'Total Amount (₹)', formatter: (v) => `₹${(v / 100).toFixed(2)}` },
+      { key: 'totalAmount', header: 'Total Amount (₹)', formatter: (v) => `₹${v.toLocaleString('en-IN')}` },
       { key: 'itemCount', header: 'Items' },
       { key: 'createdAt', header: 'Created At', formatter: (v) => new Date(v).toLocaleString('en-IN') },
     ]

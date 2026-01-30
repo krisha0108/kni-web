@@ -180,7 +180,7 @@ export default function OwnerAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Analytics Dashboard</h1>
+          <h1 className="text-2xl sm:text-xl sm:text-2xl lg:text-3xl font-bold">Analytics Dashboard</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Overview of {selectedRestaurant.restaurant.name}
           </p>
@@ -312,7 +312,7 @@ export default function OwnerAnalyticsPage() {
           <CardContent>
             <div className="space-y-2">
               {analytics.breakdowns.bookingsByStatus.map((item) => (
-                <div key={item.status} className="flex items-center justify-between">
+                <div key={item.status} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <span className="text-sm font-medium">{item.status}</span>
                   <span className="text-sm text-muted-foreground">{item.count}</span>
                 </div>
@@ -329,7 +329,7 @@ export default function OwnerAnalyticsPage() {
           <CardContent>
             <div className="space-y-2">
               {analytics.breakdowns.expensesByCategory.map((item) => (
-                <div key={item.category} className="flex items-center justify-between">
+                <div key={item.category} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <span className="text-sm font-medium">{item.category}</span>
                   <span className="text-sm text-muted-foreground">
                     {formatPrice(item.total)} ({item.count})

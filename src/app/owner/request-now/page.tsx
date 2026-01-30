@@ -578,7 +578,7 @@ export default function RequestNowPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Request Now</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Request Now</h1>
           <p className="text-muted-foreground">Book a service for your equipment</p>
         </div>
         <Card>
@@ -597,9 +597,9 @@ export default function RequestNowPage() {
   return (
     <div className="space-y-6 pb-32">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Request Now</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Request Now</h1>
           <p className="text-muted-foreground">
             {selectedItems.size} items selected • {groupedByCategory.length} categories
           </p>
@@ -690,7 +690,7 @@ export default function RequestNowPage() {
 
               {/* Time Slots */}
               {selectedDate && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {TIME_SLOTS.map((slot) => {
                     const isSelected = selectedSlot === slot.id;
                     return (
@@ -778,7 +778,7 @@ export default function RequestNowPage() {
 
                   {/* UPI Details */}
                   <div className="bg-muted/50 p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <span className="text-sm text-muted-foreground">UPI ID</span>
                       <div className="flex items-center gap-2">
                         <code className="text-sm font-mono">{paymentSettings.upiId}</code>
@@ -787,11 +787,11 @@ export default function RequestNowPage() {
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <span className="text-sm text-muted-foreground">Account Name</span>
                       <span className="font-medium">{paymentSettings.accountHolderName}</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <span className="text-sm text-muted-foreground">Amount</span>
                       <span className="font-bold text-lg text-primary">{formatPrice(payableAmount)}</span>
                     </div>

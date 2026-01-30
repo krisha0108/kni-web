@@ -89,15 +89,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert amount to paise
-    const amountInPaise = Math.round(validated.amount * 100);
-
     const entry = await db.cashbookEntry.create({
       data: {
         ownerId: session.id,
         restaurantId: validated.restaurantId,
         entryType: validated.entryType,
-        amount: amountInPaise,
+        amount: validated.amount,
         paymentMode: validated.paymentMode,
         category: validated.category,
         description: validated.description,

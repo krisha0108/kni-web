@@ -169,7 +169,7 @@ export default function EngineerJobsPage() {
   const renderJobCard = (job: Job) => (
     <Card key={job.id} className="mb-4">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CardTitle className="text-lg">{job.booking.restaurant.name}</CardTitle>
           <Badge variant={statusColors[job.status]}>{job.status}</Badge>
         </div>
@@ -258,7 +258,7 @@ export default function EngineerJobsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">My Jobs</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Jobs</h1>
         <p className="text-muted-foreground">Manage your assigned service jobs</p>
       </div>
 

@@ -39,6 +39,7 @@ import {
   PieChart,
   FileCheck,
   User,
+  UserCircle,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -50,13 +51,17 @@ export interface SidebarItem {
 interface SidebarProps {
   items: SidebarItem[];
   title: string;
+  mobile?: boolean;
 }
 
-export function Sidebar({ items, title }: SidebarProps) {
+export function Sidebar({ items, title, mobile = false }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 border-r bg-card">
+    <div className={cn(
+      "flex flex-col w-64 border-r bg-card",
+      mobile ? "h-full" : "hidden lg:flex lg:fixed lg:inset-y-0"
+    )}>
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <Package className="h-6 w-6" />
@@ -99,6 +104,7 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Services", href: "/admin/services", icon: Wrench },
   { title: "Parts", href: "/admin/parts", icon: Tag },
   { title: "Restaurant Requests", href: "/admin/restaurants/requests", icon: Building2 },
+  { title: "Owners", href: "/admin/owners", icon: UserCircle },
   { title: "Category Requests", href: "/admin/category-requests", icon: FileText },
   // { title: "Part Requests", href: "/admin/part-requests", icon: Package }, // TODO: Parts request flow disabled
   { title: "Vendors", href: "/admin/vendors", icon: Store },

@@ -565,7 +565,7 @@ export default function RequestServicePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {TIME_SLOTS.map((slot) => (
                     <Button
                       key={slot.id}
@@ -670,7 +670,7 @@ export default function RequestServicePage() {
 
                     {/* UPI Details */}
                     <div className="p-4 bg-muted rounded-lg space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <span className="text-sm text-muted-foreground">UPI ID</span>
                         <Button
                           variant="ghost"
@@ -784,9 +784,9 @@ export default function RequestServicePage() {
     <ClientOnly>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Request Service</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Request Service</h1>
             <p className="text-muted-foreground">
               {step === "select" && "Select services and parts for your equipment"}
               {step === "date" && "Choose your preferred date and time"}

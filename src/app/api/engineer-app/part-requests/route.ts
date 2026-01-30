@@ -1,13 +1,113 @@
+/**
+ * ============================================================================
+ * ENGINEER PART REQUESTS API (Mobile App)
+ * ============================================================================
+ *
+ * PARTS REQUEST FLOW OVERVIEW:
+ * ----------------------------
+ * This API handles part requests from service engineers via the mobile app.
+ * Engineers can request parts needed for their service jobs, and admins
+ * process these requests through the admin panel.
+ *
+ * COMPLETE FLOW DIAGRAM:
+ *
+ *   ┌─────────────────────────────────────────────────────────────────────┐
+ *   │                        PARTS REQUEST FLOW                           │
+ *   └─────────────────────────────────────────────────────────────────────┘
+ *
+ *   ENGINEER (Mobile/Web)                    ADMIN (Web Panel)
+ *   ─────────────────────                    ──────────────────
+ *
+ *   [1. Create Request]
+ *         │
+ *         ▼
+ *   ┌─────────────┐
+ *   │   PENDING   │◄────────────────────── Request created, awaiting review
+ *   └─────────────┘
+ *         │
+ *         ├──── [Engineer can CANCEL] ──► [CANCELLED] (End)
+ *         │
+ *         ▼
+ *   ┌─────────────────────────────────────────────────────┐
+ *   │              ADMIN REVIEWS REQUEST                   │
+ *   │  - Checks part availability (stock)                  │
+ *   │  - Verifies engineer's assignment                    │
+ *   │  - Reviews priority and reason                       │
+ *   └─────────────────────────────────────────────────────┘
+ *         │
+ *         ├────────────────────┬────────────────────┐
+ *         ▼                    ▼                    │
+ *   [Admin APPROVES]    [Admin REJECTS]             │
+ *         │                    │                    │
+ *         ▼                    ▼                    │
+ *   ┌─────────────┐      ┌─────────────┐           │
+ *   │  APPROVED   │      │  REJECTED   │ (End)     │
+ *   └─────────────┘      └─────────────┘           │
+ *         │              (Engineer sees             │
+ *         │               rejection reason)         │
+ *         ▼                                        │
+ *   [Admin DISPATCHES part]                        │
+ *         │                                        │
+ *         ▼                                        │
+ *   ┌─────────────┐                               │
+ *   │ DISPATCHED  │◄───────────────────────────────┘
+ *   └─────────────┘
+ *         │
+ *         ▼
+ *   [Engineer CONFIRMS DELIVERY]
+ *         │
+ *         ▼
+ *   ┌─────────────┐
+ *   │  DELIVERED  │ (End - Part now in engineer's inventory)
+ *   └─────────────┘
+ *
+ * API ENDPOINTS IN THIS FILE:
+ * ---------------------------
+ * GET  /api/engineer-app/part-requests
+ *      - Fetch engineer's own part requests
+ *      - Filter by status (pending, approved, dispatched, delivered, etc.)
+ *      - Returns summary counts for UI badges
+ *
+ * POST /api/engineer-app/part-requests
+ *      - Create new part request
+ *      - Required: part_id
+ *      - Optional: quantity, priority, reason, assignment_id
+ *      - Creates request with PENDING status
+ *
+ * RELATED ENDPOINTS:
+ * - POST /api/engineer-app/part-requests/{id}/cancel   - Cancel pending request
+ * - POST /api/engineer-app/part-requests/{id}/delivered - Confirm delivery
+ * - PATCH /api/admin/part-requests/{id}                - Admin actions (approve/reject/dispatch)
+ *
+ * STATUS TRANSITIONS:
+ * - PENDING → APPROVED (by admin)
+ * - PENDING → REJECTED (by admin)
+ * - PENDING → CANCELLED (by engineer)
+ * - APPROVED → DISPATCHED (by admin)
+ * - DISPATCHED → DELIVERED (by engineer)
+ *
+ * ============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 // import { db } from "@/server/db";
 // import { requireEngineerMobile } from "@/server/auth/rbac";
 // import { PartRequestStatus, PartRequestPriority } from "@prisma/client";
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * GET /api/engineer-app/part-requests
- * Get part requests for the engineer
+ *
+ * Fetch part requests for the logged-in engineer.
+ *
+ * Query Parameters:
+ * - status: Filter by status (pending, approved, rejected, dispatched, delivered, cancelled)
+ *           Use "all" or omit for no filter
+ *
+ * Response:
+ * - data: Array of transformed part requests
+ * - summary: Object with counts for each status (for UI badges)
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function GET(request: NextRequest) {
   return NextResponse.json(
@@ -140,10 +240,27 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * POST /api/engineer-app/part-requests
- * Create a new part request
+ *
+ * Create a new part request for a service engineer.
+ *
+ * Request Body:
+ * - part_id (required): ID of the part to request
+ * - quantity (optional, default: 1): Number of units needed
+ * - priority (optional, default: "medium"): "low" | "medium" | "high" | "urgent"
+ * - reason (optional): Text explaining why the part is needed
+ * - assignment_id (optional): Link request to a specific job assignment
+ *
+ * Process:
+ * 1. Validates part exists
+ * 2. Validates assignment belongs to engineer (if provided)
+ * 3. Creates request with PENDING status
+ * 4. Admin receives notification to review
+ *
+ * Response:
+ * - data: Created request with part details
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function POST(request: NextRequest) {
   return NextResponse.json(

@@ -293,8 +293,8 @@ export default function AdminSupportTicketDetailPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -305,7 +305,7 @@ export default function AdminSupportTicketDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           {getStatusBadge(ticket.status)}
           <Select value={ticket.status} onValueChange={(v) => handleStatusChange(v as TicketStatus)}>
             <SelectTrigger className="w-[150px]">

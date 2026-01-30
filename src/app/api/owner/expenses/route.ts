@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         ownerId: session.id,
         restaurantId: validation.data.restaurantId,
         category: validation.data.category as any,
-        amount: Math.round(validation.data.amount * 100), // Convert to paise
+        amount: validation.data.amount,
         expenseDate: new Date(validation.data.expenseDate),
         description: validation.data.description,
         receiptImageUrl: validation.data.receiptImageUrl || null,

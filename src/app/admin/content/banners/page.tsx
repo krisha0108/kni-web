@@ -268,7 +268,7 @@ export default function BannersPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Banner Management</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Banner Management</h1>
           <p className="text-muted-foreground">Manage hero banners for mobile app home screen</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
@@ -277,9 +277,9 @@ export default function BannersPage() {
         </Button>
       </div>
 
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -467,7 +467,7 @@ export default function BannersPage() {
                 placeholder="https://example.com"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
@@ -494,7 +494,7 @@ export default function BannersPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="startDate">
                   <Calendar className="h-4 w-4 inline mr-2" />

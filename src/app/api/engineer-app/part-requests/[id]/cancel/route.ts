@@ -1,13 +1,55 @@
+/**
+ * ============================================================================
+ * ENGINEER CANCEL PART REQUEST API
+ * ============================================================================
+ *
+ * CANCEL ACTION (Engineer):
+ * -------------------------
+ * Allows engineers to cancel their own part requests while still in PENDING status.
+ * Once admin has processed the request (approved/rejected), it cannot be cancelled.
+ *
+ * USE CASES:
+ * - Engineer requested wrong part
+ * - Engineer found alternative solution
+ * - Job was cancelled or reassigned
+ * - Duplicate request created by mistake
+ *
+ * FLOW:
+ *
+ *   ┌─────────────┐
+ *   │   PENDING   │ ─── [Engineer clicks Cancel] ───► ┌─────────────┐
+ *   └─────────────┘                                   │  CANCELLED  │ (End)
+ *                                                     └─────────────┘
+ *
+ * VALIDATION:
+ * - Request must belong to the logged-in engineer
+ * - Request status must be PENDING
+ * - Already approved/rejected/dispatched requests cannot be cancelled
+ *
+ * ============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 // import { db } from "@/server/db";
 // import { requireEngineerMobile } from "@/server/auth/rbac";
 // import { PartRequestStatus } from "@prisma/client";
 
 /**
- * DISABLED: Parts request flow is currently disabled
- *
  * POST /api/engineer-app/part-requests/:id/cancel
- * Cancel a pending part request
+ *
+ * Cancel a pending part request.
+ *
+ * Request Body:
+ * - reason (optional): Cancellation reason
+ *
+ * Validation:
+ * - Only PENDING requests can be cancelled
+ * - Request must belong to the authenticated engineer
+ *
+ * Response:
+ * - data: { id, status: "cancelled", cancelled_at }
+ *
+ * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function POST(
   request: NextRequest,

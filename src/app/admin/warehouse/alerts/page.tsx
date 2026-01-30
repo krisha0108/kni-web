@@ -82,13 +82,13 @@ export default function WarehouseAlertsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Low Stock Alerts</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Low Stock Alerts</h1>
         <p className="text-muted-foreground">Items requiring immediate attention</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="rounded-full bg-red-100 p-3">
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
@@ -100,7 +100,7 @@ export default function WarehouseAlertsPage() {
         </div>
 
         <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="rounded-full bg-orange-100 p-3">
               <AlertTriangle className="h-6 w-6 text-orange-600" />
             </div>
@@ -112,7 +112,7 @@ export default function WarehouseAlertsPage() {
         </div>
 
         <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="rounded-full bg-gray-100 p-3">
               <AlertTriangle className="h-6 w-6 text-gray-600" />
             </div>
@@ -124,7 +124,7 @@ export default function WarehouseAlertsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <ClientOnly>
           <Select value={severityFilter} onValueChange={setSeverityFilter}>
             <SelectTrigger className="w-[180px]">

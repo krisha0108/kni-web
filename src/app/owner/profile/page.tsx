@@ -232,7 +232,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Avatar */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="relative">
                 <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
                   {formData.name?.charAt(0)?.toUpperCase() || "U"}
@@ -335,7 +335,7 @@ export default function ProfilePage() {
             <CardDescription>Configure how you receive notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="font-medium">Email Notifications</p>
                 <p className="text-sm text-muted-foreground">Receive notifications via email</p>
@@ -346,7 +346,7 @@ export default function ProfilePage() {
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="font-medium">Booking Updates</p>
                 <p className="text-sm text-muted-foreground">Get notified about booking status changes</p>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="font-medium">SMS Notifications</p>
                 <p className="text-sm text-muted-foreground">Receive important alerts via SMS</p>
@@ -368,7 +368,7 @@ export default function ProfilePage() {
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="font-medium">Marketing Emails</p>
                 <p className="text-sm text-muted-foreground">Receive updates about new features and offers</p>

@@ -127,11 +127,11 @@ export default function RestaurantRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Restaurant Requests</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Restaurant Requests</h1>
         <p className="text-muted-foreground">Review and manage restaurant approval requests</p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
@@ -149,12 +149,12 @@ export default function RestaurantRequestsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Restaurant</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Location</TableHead>
+              <TableHead className="hidden md:table-cell">Owner</TableHead>
+              <TableHead className="hidden lg:table-cell">Location</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>FSSAI</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
+              <TableHead className="hidden sm:table-cell">Date</TableHead>
+              <TableHead className="hidden lg:table-cell">FSSAI</TableHead>
+              <TableHead className="w-[100px] sm:w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -183,7 +183,7 @@ export default function RestaurantRequestsPage() {
                       <span>{restaurant.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <div>{restaurant.owner.name}</div>
                     <div className="text-sm text-muted-foreground">{restaurant.owner.email}</div>
                     {restaurant.owner.phone && (
@@ -193,7 +193,7 @@ export default function RestaurantRequestsPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <div>{restaurant.address}</div>
                     <div className="text-sm text-muted-foreground">
                       {restaurant.city}{restaurant.pincode ? `, ${restaurant.pincode}` : ""}
@@ -202,8 +202,8 @@ export default function RestaurantRequestsPage() {
                   <TableCell>
                     <Badge variant={statusColors[restaurant.status]}>{restaurant.status}</Badge>
                   </TableCell>
-                  <TableCell>{formatDate(restaurant.createdAt)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDate(restaurant.createdAt)}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     {restaurant.fssaiNumber ? (
                       <div className="text-sm">
                         <div className="font-mono">{restaurant.fssaiNumber}</div>
@@ -291,13 +291,13 @@ export default function RestaurantRequestsPage() {
               {/* Restaurant Image */}
               <div className="flex justify-center">
                 {selectedRestaurant.restaurantImageUrl ? (
-                  <div className="relative">
+                  <div className="relative w-full max-w-[200px]">
                     <Image
                       src={selectedRestaurant.restaurantImageUrl}
                       alt={selectedRestaurant.name}
                       width={200}
                       height={150}
-                      className="rounded-lg object-cover"
+                      className="rounded-lg object-cover w-full h-auto"
                     />
                     <a
                       href={selectedRestaurant.restaurantImageUrl}
@@ -309,7 +309,7 @@ export default function RestaurantRequestsPage() {
                     </a>
                   </div>
                 ) : (
-                  <div className="w-[200px] h-[150px] rounded-lg bg-muted flex items-center justify-center">
+                  <div className="w-full max-w-[200px] aspect-[4/3] rounded-lg bg-muted flex items-center justify-center">
                     <Building2 className="h-12 w-12 text-muted-foreground" />
                     <span className="sr-only">No image provided</span>
                   </div>
@@ -317,7 +317,7 @@ export default function RestaurantRequestsPage() {
               </div>
 
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Restaurant Name</Label>
                   <p className="font-medium">{selectedRestaurant.name}</p>

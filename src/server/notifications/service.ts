@@ -204,7 +204,7 @@ export async function notifyOwnerPaymentVerified(
         owner.phone,
         "PAYMENT_VERIFIED",
         {
-          amount: (booking.totalAmount / 100).toFixed(2),
+          amount: booking.totalAmount.toLocaleString('en-IN'),
           bookingId: bookingId.slice(-8),
         },
         "PAYMENT_VERIFIED"

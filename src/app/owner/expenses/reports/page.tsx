@@ -86,7 +86,7 @@ export default function ExpenseReportsPage() {
           const total = monthExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
           return {
             month: monthName,
-            total: total / 100,
+            total: total,
             count: monthExpenses.length
           };
         });
@@ -146,17 +146,17 @@ export default function ExpenseReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/owner/expenses")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">Expense Reports</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Expense Reports</h1>
           <p className="text-muted-foreground">Monthly expense analysis and breakdowns</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Button variant="outline" onClick={() => changeMonth(-1)}>
           Previous Month
         </Button>
@@ -189,7 +189,7 @@ export default function ExpenseReportsPage() {
                 <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{formatPrice(report.totalAmount)}</div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatPrice(report.totalAmount)}</div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {report.expenseCount} expense{report.expenseCount !== 1 ? "s" : ""}
                 </p>
@@ -201,7 +201,7 @@ export default function ExpenseReportsPage() {
                 <CardTitle className="text-sm font-medium">Previous Month</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
                   {formatPrice(report.comparison.previousMonthTotal)}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -225,7 +225,7 @@ export default function ExpenseReportsPage() {
                     <TrendingDown className="h-5 w-5 text-green-600" />
                   )}
                   <div
-                    className={`text-3xl font-bold ${
+                    className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
                       report.comparison.changeAmount >= 0 ? "text-red-600" : "text-green-600"
                     }`}
                   >
@@ -260,7 +260,7 @@ export default function ExpenseReportsPage() {
               data={topCategories}
               dataKey="amount"
               nameKey="label"
-              valueFormatter={(value) => `₹${((value as number) / 100).toLocaleString('en-IN')}`}
+              valueFormatter={(value) => `₹${(value as number).toLocaleString('en-IN')}`}
             />
           </div>
 
@@ -276,7 +276,7 @@ export default function ExpenseReportsPage() {
               ) : (
                 topCategories.map((category) => (
                   <div key={category.category} className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-full"

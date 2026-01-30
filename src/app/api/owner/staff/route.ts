@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
         designation: validated.designation,
         staffType: validated.staffType,
         joiningDate: new Date(validated.joiningDate),
-        monthlySalary: validated.monthlySalary ? Math.round(validated.monthlySalary * 100) : null,
-        dailyWage: validated.dailyWage ? Math.round(validated.dailyWage * 100) : null,
+        monthlySalary: validated.monthlySalary || null,
+        dailyWage: validated.dailyWage || null,
         status: "ACTIVE",
       },
     });

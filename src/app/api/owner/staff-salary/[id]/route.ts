@@ -43,8 +43,7 @@ export async function PATCH(
 
     if (action === "payment") {
       const validated = recordPaymentSchema.parse(body);
-      const amountInPaise = Math.round(validated.amountPaid * 100);
-      const newTotalPaid = existing.totalPaid + amountInPaise;
+      const newTotalPaid = existing.totalPaid + validated.amountPaid;
 
       if (newTotalPaid > existing.totalPayable) {
         return NextResponse.json(
@@ -84,13 +83,13 @@ export async function PATCH(
       const updateData: any = {};
 
       if (validated.basicSalary !== undefined) {
-        updateData.basicSalary = Math.round(validated.basicSalary * 100);
+        updateData.basicSalary = validated.basicSalary;
       }
       if (validated.allowances !== undefined) {
-        updateData.allowances = Math.round(validated.allowances * 100);
+        updateData.allowances = validated.allowances;
       }
       if (validated.deductions !== undefined) {
-        updateData.deductions = Math.round(validated.deductions * 100);
+        updateData.deductions = validated.deductions;
       }
 
       // Recalculate total payable

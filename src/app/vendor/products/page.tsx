@@ -269,9 +269,9 @@ export default function VendorProductsPage() {
   return (
     <ClientOnly>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">My Products</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Products</h1>
           <p className="text-muted-foreground">
             Set your prices for marketplace products
           </p>
@@ -379,21 +379,16 @@ export default function VendorProductsPage() {
                 </div>
 
                 {/* Pricing Form */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Your Price (paise) *</Label>
+                    <Label htmlFor="price">Your Price (₹) *</Label>
                     <Input
                       id="price"
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="e.g., 10000 = ₹100"
+                      placeholder="e.g., 100"
                     />
-                    {formData.price && (
-                      <p className="text-xs text-muted-foreground">
-                        = {formatPrice(parseInt(formData.price) || 0)}
-                      </p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="stock">Stock Quantity</Label>
@@ -463,8 +458,8 @@ export default function VendorProductsPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search your products..."
@@ -602,20 +597,15 @@ export default function VendorProductsPage() {
               </div>
 
               {/* Editable Fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-price">Your Price (paise) *</Label>
+                  <Label htmlFor="edit-price">Your Price (₹) *</Label>
                   <Input
                     id="edit-price"
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   />
-                  {formData.price && (
-                    <p className="text-xs text-muted-foreground">
-                      = {formatPrice(parseInt(formData.price) || 0)}
-                    </p>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-stock">Stock Quantity</Label>

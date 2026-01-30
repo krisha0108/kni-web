@@ -65,14 +65,14 @@ export default function StockMovementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Stock Movements</h1>
-        <p className="text-muted-foreground">Complete audit trail of all inventory changes</p>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Stock Movements</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Complete audit trail of all inventory changes</p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <ClientOnly>
           <Select value={movementTypeFilter} onValueChange={setMovementTypeFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>

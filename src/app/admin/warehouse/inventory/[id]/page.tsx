@@ -202,7 +202,7 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -258,7 +258,7 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
         </Card>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Stock Movements</h2>
         <Button onClick={() => setIsMovementOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

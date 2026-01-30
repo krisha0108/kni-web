@@ -153,7 +153,7 @@ export default function PaymentUploadPage() {
       {amount && (
         <Card className="mb-6 bg-primary/5 border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <CreditCard className="h-5 w-5 text-primary" />

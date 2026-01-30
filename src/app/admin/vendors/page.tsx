@@ -175,12 +175,12 @@ export default function AdminVendorsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Vendors</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Vendors</h1>
         <p className="text-muted-foreground">Manage vendor accounts and approvals</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search vendors..."
@@ -191,7 +191,7 @@ export default function AdminVendorsPage() {
         </div>
         <ClientOnly>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -209,13 +209,13 @@ export default function AdminVendorsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Categories</TableHead>
-              <TableHead>Approval Status</TableHead>
-              <TableHead>Subscription</TableHead>
-              <TableHead>Registered</TableHead>
-              <TableHead className="w-[180px]">Actions</TableHead>
+              <TableHead className="hidden sm:table-cell">Email</TableHead>
+              <TableHead className="hidden md:table-cell">Location</TableHead>
+              <TableHead className="hidden lg:table-cell">Categories</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Subscription</TableHead>
+              <TableHead className="hidden lg:table-cell">Registered</TableHead>
+              <TableHead className="w-[100px] sm:w-[180px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -235,8 +235,8 @@ export default function AdminVendorsPage() {
               vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
-                  <TableCell>{vendor.email}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">{vendor.email}</TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {vendor.vendorProfile?.city && vendor.vendorProfile?.state ? (
                       <div className="flex items-center gap-1 text-sm">
                         <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -246,7 +246,7 @@ export default function AdminVendorsPage() {
                       <span className="text-muted-foreground text-sm">Not set</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     {vendor.categories && vendor.categories.length > 0 ? (
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
                         {vendor.categories.slice(0, 2).map((cat) => (
@@ -269,12 +269,12 @@ export default function AdminVendorsPage() {
                       {vendor.vendorProfile?.approvalStatus || "PENDING"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge variant={subscriptionColors[vendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
                       {vendor.vendorProfile?.subscriptionStatus || "INACTIVE"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(vendor.createdAt)}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{formatDate(vendor.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button
@@ -328,7 +328,7 @@ export default function AdminVendorsPage() {
               {/* Basic Info */}
               <div className="space-y-2">
                 <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Business Information</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Name</p>
                     <p className="font-medium">{selectedVendor.name}</p>
@@ -353,7 +353,7 @@ export default function AdminVendorsPage() {
                 <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                   <MapPin className="h-3 w-3" /> Location
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <p className="text-sm text-muted-foreground">City</p>
                     <p className="font-medium">{selectedVendor.vendorProfile?.city || "Not set"}</p>

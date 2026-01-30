@@ -29,7 +29,7 @@ export async function GET() {
       { key: 'id', header: 'Payout ID' },
       { key: 'engineerName', header: 'Engineer Name' },
       { key: 'engineerEmail', header: 'Engineer Email' },
-      { key: 'amount', header: 'Amount (₹)', formatter: (v) => `₹${(v / 100).toFixed(2)}` },
+      { key: 'amount', header: 'Amount (₹)', formatter: (v) => `₹${v.toLocaleString('en-IN')}` },
       { key: 'status', header: 'Status' },
       { key: 'paidAt', header: 'Paid At', formatter: (v) => v ? new Date(v).toLocaleString('en-IN') : 'Not Paid' },
       { key: 'notes', header: 'Notes' },

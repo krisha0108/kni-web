@@ -54,7 +54,7 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 sm:gap-4 border-b bg-background px-3 sm:px-4 lg:px-6">
       <Button
         variant="ghost"
         size="icon"
@@ -71,7 +71,7 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
         <RestaurantSwitcher />
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <NotificationBell />
 
         <DropdownMenu>

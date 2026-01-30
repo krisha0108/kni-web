@@ -317,7 +317,7 @@ export default function OwnerCartPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Your Cart</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Your Cart</h1>
         <p className="text-muted-foreground">
           Review items before booking a service ({totalItems} items in {groupedByCategory.length} categories)
         </p>

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Calendar, Download, BarChart3, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, Download, BarChart3, Building2, Eye } from "lucide-react";
 import { getAllExpenseCategories, getExpenseCategoryLabel } from "@/lib/expense";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
@@ -42,7 +42,9 @@ export default function OwnerExpensesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -268,6 +270,11 @@ export default function OwnerExpensesPage() {
     setIsEditOpen(true);
   };
 
+  const openViewDialog = (expense: Expense) => {
+    setViewingExpense(expense);
+    setIsViewOpen(true);
+  };
+
   const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   if (!selectedRestaurant) {
@@ -457,7 +464,7 @@ export default function OwnerExpensesPage() {
               <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="hidden lg:table-cell">Description</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead className="w-[80px] sm:w-[120px]">Actions</TableHead>
+              <TableHead className="w-[100px] sm:w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -486,11 +493,20 @@ export default function OwnerExpensesPage() {
                   <TableCell className="hidden lg:table-cell max-w-xs truncate">{expense.description}</TableCell>
                   <TableCell className="font-medium">{formatPrice(expense.amount)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openViewDialog(expense)}
+                        title="View"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(expense)}
+                        title="Edit"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -498,6 +514,7 @@ export default function OwnerExpensesPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(expense.id)}
+                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -581,6 +598,74 @@ export default function OwnerExpensesPage() {
               Cancel
             </Button>
             <Button onClick={handleEdit}>Update Expense</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Expense Details</DialogTitle>
+          </DialogHeader>
+          {viewingExpense && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-sm">Restaurant</Label>
+                <p className="font-medium">{viewingExpense.restaurant.name}</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-sm">Category</Label>
+                <div>
+                  <Badge variant="outline">
+                    {getExpenseCategoryLabel(viewingExpense.category as any)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-sm">Amount</Label>
+                <p className="font-medium text-lg">{formatPrice(viewingExpense.amount)}</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-sm">Date</Label>
+                <p className="font-medium">{formatDate(viewingExpense.expenseDate)}</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-sm">Description</Label>
+                <p className="text-sm">{viewingExpense.description}</p>
+              </div>
+
+              {viewingExpense.receiptImageUrl && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Receipt</Label>
+                  <div className="border rounded-lg overflow-hidden">
+                    <img
+                      src={viewingExpense.receiptImageUrl}
+                      alt="Receipt"
+                      className="w-full h-auto max-h-[300px] object-contain bg-muted"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setIsViewOpen(false);
+                if (viewingExpense) openEditDialog(viewingExpense);
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

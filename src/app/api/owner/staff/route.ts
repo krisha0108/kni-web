@@ -10,8 +10,8 @@ const createStaffSchema = z.object({
   designation: z.string().min(2, "Designation is required"),
   staffType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]).default("FULL_TIME"),
   joiningDate: z.string(),
-  monthlySalary: z.number().positive().optional(),
-  dailyWage: z.number().positive().optional(),
+  monthlySalary: z.number().positive().nullable().optional(),
+  dailyWage: z.number().positive().nullable().optional(),
 });
 
 // GET /api/owner/staff - List staff members

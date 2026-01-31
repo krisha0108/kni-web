@@ -108,6 +108,7 @@ interface Job {
     proofImageUrls?: string[];
     timeSpentSeconds?: number;
     partsUsed?: string[];
+    partsUsedNames?: string[];
   };
 }
 
@@ -159,6 +160,11 @@ export default function EngineerJobDetailPage() {
       const data = await response.json();
       if (data.ok) {
         setJob(data.data);
+        // DEBUG LOGS
+        console.log('DEBUG: Full workLog:', data.data.workLog);
+        console.log('DEBUG: partsUsed (relation):', data.data.workLog?.partsUsed);
+        console.log('DEBUG: partsUsedNames (json):', data.data.workLog?.partsUsedNames);
+        console.log('DEBUG: equipmentType:', data.data.booking?.equipment?.equipmentType);
         // Restore timer and parts from work log if exists
         if (data.data.workLog) {
           if (data.data.workLog.timeSpentSeconds) {
@@ -166,8 +172,8 @@ export default function EngineerJobDetailPage() {
           }
           // partsUsed from backend is array of part names/IDs
           // We convert them back to PartUsed objects if possible
-          if (data.data.workLog.partsUsed && Array.isArray(data.data.workLog.partsUsed)) {
-            const restoredParts: PartUsed[] = data.data.workLog.partsUsed.map((p: string) => ({
+          if (data.data.workLog.partsUsedNames && Array.isArray(data.data.workLog.partsUsedNames)) {
+            const restoredParts: PartUsed[] = data.data.workLog.partsUsedNames.map((p: string) => ({
               id: p,
               name: p, // If it's a name, use it; if it's an ID, we'll display the ID
               price: 0,
@@ -585,7 +591,7 @@ export default function EngineerJobDetailPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Type</p>
                 <p className="font-medium">
-                  {job.booking.equipment.equipmentType?.name || job.booking.equipment.category}
+                  {job.booking.equipment.equipmentType?.name || (typeof job.booking.equipment.category === 'object' && job.booking.equipment.category !== null ? (job.booking.equipment.category as any).name : job.booking.equipment.category)}
                 </p>
               </div>
               {job.booking.equipment.brand && (
@@ -718,13 +724,13 @@ export default function EngineerJobDetailPage() {
               )}
             </div>
 
-            {job.workLog.partsUsed && job.workLog.partsUsed.length > 0 && (
+            {job.workLog.partsUsedNames && Array.isArray(job.workLog.partsUsedNames) && job.workLog.partsUsedNames.length > 0 && (
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Parts Used</p>
                 <div className="flex flex-wrap gap-2">
-                  {job.workLog.partsUsed.map((part, i) => (
+                  {job.workLog.partsUsedNames.map((partName: string, i: number) => (
                     <Badge key={i} variant="secondary">
-                      {typeof part === 'object' ? (part as { name?: string }).name || 'Unknown Part' : part}
+                      {partName}
                     </Badge>
                   ))}
                 </div>

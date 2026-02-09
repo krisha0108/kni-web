@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor } from "@/server/auth/rbac";
 import { db } from "@/server/db";
 import { generateOrderInvoice } from "@/server/pdf/invoice-service";
 
@@ -8,7 +8,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
     const params = await context.params;
     const { id: orderId } = params;
 

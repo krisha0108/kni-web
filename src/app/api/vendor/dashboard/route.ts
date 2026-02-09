@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { requireApprovedVendor } from '@/server/auth/rbac';
+import { requireVendor } from '@/server/auth/rbac';
 
 export async function GET() {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     const vendorProfile = await db.vendorProfile.findUnique({
       where: { userId: session.id },
@@ -103,15 +103,6 @@ export async function GET() {
   } catch (error) {
     console.error('Vendor dashboard error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data';
-
-    // Return appropriate redirect info for unapproved or blocked vendors
-    if (errorMessage.includes('not approved')) {
-      return NextResponse.json({ ok: false, redirect: '/vendor/pending', error: errorMessage }, { status: 403 });
-    }
-    if (errorMessage.includes('expired') || errorMessage.includes('blocked')) {
-      return NextResponse.json({ ok: false, redirect: '/vendor/subscription', error: errorMessage }, { status: 403 });
-    }
-
     return NextResponse.json(
       { ok: false, error: errorMessage },
       { status: errorMessage.includes('Unauthorized') ? 401 : 500 }

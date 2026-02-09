@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get restaurant to check coverage
+    // Get restaurant to check city matching
     const restaurant = await db.restaurant.findUnique({
       where: { id: restaurantId },
       select: { city: true, pincode: true },
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
           } : {}),
           ...(categoryId ? { marketplaceCategoryId: categoryId } : {}),
         },
-        // Vendor must be approved and have active subscription
+        // Vendor must be approved, have active subscription, and approved for restaurant's city
         vendor: {
           vendorProfile: {
             approvalStatus: "APPROVED",
@@ -68,6 +68,16 @@ export async function GET(request: NextRequest) {
               { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
               { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
             ],
+          },
+          vendorLocationRequests: {
+            some: {
+              status: "APPROVED",
+              area: {
+                city: {
+                  name: restaurant.city,
+                },
+              },
+            },
           },
         },
       },
@@ -83,46 +93,15 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            vendorCoverage: true,
           },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Post-filter based on vendor coverage
-    // 4-point filter: approval + subscription + coverage + product active
-    const filteredProducts = vendorProducts.filter((vp) => {
-      const coverage = vp.vendor.vendorCoverage;
-
-      // No coverage set = NOT visible (vendor must configure coverage)
-      if (!coverage) return false;
-
-      // CITY_WIDE: check if restaurant city is in vendor's cities
-      if (coverage.coverageType === "CITY_WIDE") {
-        const cities = coverage.cities as string[] || [];
-        // Must have at least one city configured
-        if (cities.length === 0) return false;
-        return cities.some(city =>
-          city.toLowerCase() === restaurant.city.toLowerCase()
-        );
-      }
-
-      // PINCODE_WISE: check if restaurant pincode is in vendor's pincodes
-      if (coverage.coverageType === "PINCODE_WISE") {
-        if (!restaurant.pincode) return false; // Restaurant must have pincode
-        const pincodes = coverage.pincodes as string[] || [];
-        // Must have at least one pincode configured
-        if (pincodes.length === 0) return false;
-        return pincodes.includes(restaurant.pincode);
-      }
-
-      return false;
-    });
-
     // Transform to customer-facing format with product info from admin
     // Filter out any products where product relation is null
-    const productsForCustomer = filteredProducts
+    const productsForCustomer = vendorProducts
       .filter((vp) => vp.product !== null)
       .map((vp) => ({
       id: vp.id, // Vendor product ID (for ordering)

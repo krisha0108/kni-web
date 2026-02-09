@@ -28,6 +28,7 @@ export const registerVendorSchema = z.object({
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   categoryIds: z.array(z.string()).min(1, "Please select at least one category"),
+  areaIds: z.array(z.string()).optional().default([]),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")

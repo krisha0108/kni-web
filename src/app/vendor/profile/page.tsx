@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,13 +15,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   User,
@@ -61,11 +53,9 @@ interface VendorProfile {
     trialEndsAt?: string;
     activeUntil?: string;
   };
-  vendorCoverage?: {
-    coverageType: "PAN_INDIA" | "CITY" | "PINCODE";
-    cities?: string[];
-    pincodes?: string[];
-  };
+  vendorLocationRequests?: {
+    area: { name: string; city: { name: string } };
+  }[];
   stats?: {
     totalProducts: number;
     totalOrders: number;
@@ -99,9 +89,6 @@ export default function VendorProfilePage() {
     name: "",
     email: "",
     phone: "",
-    coverageType: "PAN_INDIA" as "PAN_INDIA" | "CITY" | "PINCODE",
-    cities: "",
-    pincodes: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -128,9 +115,6 @@ export default function VendorProfilePage() {
           name: data.data.name || "",
           email: data.data.email || "",
           phone: data.data.phone || "",
-          coverageType: data.data.vendorCoverage?.coverageType || "PAN_INDIA",
-          cities: data.data.vendorCoverage?.cities?.join(", ") || "",
-          pincodes: data.data.vendorCoverage?.pincodes?.join(", ") || "",
         });
       }
     } catch {
@@ -154,9 +138,6 @@ export default function VendorProfilePage() {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          coverageType: formData.coverageType,
-          cities: formData.cities.split(",").map((c) => c.trim()).filter(Boolean),
-          pincodes: formData.pincodes.split(",").map((p) => p.trim()).filter(Boolean),
         }),
       });
       const data = await response.json();
@@ -428,58 +409,34 @@ export default function VendorProfilePage() {
 
             <Separator />
 
-            {/* Coverage Settings */}
+            {/* Service Locations Info */}
             <div className="space-y-4">
               <h3 className="font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Coverage Area
+                Service Locations
               </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="coverageType">Coverage Type</Label>
-                  <Select
-                    value={formData.coverageType}
-                    onValueChange={(value: "PAN_INDIA" | "CITY" | "PINCODE") =>
-                      setFormData({ ...formData, coverageType: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select coverage type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PAN_INDIA">Pan India</SelectItem>
-                      <SelectItem value="CITY">Specific Cities</SelectItem>
-                      <SelectItem value="PINCODE">Specific Pincodes</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {profile?.vendorLocationRequests && profile.vendorLocationRequests.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.vendorLocationRequests.map((lr, idx) => (
+                    <Badge key={idx} variant="secondary" className="bg-green-50 text-green-700">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {lr.area.name}, {lr.area.city.name}
+                    </Badge>
+                  ))}
                 </div>
-              </div>
-
-              {formData.coverageType === "CITY" && (
-                <div className="space-y-2">
-                  <Label htmlFor="cities">Cities (comma separated)</Label>
-                  <Textarea
-                    id="cities"
-                    value={formData.cities}
-                    onChange={(e) => setFormData({ ...formData, cities: e.target.value })}
-                    placeholder="E.g., Mumbai, Delhi, Bangalore"
-                    rows={2}
-                  />
-                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No approved locations yet.
+                </p>
               )}
-
-              {formData.coverageType === "PINCODE" && (
-                <div className="space-y-2">
-                  <Label htmlFor="pincodes">Pincodes (comma separated)</Label>
-                  <Textarea
-                    id="pincodes"
-                    value={formData.pincodes}
-                    onChange={(e) => setFormData({ ...formData, pincodes: e.target.value })}
-                    placeholder="E.g., 400001, 110001, 560001"
-                    rows={2}
-                  />
-                </div>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/vendor/locations")}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Manage Locations
+              </Button>
             </div>
 
             <div className="flex justify-end">

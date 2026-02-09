@@ -6,7 +6,7 @@ import { getRestaurantAccess } from "@/server/auth/restaurant-rbac";
 /**
  * GET /api/owner/marketplace/vendors
  * List all approved and active vendors that can serve the owner's restaurant
- * Filters based on vendor coverage (city-wide or pincode-wise)
+ * Filters based on vendor's admin-approved location requests matching restaurant's city
  */
 export async function GET(request: NextRequest) {
   try {
@@ -60,6 +60,17 @@ export async function GET(request: NextRequest) {
             { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
           ],
         },
+        // Vendor must have approved location matching restaurant's city
+        vendorLocationRequests: {
+          some: {
+            status: "APPROVED",
+            area: {
+              city: {
+                name: restaurant.city,
+              },
+            },
+          },
+        },
       },
       include: {
         vendorProfile: {
@@ -70,7 +81,17 @@ export async function GET(request: NextRequest) {
             activeUntil: true,
           },
         },
-        vendorCoverage: true,
+        vendorLocationRequests: {
+          where: { status: "APPROVED" },
+          select: {
+            area: {
+              select: {
+                name: true,
+                city: { select: { name: true } },
+              },
+            },
+          },
+        },
         vendorStats: {
           select: {
             averageRating: true,
@@ -91,37 +112,15 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
     });
 
-    // Filter vendors based on coverage
-    const filteredVendors = vendors.filter((vendor) => {
-      const coverage = vendor.vendorCoverage;
-
-      // No coverage set = NOT visible (vendor must configure coverage)
-      if (!coverage) return false;
-
-      // CITY_WIDE: check if restaurant city is in vendor's cities
-      if (coverage.coverageType === "CITY_WIDE") {
-        const cities = (coverage.cities as string[]) || [];
-        // Must have at least one city configured
-        if (cities.length === 0) return false;
-        return cities.some(
-          (city) => city.toLowerCase() === restaurant.city.toLowerCase()
-        );
-      }
-
-      // PINCODE_WISE: check if restaurant pincode is in vendor's pincodes
-      if (coverage.coverageType === "PINCODE_WISE") {
-        if (!restaurant.pincode) return false; // Restaurant must have pincode
-        const pincodes = (coverage.pincodes as string[]) || [];
-        // Must have at least one pincode configured
-        if (pincodes.length === 0) return false;
-        return pincodes.includes(restaurant.pincode);
-      }
-
-      return false;
-    });
-
     // Format response for mobile app
-    const formattedVendors = filteredVendors.map((vendor) => {
+    const formattedVendors = vendors.map((vendor) => {
+      // Get unique city names from approved locations
+      const approvedCities = [
+        ...new Set(
+          vendor.vendorLocationRequests.map((lr) => lr.area.city.name)
+        ),
+      ];
+
       return {
         id: vendor.id,
         name: vendor.name,
@@ -129,10 +128,9 @@ export async function GET(request: NextRequest) {
         phone: vendor.phone,
         approvalStatus: vendor.vendorProfile?.approvalStatus,
         subscriptionStatus: vendor.vendorProfile?.subscriptionStatus,
-        coverage: {
-          type: vendor.vendorCoverage?.coverageType,
-          cities: vendor.vendorCoverage?.cities,
-          pincodes: vendor.vendorCoverage?.pincodes,
+        locations: {
+          cities: approvedCities,
+          areas: vendor.vendorLocationRequests.map((lr) => lr.area.name),
         },
         stats: {
           avgRating: vendor.vendorStats?.averageRating || 0,

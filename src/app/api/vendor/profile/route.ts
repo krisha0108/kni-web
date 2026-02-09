@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
-import { Role, CoverageType } from "@prisma/client";
+import { Role } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -34,11 +34,15 @@ export async function GET() {
             activeUntil: true,
           },
         },
-        vendorCoverage: {
+        vendorLocationRequests: {
+          where: { status: "APPROVED" },
           select: {
-            coverageType: true,
-            cities: true,
-            pincodes: true,
+            area: {
+              select: {
+                name: true,
+                city: { select: { name: true } },
+              },
+            },
           },
         },
         vendorProducts: {
@@ -100,7 +104,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone, coverageType, cities, pincodes } = body;
+    const { name, email, phone } = body;
 
     // Update user data
     const updateData: { name?: string; email?: string; phone?: string } = {};
@@ -119,24 +123,6 @@ export async function PUT(request: NextRequest) {
         role: true,
       },
     });
-
-    // Update or create vendor coverage
-    if (coverageType) {
-      await db.vendorCoverage.upsert({
-        where: { vendorId: session.id },
-        update: {
-          coverageType: coverageType as CoverageType,
-          cities: coverageType === "CITY" ? cities : null,
-          pincodes: coverageType === "PINCODE" ? pincodes : null,
-        },
-        create: {
-          vendorId: session.id,
-          coverageType: coverageType as CoverageType,
-          cities: coverageType === "CITY" ? cities : null,
-          pincodes: coverageType === "PINCODE" ? pincodes : null,
-        },
-      });
-    }
 
     return NextResponse.json({
       ok: true,

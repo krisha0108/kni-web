@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor, requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { createNotification } from "@/server/notifications/service";
 
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
     const { id } = await params;
 
     const order = await db.marketplaceOrder.findFirst({
@@ -145,9 +145,10 @@ export async function PATCH(
     });
   } catch (error) {
     console.error("Update vendor order error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

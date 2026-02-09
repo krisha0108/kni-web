@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Select vendor category error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }
@@ -126,9 +127,10 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("Bulk select vendor categories error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

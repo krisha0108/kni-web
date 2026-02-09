@@ -26,10 +26,7 @@ interface AnalyticsData {
   summary: {
     orders: { count: number; revenue: number };
     products: { activeCount: number };
-    coverage: {
-      type: string;
-      locations: number;
-    } | null;
+    locations: { approvedCount: number };
   };
   breakdowns: {
     ordersByStatus: Array<{ status: string; count: number; revenue: number }>;
@@ -216,29 +213,24 @@ export default function VendorDashboardPage() {
         </Card>
       </div>
 
-      {/* Coverage Info */}
-      {analyticsData.summary.coverage && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivery Coverage</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {analyticsData.summary.coverage.type.replace(/_/g, " ")}
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                {analyticsData.summary.coverage.locations}{" "}
-                {analyticsData.summary.coverage.type === "CITY_WIDE" ? "cities" : "pincodes"}
-              </span>
-            </div>
-            <Button size="sm" variant="outline" asChild className="mt-2">
-              <Link href="/vendor/coverage">Manage Coverage</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Service Locations Info */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Service Locations</CardTitle>
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold">
+              {analyticsData.summary.locations?.approvedCount || 0}
+            </span>
+            <span className="text-sm text-muted-foreground">Approved Areas</span>
+          </div>
+          <Button size="sm" variant="outline" asChild className="mt-2">
+            <Link href="/vendor/locations">Manage Locations</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Trend Chart */}
       {orderTrendData.length > 0 && (

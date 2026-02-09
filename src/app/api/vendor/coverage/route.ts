@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor, requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 import { CoverageType } from "@prisma/client";
 
@@ -12,7 +12,7 @@ const coverageSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     const coverage = await db.vendorCoverage.findUnique({
       where: { vendorId: session.id },
@@ -77,9 +77,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: coverage });
   } catch (error) {
     console.error("Create/update vendor coverage error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor } from "@/server/auth/rbac";
 
 // GET /api/vendor/products/available - Get admin products that vendor hasn't added pricing to
 // Only shows products from categories the vendor has selected
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";

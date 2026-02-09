@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, phone, city, state, categoryIds, password } = validation.data;
+    const { name, email, phone, city, state, categoryIds, areaIds, password } = validation.data;
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Create location requests if areaIds provided
+    if (areaIds && areaIds.length > 0) {
+      const validAreas = await db.serviceArea.findMany({
+        where: { id: { in: areaIds }, isActive: true },
+      });
+      if (validAreas.length > 0) {
+        await db.vendorLocationRequest.createMany({
+          data: validAreas.map((area) => ({
+            vendorId: user.id,
+            areaId: area.id,
+            status: "PENDING" as const,
+          })),
+        });
+      }
+    }
 
     // Create notification for vendor
     await db.notification.create({

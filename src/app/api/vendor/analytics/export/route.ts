@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch analytics data
-    const [orderStats, productCount, coverage] = await Promise.all([
+    const [orderStats, productCount, approvedLocations] = await Promise.all([
       db.marketplaceOrder.aggregate({
         where: { vendorId: session.id, createdAt: { gte: startDate } },
         _count: { id: true },
@@ -36,9 +36,8 @@ export async function GET(request: NextRequest) {
       db.vendorProduct.count({
         where: { vendorId: session.id, isActive: true },
       }),
-      db.vendorCoverage.findUnique({
-        where: { vendorId: session.id },
-        select: { coverageType: true, cities: true, pincodes: true },
+      db.vendorLocationRequest.count({
+        where: { vendorId: session.id, status: "APPROVED" },
       }),
     ]);
 
@@ -121,21 +120,6 @@ export async function GET(request: NextRequest) {
       take: 10,
     });
 
-    // Calculate coverage
-    let coverageData: { type: string; locations: number } | null = null;
-    if (coverage) {
-      const citiesArray = coverage.cities as string[] | null;
-      const pincodesArray = coverage.pincodes as string[] | null;
-
-      coverageData = {
-        type: coverage.coverageType,
-        locations:
-          coverage.coverageType === "CITY_WIDE"
-            ? citiesArray?.length || 0
-            : pincodesArray?.length || 0,
-      };
-    }
-
     const analyticsData = {
       vendorName: vendor.name,
       period: `Last ${periodDays} days`,
@@ -148,7 +132,7 @@ export async function GET(request: NextRequest) {
         products: {
           activeCount: productCount,
         },
-        coverage: coverageData,
+        coverage: null,
       },
       breakdowns: {
         ordersByStatus: ordersByStatus.map((item) => ({

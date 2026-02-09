@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor } from "@/server/auth/rbac";
 
 // GET /api/vendor/categories - Get all active marketplace categories with vendor's selections
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     // Get all active marketplace categories
     const categories = await db.marketplaceCategory.findMany({

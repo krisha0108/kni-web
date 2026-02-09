@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor, requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 
 // Vendors can only update their pricing info, not the product itself
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
     const { id } = await params;
 
     const vendorProduct = await db.vendorProduct.findFirst({
@@ -136,9 +136,10 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: result });
   } catch (error) {
     console.error("Update vendor product error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }
@@ -176,9 +177,10 @@ export async function DELETE(
     return NextResponse.json({ ok: true, message: "Product listing removed" });
   } catch (error) {
     console.error("Delete vendor product error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

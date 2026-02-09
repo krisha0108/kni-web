@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { VendorApprovalStatus, VendorSubscriptionStatus } from "@prisma/client";
+import { VendorApprovalStatus, VendorSubscriptionStatus, VendorLocationRequestStatus } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
@@ -89,21 +89,16 @@ export async function POST(
         },
       });
 
-      // Auto-create VendorCoverage from profile city if not exists
-      const existingCoverage = await db.vendorCoverage.findUnique({
-        where: { vendorId: id },
+      // Auto-approve all pending location requests for this vendor
+      await db.vendorLocationRequest.updateMany({
+        where: {
+          vendorId: id,
+          status: VendorLocationRequestStatus.PENDING,
+        },
+        data: {
+          status: VendorLocationRequestStatus.APPROVED,
+        },
       });
-
-      if (!existingCoverage && vendor.vendorProfile?.city) {
-        await db.vendorCoverage.create({
-          data: {
-            vendorId: id,
-            coverageType: "CITY_WIDE",
-            cities: [vendor.vendorProfile.city],
-            pincodes: [],
-          },
-        });
-      }
 
       // Create notification for vendor
       await db.notification.create({

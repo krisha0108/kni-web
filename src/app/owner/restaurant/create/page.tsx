@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { ArrowLeft, Image, FileText } from "lucide-react";
@@ -22,8 +23,33 @@ export default function CreateRestaurantPage() {
     fssaiCertificateUrl: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [states, setStates] = useState<{ id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
+  const [selectedStateId, setSelectedStateId] = useState("");
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetch("/api/public/locations?type=states")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) setStates(data.data || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedStateId) {
+      fetch(`/api/public/locations?type=cities&stateId=${selectedStateId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) setCities(data.data || []);
+        })
+        .catch(() => {});
+    } else {
+      setCities([]);
+    }
+  }, [selectedStateId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,15 +118,46 @@ export default function CreateRestaurantPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City *</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="Mumbai"
-                required
+              <Label>State *</Label>
+              <Select
+                value={selectedStateId}
+                onValueChange={(value) => {
+                  setSelectedStateId(value);
+                  setFormData({ ...formData, city: "" });
+                  setCities([]);
+                }}
                 disabled={isLoading}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select State" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.id} value={state.id}>
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>City *</Label>
+              <Select
+                value={formData.city}
+                onValueChange={(value) => setFormData({ ...formData, city: value })}
+                disabled={isLoading || !selectedStateId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedStateId ? "Select City" : "Select state first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.name}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="pincode">Pincode *</Label>

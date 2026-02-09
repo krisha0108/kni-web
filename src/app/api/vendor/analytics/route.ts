@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const [
       orderStats,
       productCount,
-      coverageInfo,
+      approvedLocations,
       recentOrders,
       topProducts,
     ] = await Promise.all([
@@ -37,14 +37,9 @@ export async function GET(request: NextRequest) {
         },
       }),
 
-      // Coverage information
-      db.vendorCoverage.findUnique({
-        where: { vendorId: session.id },
-        select: {
-          coverageType: true,
-          cities: true,
-          pincodes: true,
-        },
+      // Approved location count
+      db.vendorLocationRequest.count({
+        where: { vendorId: session.id, status: "APPROVED" },
       }),
 
       // Recent orders (last 10)
@@ -217,17 +212,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    // Coverage stats
-    const coverageStats = coverageInfo
-      ? {
-          type: coverageInfo.coverageType,
-          locations:
-            coverageInfo.coverageType === "CITY_WIDE"
-              ? (coverageInfo.cities as string[])?.length || 0
-              : (coverageInfo.pincodes as string[])?.length || 0,
-        }
-      : null;
-
     return NextResponse.json({
       ok: true,
       data: {
@@ -239,7 +223,9 @@ export async function GET(request: NextRequest) {
           products: {
             activeCount: productCount,
           },
-          coverage: coverageStats,
+          locations: {
+            approvedCount: approvedLocations,
+          },
         },
         breakdowns: {
           ordersByStatus: ordersByStatus.map((item) => ({

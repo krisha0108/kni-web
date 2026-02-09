@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/server/db'
-import { requireApprovedVendor } from '@/server/auth/rbac'
+import { requireVendor } from '@/server/auth/rbac'
 import { convertToCSV, ExportColumn } from '@/lib/export'
 
 export async function GET() {
   try {
-    const session = await requireApprovedVendor()
+    const session = await requireVendor()
 
     const products = await db.vendorProduct.findMany({
       where: { vendorId: session.id, deletedAt: null },

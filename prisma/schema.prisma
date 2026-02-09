@@ -105,6 +105,12 @@ enum CoverageType {
   PINCODE_WISE
 }
 
+enum VendorLocationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum RestaurantRole {
   OWNER
   MANAGER
@@ -227,6 +233,7 @@ model User {
   partRequestsAsAdmin      PartRequest[]         @relation("AdminPartRequests")
   marketplaceProducts      MarketplaceProduct[]  @relation("MarketplaceProductCreator")
   vendorCategories         VendorCategorySelection[]
+  vendorLocationRequests   VendorLocationRequest[]
 
   @@index([email])
   @@index([role])
@@ -1853,5 +1860,79 @@ model PartRequest {
   @@index([assignmentId])
   @@index([status])
   @@index([priority])
+  @@index([createdAt])
+}
+
+// ========================================
+// SERVICE LOCATIONS (Admin-managed hierarchy)
+// ========================================
+
+model ServiceState {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cities ServiceCity[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ServiceCity {
+  id        String   @id @default(cuid())
+  stateId   String
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  state ServiceState  @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  areas ServiceArea[]
+
+  @@unique([stateId, name])
+  @@index([stateId])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ServiceArea {
+  id        String   @id @default(cuid())
+  cityId    String
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city             ServiceCity             @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  locationRequests VendorLocationRequest[]
+
+  @@unique([cityId, name])
+  @@index([cityId])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model VendorLocationRequest {
+  id        String                      @id @default(cuid())
+  vendorId  String
+  areaId    String
+  status    VendorLocationRequestStatus @default(PENDING)
+  note      String?                     @db.Text
+  adminNote String?                     @db.Text
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+
+  vendor User        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  area   ServiceArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, areaId])
+  @@index([vendorId])
+  @@index([areaId])
+  @@index([status])
   @@index([createdAt])
 }

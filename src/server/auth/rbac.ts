@@ -67,9 +67,13 @@ export async function requireEngineerMobile(request: NextRequest): Promise<Sessi
 
 export async function requireApprovedVendor(): Promise<SessionUser> {
   const session = await requireVendor();
-  
+
   if (session.vendorApprovalStatus !== "APPROVED") {
     throw new Error("Forbidden: Vendor not approved");
+  }
+
+  if (!session.hasApprovedLocation) {
+    throw new Error("Forbidden: No approved service location");
   }
 
   const subStatus = session.vendorSubscriptionStatus;
@@ -97,10 +101,10 @@ export function getRoleDashboardUrl(role: Role, session?: SessionUser): string {
     case Role.OWNER:
       return "/owner/dashboard";
     case Role.VENDOR:
-      if (session?.vendorApprovalStatus !== "APPROVED") {
+      if (session?.vendorApprovalStatus !== "APPROVED" || !session?.hasApprovedLocation) {
         return "/vendor/pending";
       }
-      if (session?.vendorSubscriptionStatus === "EXPIRED" || 
+      if (session?.vendorSubscriptionStatus === "EXPIRED" ||
           session?.vendorSubscriptionStatus === "BLOCKED") {
         return "/vendor/subscription";
       }

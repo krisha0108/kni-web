@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor } from "@/server/auth/rbac";
 import { getVendorStats } from "@/server/ratings/service";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     const stats = await getVendorStats(session.id);
 

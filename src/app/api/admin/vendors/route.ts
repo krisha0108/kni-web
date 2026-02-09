@@ -96,22 +96,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Auto-create VendorCoverage from profile city if not exists
-      const existingCoverage = await db.vendorCoverage.findUnique({
-        where: { vendorId: vendorId },
-      });
-
-      if (!existingCoverage && vendor.vendorProfile?.city) {
-        await db.vendorCoverage.create({
-          data: {
-            vendorId: vendorId,
-            coverageType: "CITY_WIDE",
-            cities: [vendor.vendorProfile.city],
-            pincodes: [],
-          },
-        });
-      }
-
       await db.notification.create({
         data: {
           userId: vendorId,

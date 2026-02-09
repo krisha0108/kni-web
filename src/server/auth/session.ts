@@ -15,6 +15,7 @@ export interface SessionUser {
   vendorApprovalStatus?: VendorApprovalStatus | null;
   vendorSubscriptionStatus?: VendorSubscriptionStatus | null;
   hasApprovedRestaurant?: boolean;
+  hasApprovedLocation?: boolean;
 }
 
 export async function createSession(userId: string): Promise<string> {
@@ -59,6 +60,10 @@ export async function getSession(): Promise<SessionUser | null> {
             where: { status: "APPROVED" },
             take: 1,
           },
+          vendorLocationRequests: {
+            where: { status: "APPROVED" },
+            take: 1,
+          },
         },
       },
     },
@@ -84,6 +89,7 @@ export async function getSession(): Promise<SessionUser | null> {
     vendorApprovalStatus: session.user.vendorProfile?.approvalStatus ?? null,
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0,
+    hasApprovedLocation: session.user.vendorLocationRequests.length > 0,
   };
 }
 

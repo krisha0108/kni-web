@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireApprovedVendor } from "@/server/auth/rbac";
+import { requireVendor, requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
 
 // Schema for adding/updating vendor pricing for a product
@@ -16,7 +16,7 @@ const vendorProductSchema = z.object({
 // GET /api/vendor/products - Get vendor's product listings with admin product info
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireApprovedVendor();
+    const session = await requireVendor();
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
@@ -197,9 +197,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: result });
   } catch (error) {
     console.error("Create vendor product error:", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { ok: false, error: msg },
+      { status: msg.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

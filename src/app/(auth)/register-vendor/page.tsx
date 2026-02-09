@@ -7,15 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { FolderOpen, Loader2 } from "lucide-react";
+import {
+  FolderOpen,
+  Loader2,
+  MapPin,
+  Store,
+  Mail,
+  Phone,
+  Lock,
+  CheckCircle,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  ShoppingBag,
+  X,
+} from "lucide-react";
 import { ClientOnly } from "@/components/client-only";
 
 interface MarketplaceCategory {
@@ -25,14 +38,10 @@ interface MarketplaceCategory {
   _count: { products: number };
 }
 
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
-  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
-  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
-  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-  "Delhi", "Jammu and Kashmir", "Ladakh", "Puducherry", "Chandigarh",
-];
+interface LocationOption {
+  id: string;
+  name: string;
+}
 
 export default function RegisterVendorPage() {
   const [formData, setFormData] = useState({
@@ -48,11 +57,24 @@ export default function RegisterVendorPage() {
   const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Location state
+  const [serviceStates, setServiceStates] = useState<LocationOption[]>([]);
+  const [serviceCities, setServiceCities] = useState<LocationOption[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<LocationOption[]>([]);
+  const [selectedStateId, setSelectedStateId] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState("");
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCategories();
+    fetchServiceStates();
   }, []);
 
   const fetchCategories = async () => {
@@ -67,6 +89,79 @@ export default function RegisterVendorPage() {
     } finally {
       setIsLoadingCategories(false);
     }
+  };
+
+  const fetchServiceStates = async () => {
+    try {
+      setIsLoadingLocations(true);
+      const response = await fetch("/api/public/locations?type=states");
+      const data = await response.json();
+      if (data.ok) {
+        setServiceStates(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch service states", error);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  const fetchServiceCities = async (stateId: string) => {
+    try {
+      const response = await fetch(`/api/public/locations?type=cities&stateId=${stateId}`);
+      const data = await response.json();
+      if (data.ok) {
+        setServiceCities(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch service cities", error);
+    }
+  };
+
+  const fetchServiceAreas = async (cityId: string) => {
+    try {
+      const response = await fetch(`/api/public/locations?type=areas&cityId=${cityId}`);
+      const data = await response.json();
+      if (data.ok) {
+        setServiceAreas(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch service areas", error);
+    }
+  };
+
+  const handleStateChange = (stateId: string) => {
+    setSelectedStateId(stateId);
+    setSelectedCityId("");
+    setServiceCities([]);
+    setServiceAreas([]);
+    setSelectedAreaIds([]);
+    // Set form state name from selected
+    const st = serviceStates.find((s) => s.id === stateId);
+    if (st) setFormData((prev) => ({ ...prev, state: st.name }));
+    if (stateId) fetchServiceCities(stateId);
+  };
+
+  const handleCityChange = (cityId: string) => {
+    setSelectedCityId(cityId);
+    setServiceAreas([]);
+    setSelectedAreaIds([]);
+    // Set form city name from selected
+    const ct = serviceCities.find((c) => c.id === cityId);
+    if (ct) setFormData((prev) => ({ ...prev, city: ct.name }));
+    if (cityId) fetchServiceAreas(cityId);
+  };
+
+  const toggleArea = (areaId: string) => {
+    setSelectedAreaIds((prev) =>
+      prev.includes(areaId)
+        ? prev.filter((id) => id !== areaId)
+        : [...prev, areaId]
+    );
+  };
+
+  const removeArea = (areaId: string) => {
+    setSelectedAreaIds((prev) => prev.filter((id) => id !== areaId));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,6 +189,15 @@ export default function RegisterVendorPage() {
       return;
     }
 
+    if (!selectedStateId || !selectedCityId) {
+      toast({
+        title: "Location Required",
+        description: "Please select your state and city.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -103,6 +207,7 @@ export default function RegisterVendorPage() {
         body: JSON.stringify({
           ...formData,
           categoryIds: selectedCategories,
+          areaIds: selectedAreaIds,
         }),
       });
 
@@ -135,210 +240,411 @@ export default function RegisterVendorPage() {
     }
   };
 
+  // Get area names for selected chips
+  const getAreaName = (areaId: string) => {
+    return serviceAreas.find((a) => a.id === areaId)?.name || areaId;
+  };
+
   return (
     <ClientOnly>
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Register as Vendor</CardTitle>
-        <CardDescription>
-          Create an account to sell products on the marketplace
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          {/* Business Details */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Business Details</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Business Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="Your Business Name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="+91 9876543210"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                />
-              </div>
+      <div data-wide className="w-full py-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+              <Store className="h-8 w-8 text-primary" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="name@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={isLoading}
-              />
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Become a Vendor</h1>
+            <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+              Join our marketplace and start selling to thousands of restaurant owners
+            </p>
           </div>
 
-          {/* Location */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Location</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  placeholder="e.g., Mumbai"
-                  value={formData.city}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State *</Label>
-                <select
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                  disabled={isLoading}
-                  required
-                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Select state</option>
-                  {INDIAN_STATES.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-6">
 
-          {/* Category Selection */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg">Select Categories *</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose the categories you want to sell products in. You can only add products from these categories.
-              </p>
-            </div>
-            {isLoadingCategories ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FolderOpen className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                <p>No categories available yet.</p>
-              </div>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedCategories.includes(category.id)
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted/50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(category.id)}
-                      onChange={() => toggleCategory(category.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    {category.imageUrl ? (
-                      <img
-                        src={category.imageUrl}
-                        alt={category.name}
-                        className="h-10 w-10 rounded object-cover"
+              {/* Section 1: Business Details */}
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 bg-muted/50 border-b">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">1</div>
+                  <div>
+                    <h3 className="font-semibold">Business Information</h3>
+                    <p className="text-xs text-muted-foreground">Tell us about your business</p>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Business Name *</Label>
+                    <div className="relative">
+                      <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        name="name"
+                        placeholder="Your Business Name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        disabled={isLoading}
+                        className="pl-10"
                       />
-                    ) : (
-                      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                        <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{category.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {category._count.products} products
-                      </p>
                     </div>
-                  </label>
-                ))}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                          disabled={isLoading}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="+91 9876543210"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-            {selectedCategories.length > 0 && (
-              <p className="text-sm text-primary">
-                {selectedCategories.length} category(ies) selected
-              </p>
-            )}
-          </div>
 
-          {/* Password */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Set Password</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Min 8 chars, uppercase, lowercase, number"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                />
+              {/* Section 2: Service Location */}
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 bg-muted/50 border-b">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">2</div>
+                  <div>
+                    <h3 className="font-semibold">Service Location</h3>
+                    <p className="text-xs text-muted-foreground">Where do you want to operate?</p>
+                  </div>
+                </div>
+                <div className="p-6 space-y-5">
+                  {isLoadingLocations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : serviceStates.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MapPin className="mx-auto h-10 w-10 mb-3 opacity-30" />
+                      <p className="font-medium">No service locations available yet</p>
+                      <p className="text-sm mt-1">Please contact admin to set up locations.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>State *</Label>
+                          <Select value={selectedStateId} onValueChange={handleStateChange} disabled={isLoading}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {serviceStates.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>City *</Label>
+                          <Select value={selectedCityId} onValueChange={handleCityChange} disabled={isLoading || !selectedStateId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={selectedStateId ? "Select your city" : "Select state first"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {serviceCities.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Areas Selection */}
+                      {selectedCityId && serviceAreas.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Select Service Areas *</Label>
+                            {selectedAreaIds.length > 0 && (
+                              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                {selectedAreaIds.length} selected
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Selected areas chips */}
+                          {selectedAreaIds.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedAreaIds.map((id) => (
+                                <span
+                                  key={id}
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                                >
+                                  <MapPin className="h-3 w-3" />
+                                  {getAreaName(id)}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeArea(id)}
+                                    className="ml-1 hover:bg-primary/20 rounded-full p-0.5"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {serviceAreas.map((area) => {
+                              const isSelected = selectedAreaIds.includes(area.id);
+                              return (
+                                <label
+                                  key={area.id}
+                                  className={`
+                                    flex items-center gap-3 p-3 rounded-lg border cursor-pointer
+                                    transition-all duration-150
+                                    ${isSelected
+                                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                                    }
+                                  `}
+                                >
+                                  <div className={`
+                                    flex items-center justify-center w-5 h-5 rounded border-2 transition-colors
+                                    ${isSelected
+                                      ? "bg-primary border-primary"
+                                      : "border-muted-foreground/30"
+                                    }
+                                  `}>
+                                    {isSelected && <CheckCircle className="h-3.5 w-3.5 text-primary-foreground" />}
+                                  </div>
+                                  <MapPin className={`h-4 w-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                                  <span className={`text-sm font-medium ${isSelected ? "text-primary" : ""}`}>
+                                    {area.name}
+                                  </span>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleArea(area.id)}
+                                    className="sr-only"
+                                  />
+                                </label>
+                              );
+                            })}
+                          </div>
+
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Selected areas will be sent to admin for approval
+                          </p>
+                        </div>
+                      )}
+
+                      {selectedCityId && serviceAreas.length === 0 && (
+                        <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg bg-muted/30">
+                          <MapPin className="mx-auto h-6 w-6 mb-2 opacity-40" />
+                          No areas available for this city yet
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                />
+
+              {/* Section 3: Categories */}
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 bg-muted/50 border-b">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">3</div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Product Categories</h3>
+                    <p className="text-xs text-muted-foreground">What do you want to sell?</p>
+                  </div>
+                  {selectedCategories.length > 0 && (
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                      {selectedCategories.length} selected
+                    </span>
+                  )}
+                </div>
+                <div className="p-6">
+                  {isLoadingCategories ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ShoppingBag className="mx-auto h-10 w-10 mb-3 opacity-30" />
+                      <p className="font-medium">No categories available yet</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {categories.map((category) => {
+                        const isSelected = selectedCategories.includes(category.id);
+                        return (
+                          <label
+                            key={category.id}
+                            className={`
+                              flex items-center gap-3 p-3 rounded-lg border cursor-pointer
+                              transition-all duration-150
+                              ${isSelected
+                                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                                : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                              }
+                            `}
+                          >
+                            <div className={`
+                              flex items-center justify-center w-5 h-5 rounded border-2 transition-colors
+                              ${isSelected
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground/30"
+                              }
+                            `}>
+                              {isSelected && <CheckCircle className="h-3.5 w-3.5 text-primary-foreground" />}
+                            </div>
+                            {category.imageUrl ? (
+                              <img
+                                src={category.imageUrl}
+                                alt={category.name}
+                                className="h-10 w-10 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                <FolderOpen className={`h-5 w-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium text-sm ${isSelected ? "text-primary" : ""}`}>{category.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {category._count.products} products
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleCategory(category.id)}
+                              className="sr-only"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Section 4: Password */}
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 bg-muted/50 border-b">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">4</div>
+                  <div>
+                    <h3 className="font-semibold">Set Password</h3>
+                    <p className="text-xs text-muted-foreground">Create a secure password for your account</p>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          required
+                          disabled={isLoading}
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm password"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          required
+                          disabled={isLoading}
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Min 8 characters with uppercase, lowercase, and a number
+                  </p>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="space-y-4">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full text-base h-12"
+                  disabled={isLoading || selectedCategories.length === 0 || !selectedStateId || !selectedCityId}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Creating your account...
+                    </>
+                  ) : (
+                    <>
+                      Create Vendor Account
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-center text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-primary font-medium hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading || selectedCategories.length === 0}
-          >
-            {isLoading ? "Creating account..." : "Create Account"}
-          </Button>
-          <p className="text-sm text-center text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+          </form>
+      </div>
     </ClientOnly>
   );
 }

@@ -108,6 +108,8 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Category Requests", href: "/admin/category-requests", icon: FileText },
   // { title: "Part Requests", href: "/admin/part-requests", icon: Package }, // TODO: Parts request flow disabled
   { title: "Vendors", href: "/admin/vendors", icon: Store },
+  { title: "Locations", href: "/admin/locations", icon: MapPin },
+  { title: "Location Requests", href: "/admin/location-requests", icon: FileCheck },
   { title: "MP Categories", href: "/admin/marketplace/categories", icon: FolderOpen },
   { title: "MP Subcategories", href: "/admin/marketplace/subcategories", icon: Layers },
   { title: "Marketplace Products", href: "/admin/marketplace/products", icon: ShoppingBag },
@@ -153,7 +155,7 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "My Categories", href: "/vendor/categories", icon: FolderOpen },
   { title: "My Products", href: "/vendor/products", icon: Package },
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
-  { title: "Coverage Settings", href: "/vendor/coverage", icon: MapPin },
+  { title: "My Locations", href: "/vendor/locations", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
   { title: "Notifications", href: "/vendor/notifications", icon: Bell },
   { title: "Profile", href: "/vendor/profile", icon: User },

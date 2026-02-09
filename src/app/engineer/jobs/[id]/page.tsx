@@ -36,6 +36,7 @@ import {
   Plus,
   X,
   Wrench,
+  Shield,
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
@@ -127,6 +128,11 @@ export default function EngineerJobDetailPage() {
   const [isPartsOpen, setIsPartsOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isStartingWork, setIsStartingWork] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinValue, setPinValue] = useState("");
+  const [pinPurpose, setPinPurpose] = useState<"START" | "COMPLETE">("START");
+  const [isRequestingPin, setIsRequestingPin] = useState(false);
+  const [pinExpiresAt, setPinExpiresAt] = useState<string | null>(null);
   const [workNotes, setWorkNotes] = useState("");
   const [proofImageUrls, setProofImageUrls] = useState<string[]>([]);
   const { toast } = useToast();
@@ -215,31 +221,79 @@ export default function EngineerJobDetailPage() {
     };
   }, [isTimerRunning]);
 
-  // Start work / Start timer
-  const handleStartWork = async () => {
-    setIsStartingWork(true);
+  // Request a service PIN from owner
+  const handleRequestPin = async (purpose: "START" | "COMPLETE") => {
+    console.log("🔐 [FRONTEND] handleRequestPin called with purpose:", purpose, "jobId:", jobId);
+    setIsRequestingPin(true);
+    setPinPurpose(purpose);
+    setPinValue("");
     try {
-      const response = await fetch("/api/engineer/jobs/" + jobId + "/start", {
+      const url = "/api/engineer/jobs/" + jobId + "/request-pin";
+      console.log("🔐 [FRONTEND] Fetching:", url);
+      const response = await fetch(url, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose }),
       });
+      console.log("🔐 [FRONTEND] Response status:", response.status);
       const data = await response.json();
-
+      console.log("🔐 [FRONTEND] Response data:", data);
       if (data.ok) {
-        setIsTimerRunning(true);
-        toast({ title: "Work Started", description: "Timer is now running. Good luck!" });
-        fetchJob();
+        setPinExpiresAt(data.expiresAt);
+        setIsPinModalOpen(true);
+        toast({ title: "PIN Sent", description: "PIN has been sent to the owner. Ask them to share it." });
       } else {
-        // Still start timer locally even if API fails
-        setIsTimerRunning(true);
-        toast({ title: "Timer Started", description: "Timer started locally" });
+        toast({ title: "Error", description: data.error, variant: "destructive" });
       }
-    } catch {
-      // Start timer locally on error
-      setIsTimerRunning(true);
-      toast({ title: "Timer Started", description: "Timer started locally" });
+    } catch (err) {
+      console.error("🔐 [FRONTEND] Request PIN error:", err);
+      toast({ title: "Error", description: "Failed to request PIN", variant: "destructive" });
     } finally {
-      setIsStartingWork(false);
+      setIsRequestingPin(false);
     }
+  };
+
+  // Submit PIN and proceed with start/complete
+  const handleSubmitPin = async () => {
+    if (pinValue.length !== 4) {
+      toast({ title: "Error", description: "Please enter a 4-digit PIN", variant: "destructive" });
+      return;
+    }
+
+    if (pinPurpose === "START") {
+      setIsStartingWork(true);
+      try {
+        const response = await fetch("/api/engineer/jobs/" + jobId + "/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pinValue }),
+        });
+        const data = await response.json();
+        if (data.ok) {
+          setIsPinModalOpen(false);
+          setPinValue("");
+          setIsTimerRunning(true);
+          toast({ title: "Work Started", description: "PIN verified. Timer is now running!" });
+          fetchJob();
+        } else {
+          toast({ title: "Error", description: data.error, variant: "destructive" });
+        }
+      } catch {
+        toast({ title: "Error", description: "Failed to start work", variant: "destructive" });
+      } finally {
+        setIsStartingWork(false);
+      }
+    } else {
+      // COMPLETE - close PIN modal and open complete dialog with PIN stored
+      setIsPinModalOpen(false);
+      setIsCompleteOpen(true);
+    }
+  };
+
+  // Start work / Start timer - now goes through PIN flow
+  const handleStartWork = async () => {
+    console.log("🔐 [FRONTEND] handleStartWork clicked! Job status:", job?.status, "workStarted:", workStarted);
+    await handleRequestPin("START");
   };
 
   // Toggle timer
@@ -308,6 +362,7 @@ export default function EngineerJobDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "complete",
+          pin: pinValue,
           completionNote: completionNote.trim(),
           proofImageUrls,
           partsUsed: validParts,
@@ -483,10 +538,14 @@ export default function EngineerJobDetailPage() {
                 <Button
                   className="w-full"
                   size="lg"
-                  onClick={() => setIsCompleteOpen(true)}
-                  disabled={timeSpent === 0}
+                  onClick={() => handleRequestPin("COMPLETE")}
+                  disabled={timeSpent === 0 || isRequestingPin}
                 >
-                  <CheckCircle className="mr-2 h-5 w-5" />
+                  {isRequestingPin && pinPurpose === "COMPLETE" ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                  )}
                   Complete Job
                 </Button>
                 {timeSpent === 0 && (
@@ -874,6 +933,64 @@ export default function EngineerJobDetailPage() {
           <DialogFooter>
             <Button onClick={() => setIsPartsOpen(false)}>
               Done ({usedParts.length} parts)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Service PIN Modal */}
+      <Dialog open={isPinModalOpen} onOpenChange={setIsPinModalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              Enter Service PIN
+            </DialogTitle>
+            <DialogDescription>
+              {pinPurpose === "START"
+                ? "Ask the owner for the 4-digit PIN to start work."
+                : "Ask the owner for the 4-digit PIN to complete work."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center">
+              <Input
+                value={pinValue}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                  setPinValue(val);
+                }}
+                placeholder="0000"
+                className="text-center text-3xl tracking-[0.5em] font-bold h-16"
+                maxLength={4}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && pinValue.length === 4) {
+                    handleSubmitPin();
+                  }
+                }}
+              />
+            </div>
+            {pinExpiresAt && (
+              <p className="text-xs text-muted-foreground text-center">
+                PIN expires at {new Date(pinExpiresAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsPinModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitPin}
+              disabled={pinValue.length !== 4 || isStartingWork}
+            >
+              {isStartingWork ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Shield className="mr-2 h-4 w-4" />
+              )}
+              Verify PIN
             </Button>
           </DialogFooter>
         </DialogContent>

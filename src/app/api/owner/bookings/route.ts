@@ -233,8 +233,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Calculate total with tip
-    const finalAmount = totalAmount + (tip || 0);
+    // Calculate GST (18%) and total with tip
+    const GST_RATE = 0.18;
+    const gstAmount = Math.round(totalAmount * GST_RATE);
+    const tipAmount = tip || 0;
+    const finalAmount = totalAmount + gstAmount + tipAmount;
 
     console.log("Creating booking with data:", {
       ownerId: session.id,
@@ -260,6 +263,8 @@ export async function POST(request: NextRequest) {
           : null,
         status: paymentScreenshotUrl ? "PAYMENT_UPLOADED" : "SLOT_SELECTED",
         totalAmount: Math.round(finalAmount),
+        gstAmount: gstAmount,
+        tipAmount: tipAmount,
         problemDescription: problemDescription || null,
         items: {
           create: bookingItems.map((item) => ({

@@ -39,8 +39,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const attendanceDate = new Date(validated.attendanceDate);
-    attendanceDate.setHours(0, 0, 0, 0);
+    // Parse date explicitly to avoid timezone issues
+    const [year, month, day] = validated.attendanceDate.split('-').map(Number);
+    const attendanceDate = new Date(year, month - 1, day, 0, 0, 0, 0);
 
     // Get staff IDs
     const staffIds = validated.records.map((r) => r.staffId);
@@ -61,26 +62,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing attendance
+    // Check for existing attendance - filter them out instead of erroring
     const existing = await db.staffAttendance.findMany({
       where: {
         staffId: { in: staffIds },
         attendanceDate,
       },
+      select: { staffId: true },
     });
 
-    if (existing.length > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Attendance already marked for ${existing.length} staff member(s) on this date`,
-        },
-        { status: 400 }
-      );
+    const existingStaffIds = new Set(existing.map((e) => e.staffId));
+    const recordsToCreate = validated.records.filter(
+      (r) => !existingStaffIds.has(r.staffId)
+    );
+
+    if (recordsToCreate.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        data: [],
+        message: "All staff members already have attendance marked for this date",
+        skipped: existing.length,
+      });
     }
 
-    // Create attendance records
-    const attendanceData = validated.records.map((record) => {
+    // Use upsert for each record to handle any race conditions
+    const results = [];
+    for (const record of recordsToCreate) {
       let workHours = record.workHours;
       if (!workHours && record.checkInTime && record.checkOutTime) {
         const checkIn = new Date(record.checkInTime);
@@ -88,43 +95,49 @@ export async function POST(request: NextRequest) {
         workHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
       }
 
-      return {
-        staffId: record.staffId,
-        restaurantId: validated.restaurantId,
-        attendanceDate,
-        status: record.status,
-        checkInTime: record.checkInTime ? new Date(record.checkInTime) : null,
-        checkOutTime: record.checkOutTime ? new Date(record.checkOutTime) : null,
-        workHours,
-        markedBy: session.id,
-      };
-    });
-
-    await db.staffAttendance.createMany({
-      data: attendanceData,
-    });
-
-    // Fetch created records with relations
-    const created = await db.staffAttendance.findMany({
-      where: {
-        staffId: { in: staffIds },
-        attendanceDate,
-      },
-      include: {
-        staff: {
-          select: {
-            id: true,
-            name: true,
-            designation: true,
+      const attendance = await db.staffAttendance.upsert({
+        where: {
+          staffId_attendanceDate: {
+            staffId: record.staffId,
+            attendanceDate,
           },
         },
-      },
-    });
+        update: {
+          status: record.status,
+          checkInTime: record.checkInTime ? new Date(record.checkInTime) : null,
+          checkOutTime: record.checkOutTime ? new Date(record.checkOutTime) : null,
+          workHours,
+          markedBy: session.id,
+        },
+        create: {
+          staffId: record.staffId,
+          restaurantId: validated.restaurantId,
+          attendanceDate,
+          status: record.status,
+          checkInTime: record.checkInTime ? new Date(record.checkInTime) : null,
+          checkOutTime: record.checkOutTime ? new Date(record.checkOutTime) : null,
+          workHours,
+          markedBy: session.id,
+        },
+        include: {
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              designation: true,
+            },
+          },
+        },
+      });
+      results.push(attendance);
+    }
 
     return NextResponse.json({
       ok: true,
-      data: created,
-      message: `Attendance marked for ${created.length} staff member(s)`,
+      data: results,
+      message: `Attendance marked for ${results.length} staff member(s)${existing.length > 0 ? ` (${existing.length} already marked, skipped)` : ""}`,
+      created: results.length,
+      skipped: existing.length,
     });
   } catch (error: any) {
     if (error.name === "ZodError") {

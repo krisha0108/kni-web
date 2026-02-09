@@ -48,6 +48,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
+      console.log("Restaurant context: API response:", { ok: data.ok, count: data.data?.length });
 
       if (data.ok && data.data) {
         setRestaurants(data.data);

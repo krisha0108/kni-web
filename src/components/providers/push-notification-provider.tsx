@@ -63,6 +63,15 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
           // Force update check for the service worker
           await registration.update();
 
+          // Skip auto-registration on public pages (login, register, etc.)
+          const publicPaths = ["/login", "/register", "/register-owner", "/register-vendor", "/forgot-password"];
+          const isPublicPage = publicPaths.some(path => window.location.pathname.startsWith(path));
+
+          if (isPublicPage) {
+            console.log("On public page, skipping auto token registration");
+            return;
+          }
+
           // Auto-register token if permission is already granted
           if (Notification.permission === "granted" && !token) {
             console.log("Permission already granted, auto-registering token...");

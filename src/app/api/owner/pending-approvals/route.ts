@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const items: any[] = [];
 
     try {
-      // Check for pending restaurant approvals
+      // Check for pending restaurant approvals (always show all owner's pending restaurants)
       const pendingRestaurants = await db.restaurant.findMany({
         where: {
           ownerId: session.id,
@@ -38,12 +38,13 @@ export async function GET(request: NextRequest) {
         });
       });
 
-      // Check for pending team invitations
+      // Check for pending team invitations (filtered by restaurantId)
       const pendingInvites = await db.restaurantMember.findMany({
         where: {
           restaurant: {
             ownerId: session.id,
           },
+          ...(restaurantId ? { restaurantId } : {}),
           acceptedAt: null, // Pending invites have null acceptedAt
         },
         include: {
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
         });
       });
 
-      // Check for pending bookings requiring payment
+      // Check for pending bookings requiring payment (filtered by restaurantId)
       if (restaurantId) {
         const pendingBookings = await db.serviceBooking.findMany({
           where: {
@@ -91,11 +92,12 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Check for pending category requests
+      // Check for pending category requests (filtered by restaurantId)
       const pendingCategories = await db.categoryRequest.findMany({
         where: {
           ownerId: session.id,
           status: "PENDING",
+          ...(restaurantId ? { restaurantId } : {}),
         },
         select: {
           id: true,

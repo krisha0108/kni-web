@@ -36,13 +36,17 @@ export async function GET(request: NextRequest) {
       take: perPage,
     });
 
-    // Format for mobile app
+    // Format for mobile app (map DB fields to what the app expects)
     const formatted = banners.map((b) => ({
       id: b.id,
       title: b.title,
+      subtitle: b.description,
       description: b.description,
       image_url: b.imageUrl,
       link: b.linkUrl,
+      cta_link: b.linkUrl,
+      cta_text: b.linkUrl ? 'Learn More' : null,
+      badge: null,
       status: b.status.toLowerCase(),
       sort_order: b.sortOrder,
     }));

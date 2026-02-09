@@ -41,9 +41,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate && endDate) {
+      // Parse dates explicitly to avoid timezone issues
+      // startDate/endDate format: "YYYY-MM-DD"
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+      const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+      const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+
       where.attendanceDate = {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
+        gte: start,
+        lte: end,
       };
     }
 
@@ -99,8 +107,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const attendanceDate = new Date(validated.attendanceDate);
-    attendanceDate.setHours(0, 0, 0, 0);
+    // Parse date explicitly to avoid timezone issues
+    const [year, month, day] = validated.attendanceDate.split('-').map(Number);
+    const attendanceDate = new Date(year, month - 1, day, 0, 0, 0, 0);
 
     // Calculate work hours if check in/out times provided
     let workHours = validated.workHours;

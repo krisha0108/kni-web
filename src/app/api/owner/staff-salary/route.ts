@@ -35,11 +35,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: any = {
-      restaurantId,
-      staff: {
+    // First verify restaurant belongs to owner
+    const restaurant = await db.restaurant.findFirst({
+      where: {
+        id: restaurantId,
         ownerId: session.id,
       },
+    });
+
+    if (!restaurant) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant not found or access denied" },
+        { status: 404 }
+      );
+    }
+
+    const where: any = {
+      restaurantId,
     };
 
     if (staffId) where.staffId = staffId;
@@ -62,7 +74,7 @@ export async function GET(request: NextRequest) {
       orderBy: [
         { year: "desc" },
         { month: "desc" },
-        { staff: { name: "asc" } },
+        { createdAt: "desc" },
       ],
     });
 

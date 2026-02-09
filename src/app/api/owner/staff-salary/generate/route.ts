@@ -47,23 +47,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if salaries already generated for this month
+    // Check existing salaries - filter them out instead of erroring
     const existing = await db.staffSalary.findMany({
       where: {
         restaurantId: validated.restaurantId,
         month: validated.month,
         year: validated.year,
       },
+      select: { staffId: true },
     });
 
-    if (existing.length > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Salary already generated for ${existing.length} staff member(s) for this month`,
-        },
-        { status: 400 }
-      );
+    const existingStaffIds = new Set(existing.map((e) => e.staffId));
+    const staffToGenerate = staff.filter((s) => !existingStaffIds.has(s.id));
+
+    if (staffToGenerate.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        data: [],
+        message: `All ${existing.length} staff member(s) already have salary generated for this month`,
+        skipped: existing.length,
+      });
     }
 
     // Calculate attendance-based salary for part-time staff
@@ -91,8 +94,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Generate salary records
-    const salaryData = staff.map((member) => {
+    // Generate salary records for staff who don't have salary yet
+    const salaryData = staffToGenerate.map((member) => {
       let basicSalary = 0;
 
       if (member.staffType === "FULL_TIME" || member.staffType === "CONTRACT") {
@@ -144,7 +147,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: created,
-      message: `Salary generated for ${created.length} staff member(s)`,
+      message: `Salary generated for ${created.length} staff member(s)${existing.length > 0 ? ` (${existing.length} already had salary, skipped)` : ""}`,
+      created: created.length,
+      skipped: existing.length,
     });
   } catch (error: any) {
     if (error.name === "ZodError") {

@@ -6,6 +6,8 @@ import { notifyOwnerEngineerStarted } from "@/server/notifications/service";
 /**
  * POST /api/engineer/jobs/:id/start
  * Mark a job as "in progress" by engineer
+ * Requires service PIN verification from owner
+ * Body: { pin: "1234" }
  */
 export async function POST(
   request: NextRequest,
@@ -14,6 +16,8 @@ export async function POST(
   try {
     const session = await requireEngineerMobile(request);
     const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const { pin } = body;
 
     // Find the assignment
     const assignment = await db.engineerAssignment.findFirst({
@@ -45,6 +49,57 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Validate service PIN
+    if (!pin) {
+      return NextResponse.json(
+        { ok: false, error: "Service PIN is required to start work" },
+        { status: 400 }
+      );
+    }
+
+    if (!assignment.servicePin || assignment.servicePinPurpose !== "START") {
+      return NextResponse.json(
+        { ok: false, error: "No active start PIN found. Please request a PIN first." },
+        { status: 400 }
+      );
+    }
+
+    if (assignment.servicePinExpiresAt && new Date() > assignment.servicePinExpiresAt) {
+      return NextResponse.json(
+        { ok: false, error: "PIN has expired. Please request a new PIN." },
+        { status: 400 }
+      );
+    }
+
+    if (assignment.servicePinAttempts >= 5) {
+      // Clear PIN after max attempts
+      await db.engineerAssignment.update({
+        where: { id },
+        data: { servicePin: null, servicePinExpiresAt: null, servicePinPurpose: null, servicePinAttempts: 0 },
+      });
+      return NextResponse.json(
+        { ok: false, error: "Too many wrong attempts. Please request a new PIN." },
+        { status: 400 }
+      );
+    }
+
+    if (assignment.servicePin !== pin) {
+      await db.engineerAssignment.update({
+        where: { id },
+        data: { servicePinAttempts: { increment: 1 } },
+      });
+      return NextResponse.json(
+        { ok: false, error: "Incorrect PIN. Please try again.", attemptsLeft: 5 - assignment.servicePinAttempts - 1 },
+        { status: 400 }
+      );
+    }
+
+    // PIN is correct - clear it
+    await db.engineerAssignment.update({
+      where: { id },
+      data: { servicePin: null, servicePinExpiresAt: null, servicePinPurpose: null, servicePinAttempts: 0 },
+    });
 
     // Update assignment status to IN_PROGRESS
     await db.engineerAssignment.update({

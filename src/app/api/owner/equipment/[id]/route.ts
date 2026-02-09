@@ -96,3 +96,102 @@ export async function GET(
     );
   }
 }
+
+// PATCH /api/owner/equipment/[id] - Update equipment
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireOwnerMobile(request);
+    const { id: equipmentId } = await params;
+    const body = await request.json();
+
+    // Verify equipment belongs to this owner
+    const existing = await db.equipment.findFirst({
+      where: {
+        id: equipmentId,
+        ownerId: session.id,
+        deletedAt: null,
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: "Equipment not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only allow updating these fields
+    const allowedFields: Record<string, unknown> = {};
+    if (body.name !== undefined) allowedFields.name = body.name;
+    if (body.brand !== undefined) allowedFields.brand = body.brand;
+    if (body.model !== undefined) allowedFields.model = body.model;
+    if (body.serialNumber !== undefined) allowedFields.serialNumber = body.serialNumber;
+    if (body.purchaseDate !== undefined) allowedFields.purchaseDate = new Date(body.purchaseDate);
+    if (body.warrantyEndDate !== undefined) allowedFields.warrantyEndDate = body.warrantyEndDate ? new Date(body.warrantyEndDate) : null;
+    if (body.installLocation !== undefined) allowedFields.installLocation = body.installLocation;
+    if (body.billImageUrl !== undefined) allowedFields.billImageUrl = body.billImageUrl;
+    if (body.warrantyCardUrl !== undefined) allowedFields.warrantyCardUrl = body.warrantyCardUrl;
+    if (body.photoUrls !== undefined) allowedFields.photoUrls = body.photoUrls;
+    if (body.status !== undefined) allowedFields.status = body.status;
+    if (body.notes !== undefined) allowedFields.notes = body.notes;
+    if (body.categoryId !== undefined) allowedFields.categoryId = body.categoryId;
+    if (body.subCategoryId !== undefined) allowedFields.subCategoryId = body.subCategoryId;
+
+    const updated = await db.equipment.update({
+      where: { id: equipmentId },
+      data: allowedFields,
+    });
+
+    return NextResponse.json({ ok: true, data: updated });
+  } catch (error) {
+    console.error("Update equipment error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+    );
+  }
+}
+
+// DELETE /api/owner/equipment/[id] - Soft delete equipment
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireOwnerMobile(request);
+    const { id: equipmentId } = await params;
+
+    // Verify equipment belongs to this owner
+    const existing = await db.equipment.findFirst({
+      where: {
+        id: equipmentId,
+        ownerId: session.id,
+        deletedAt: null,
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: "Equipment not found" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete
+    await db.equipment.update({
+      where: { id: equipmentId },
+      data: { deletedAt: new Date() },
+    });
+
+    return NextResponse.json({ ok: true, message: "Equipment deleted successfully" });
+  } catch (error) {
+    console.error("Delete equipment error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+    );
+  }
+}

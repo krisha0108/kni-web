@@ -120,11 +120,17 @@ export async function registerDeviceToken(): Promise<string | null> {
     const response = await fetch("/api/notifications/register-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ token }),
     });
 
     if (!response.ok) {
-      console.error("Failed to register token with backend");
+      // 401 means user is not logged in - this is expected on public pages like login
+      if (response.status === 401) {
+        console.log("User not authenticated, skipping token registration");
+        return null;
+      }
+      console.error("Failed to register token with backend:", response.status);
       return null;
     }
 
@@ -140,6 +146,7 @@ export async function unregisterDeviceToken(token: string): Promise<boolean> {
     const response = await fetch("/api/notifications/unregister-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ token }),
     });
 

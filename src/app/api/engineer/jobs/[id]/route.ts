@@ -154,6 +154,7 @@ export async function POST(
     const contentType = request.headers.get("content-type") || "";
 
     let action: string;
+    let pin: string | undefined;
     let rejectionReason: string | undefined;
     let reason: string | undefined; // Deprecated: use rejectionReason
     let completionNote: string | undefined;
@@ -165,6 +166,7 @@ export async function POST(
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       action = formData.get("action") as string;
+      pin = formData.get("pin") as string | undefined;
       rejectionReason = formData.get("rejectionReason") as string | undefined;
       reason = formData.get("reason") as string | undefined;
       completionNote = formData.get("completionNote") as string | undefined;
@@ -210,6 +212,7 @@ export async function POST(
     } else {
       const body = await request.json();
       action = body.action;
+      pin = body.pin;
       rejectionReason = body.rejectionReason;
       reason = body.reason;
       completionNote = body.completionNote;
@@ -301,6 +304,56 @@ export async function POST(
           { status: 400 }
         );
       }
+
+      // Validate service PIN for completion
+      if (!pin) {
+        return NextResponse.json(
+          { ok: false, error: "Service PIN is required to complete work" },
+          { status: 400 }
+        );
+      }
+
+      if (!assignment.servicePin || assignment.servicePinPurpose !== "COMPLETE") {
+        return NextResponse.json(
+          { ok: false, error: "No active completion PIN found. Please request a PIN first." },
+          { status: 400 }
+        );
+      }
+
+      if (assignment.servicePinExpiresAt && new Date() > assignment.servicePinExpiresAt) {
+        return NextResponse.json(
+          { ok: false, error: "PIN has expired. Please request a new PIN." },
+          { status: 400 }
+        );
+      }
+
+      if (assignment.servicePinAttempts >= 5) {
+        await db.engineerAssignment.update({
+          where: { id },
+          data: { servicePin: null, servicePinExpiresAt: null, servicePinPurpose: null, servicePinAttempts: 0 },
+        });
+        return NextResponse.json(
+          { ok: false, error: "Too many wrong attempts. Please request a new PIN." },
+          { status: 400 }
+        );
+      }
+
+      if (assignment.servicePin !== pin) {
+        await db.engineerAssignment.update({
+          where: { id },
+          data: { servicePinAttempts: { increment: 1 } },
+        });
+        return NextResponse.json(
+          { ok: false, error: "Incorrect PIN. Please try again.", attemptsLeft: 5 - assignment.servicePinAttempts - 1 },
+          { status: 400 }
+        );
+      }
+
+      // PIN is correct - clear it
+      await db.engineerAssignment.update({
+        where: { id },
+        data: { servicePin: null, servicePinExpiresAt: null, servicePinPurpose: null, servicePinAttempts: 0 },
+      });
 
       if (!completionNote) {
         return NextResponse.json(

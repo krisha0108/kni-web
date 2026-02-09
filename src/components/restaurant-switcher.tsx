@@ -24,7 +24,12 @@ export function RestaurantSwitcher() {
   }
 
   if (!restaurants || restaurants.length === 0) {
-    return null;
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground border rounded-md">
+        <Building2 className="h-4 w-4" />
+        <span>No approved restaurants</span>
+      </div>
+    );
   }
 
   return (

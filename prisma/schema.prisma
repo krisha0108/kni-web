@@ -558,6 +558,8 @@ model ServiceBooking {
   adminAdjustedSlotEnd   DateTime?
   status                 ServiceBookingStatus @default(DRAFT)
   totalAmount            Int
+  gstAmount              Int                  @default(0) // GST (18%) amount
+  tipAmount              Int                  @default(0) // Tip amount
   problemDescription     String?              @db.Text // Description of the issue/problem
   problemImages          Json?                // Array of problem image URLs
   cancellationReason     String?              @db.Text // Mandatory when status is CANCELLED
@@ -626,6 +628,10 @@ model EngineerAssignment {
   rejectionReason  String?                  @db.Text // Mandatory when status is REJECTED
   commissionAmount Int?                     // Commission in paise (earned when completed)
   commissionRate   Int                      @default(20) // Commission percentage (default 20%)
+  servicePin           String?              // 4-digit PIN for start/complete verification
+  servicePinExpiresAt  DateTime?            // PIN expires in 10 minutes
+  servicePinPurpose    String?              // "START" or "COMPLETE"
+  servicePinAttempts   Int                  @default(0) // Max 5 wrong attempts
 
   booking      ServiceBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   engineer     User             @relation(fields: [engineerId], references: [id], onDelete: Cascade)
@@ -799,6 +805,8 @@ model MarketplaceOrder {
   restaurantId         String
   status               MarketplaceOrderStatus @default(PLACED)
   totalAmount          Int
+  deliveryAddress      String?                @db.Text
+  notes                String?                @db.Text
   statusNotes          String?                @db.Text
   cancellationReason   String?                @db.Text // Mandatory when status is CANCELLED
   expectedDeliveryDate DateTime?

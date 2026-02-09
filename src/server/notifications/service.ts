@@ -545,3 +545,42 @@ export async function notifyOwnerServiceCompleted(
 
   return notification;
 }
+
+/**
+ * Notify owner with a service PIN when engineer requests to start/complete work
+ */
+export async function notifyOwnerServicePin(
+  ownerId: string,
+  bookingId: string,
+  pin: string,
+  purpose: "START" | "COMPLETE",
+  engineerName: string
+) {
+  const actionText = purpose === "START" ? "start work" : "complete work";
+
+  const notification = await createNotification({
+    userId: ownerId,
+    title: `Service PIN: ${pin}`,
+    message: `Engineer ${engineerName} wants to ${actionText}. Share this PIN: ${pin} (expires in 10 min)`,
+    type: NotificationType.BOOKING,
+    linkUrl: "/owner/bookings/" + bookingId,
+  });
+
+  // Send SMS to owner (non-blocking)
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { phone: true },
+  });
+
+  if (owner?.phone) {
+    sendSMS({
+      phone: owner.phone,
+      message: `KNI Service PIN: ${pin}. Engineer ${engineerName} wants to ${actionText}. Share this PIN only when engineer is present. Expires in 10 min.`,
+      purpose: "SERVICE_PIN",
+    }).catch((error) => {
+      console.error("Failed to send service PIN SMS:", error);
+    });
+  }
+
+  return notification;
+}

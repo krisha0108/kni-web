@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package, Grid3X3 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package, Grid3X3, Shield } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { EngineerRatingDialog } from "@/components/ratings/engineer-rating-dialog";
@@ -19,6 +19,8 @@ interface Booking {
   scheduledDate?: string;
   scheduledTimeSlot?: string;
   totalAmount: number;
+  gstAmount?: number;
+  tipAmount?: number;
   problemDescription?: string;
   notes?: string;
   createdAt: string;
@@ -62,6 +64,9 @@ interface Booking {
       problemSolving?: number;
       review?: string;
     } | null;
+    servicePin?: string | null;
+    servicePinPurpose?: string | null;
+    servicePinExpiresAt?: string | null;
   }>;
 }
 
@@ -367,32 +372,25 @@ export default function BookingDetailPage() {
 
                 {/* Payment Breakdown */}
                 {(() => {
-                  // Item total (GST-inclusive prices)
+                  // Item subtotal (sum of items before GST)
                   const itemTotal = booking.items?.reduce(
                     (sum, item) => sum + item.priceSnapshot * item.qty, 0
                   ) || 0;
 
-                  // Calculate GST breakdown (prices are GST-inclusive)
+                  // Use DB values if available, else calculate
                   const GST_RATE = 0.18;
-                  const baseAmount = Math.round(itemTotal / (1 + GST_RATE));
-                  const gstAmount = itemTotal - baseAmount;
-
-                  // Tip is the difference between total and item total
-                  const tipAmount = Math.max(0, booking.totalAmount - itemTotal);
+                  const gstAmount = booking.gstAmount || Math.round(itemTotal * GST_RATE);
+                  const tipAmount = booking.tipAmount || Math.max(0, booking.totalAmount - itemTotal - gstAmount);
 
                   return (
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center text-muted-foreground">
-                        <span>Base Amount</span>
-                        <span>{formatPrice(baseAmount)}</span>
+                        <span>Item Total</span>
+                        <span>{formatPrice(itemTotal)}</span>
                       </div>
                       <div className="flex justify-between items-center text-muted-foreground">
                         <span>GST (18%)</span>
                         <span>{formatPrice(gstAmount)}</span>
-                      </div>
-                      <div className="flex justify-between items-center font-medium">
-                        <span>Item Total (incl. GST)</span>
-                        <span>{formatPrice(itemTotal)}</span>
                       </div>
                       {tipAmount > 0 && (
                         <div className="flex justify-between items-center text-green-600">
@@ -508,6 +506,40 @@ export default function BookingDetailPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Service PIN Card */}
+          {booking.engineerAssignments && booking.engineerAssignments.length > 0 && (() => {
+            const assignment = booking.engineerAssignments[0];
+            if (!assignment.servicePin || !assignment.servicePinExpiresAt) return null;
+            const isExpired = new Date() > new Date(assignment.servicePinExpiresAt);
+            if (isExpired) return null;
+            return (
+              <Card className="border-2 border-amber-400 bg-amber-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-amber-700">
+                    <Shield className="h-5 w-5" />
+                    Service PIN
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-amber-700">
+                    {assignment.servicePinPurpose === "START"
+                      ? "Engineer wants to START work. Share this PIN:"
+                      : "Engineer wants to COMPLETE work. Share this PIN:"}
+                  </p>
+                  <div className="text-center">
+                    <p className="text-4xl font-bold tracking-[0.5em] text-amber-800 bg-white rounded-lg py-3 border-2 border-amber-300">
+                      {assignment.servicePin}
+                    </p>
+                  </div>
+                  <p className="text-xs text-amber-600 text-center">
+                    Share this PIN only when engineer is physically present.
+                    Expires at {new Date(assignment.servicePinExpiresAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Payment Status */}
           <Card>
             <CardHeader>

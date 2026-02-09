@@ -6,60 +6,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Starting seed...");
 
-  // Clear existing data in development (in reverse dependency order)
-  try {
-    // Phase 5: Firebase Push Notifications
-    await prisma.pushNotificationLog.deleteMany();
-    await prisma.deviceToken.deleteMany();
-    await prisma.notificationPreference.deleteMany();
-
-    // Phase 4: Expense Tracking
-    await prisma.expense.deleteMany();
-
-    // Phase 3: Warehouse Management
-    await prisma.stockMovement.deleteMany();
-    await prisma.warehouseInventory.deleteMany();
-
-    // Phase 2: AMC Module
-    await prisma.aMCServiceUse.deleteMany();
-    await prisma.aMCSubscription.deleteMany();
-    await prisma.aMCPlan.deleteMany();
-
-    // Phase 1: Equipment Management
-    await prisma.equipment.deleteMany();
-
-    // Existing tables
-    await prisma.auditLog.deleteMany();
-    await prisma.payout.deleteMany();
-    await prisma.marketplaceOrderItem.deleteMany();
-    await prisma.marketplaceOrder.deleteMany();
-    await prisma.vendorProduct.deleteMany();
-    await prisma.engineerWorkLog.deleteMany();
-    await prisma.engineerAssignment.deleteMany();
-    await prisma.paymentProof.deleteMany();
-    await prisma.serviceBookingItem.deleteMany();
-    await prisma.serviceBooking.deleteMany();
-    await prisma.cartItem.deleteMany();
-    await prisma.cart.deleteMany();
-    await prisma.categoryRequest.deleteMany();
-    await prisma.restaurantCategory.deleteMany();
-    await prisma.restaurant.deleteMany();
-    await prisma.partItem.deleteMany();
-    await prisma.serviceItem.deleteMany();
-    await prisma.subCategory.deleteMany();
-    await prisma.category.deleteMany();
-    await prisma.notification.deleteMany();
-    await prisma.paymentSettings.deleteMany();
-    await prisma.engineerProfile.deleteMany();
-    await prisma.vendorProfile.deleteMany();
-    await prisma.ownerProfile.deleteMany();
-    await prisma.session.deleteMany();
-    await prisma.user.deleteMany();
-  } catch (error) {
-    console.warn("Error during cleanup (this is expected on first migration):", error);
-  }
-
-  console.log("Cleared existing data");
+  // Skip cleanup - we'll use upsert to handle existing data
+  console.log("Using upsert mode - skipping cleanup to preserve existing data");
 
   // Hash passwords
   const adminPassword = await bcrypt.hash("Admin@123", 10);
@@ -67,9 +15,11 @@ async function main() {
   const engineerPassword = await bcrypt.hash("Eng@123", 10);
   const vendorPassword = await bcrypt.hash("Vendor@123", 10);
 
-  // Create Admin user
-  const admin = await prisma.user.create({
-    data: {
+  // Create/Update Admin user
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@kni.com" },
+    update: {},
+    create: {
       name: "Admin User",
       email: "admin@kni.com",
       passwordHash: adminPassword,
@@ -77,11 +27,13 @@ async function main() {
       isActive: true,
     },
   });
-  console.log("Created admin:", admin.email);
+  console.log("Admin ready:", admin.email);
 
-  // Create Owner user with profile
-  const owner = await prisma.user.create({
-    data: {
+  // Create/Update Owner user with profile
+  const owner = await prisma.user.upsert({
+    where: { email: "owner@kni.com" },
+    update: {},
+    create: {
       name: "Owner User",
       email: "owner@kni.com",
       phone: "+91-9876543210",
@@ -93,11 +45,13 @@ async function main() {
       },
     },
   });
-  console.log("Created owner:", owner.email);
+  console.log("Owner ready:", owner.email);
 
-  // Create Engineer user with profile
-  const engineer = await prisma.user.create({
-    data: {
+  // Create/Update Engineer user with profile
+  const engineer = await prisma.user.upsert({
+    where: { email: "eng@kni.com" },
+    update: {},
+    create: {
       name: "Engineer User",
       email: "eng@kni.com",
       phone: "+91-9876543211",
@@ -112,11 +66,13 @@ async function main() {
       },
     },
   });
-  console.log("Created engineer:", engineer.email);
+  console.log("Engineer ready:", engineer.email);
 
-  // Create Vendor user with profile (pending approval)
-  const vendor = await prisma.user.create({
-    data: {
+  // Create/Update Vendor user with profile (pending approval)
+  const vendor = await prisma.user.upsert({
+    where: { email: "vendor@kni.com" },
+    update: {},
+    create: {
       name: "Vendor User",
       email: "vendor@kni.com",
       phone: "+91-9876543212",
@@ -130,11 +86,13 @@ async function main() {
       },
     },
   });
-  console.log("Created vendor:", vendor.email);
+  console.log("Vendor ready:", vendor.email);
 
-  // Create another approved vendor for marketplace demo
-  const approvedVendor = await prisma.user.create({
-    data: {
+  // Create/Update approved vendor for marketplace demo
+  const approvedVendor = await prisma.user.upsert({
+    where: { email: "approved-vendor@kni.com" },
+    update: {},
+    create: {
       name: "Approved Vendor",
       email: "approved-vendor@kni.com",
       passwordHash: vendorPassword,
@@ -149,266 +107,145 @@ async function main() {
       },
     },
   });
-  console.log("Created approved vendor:", approvedVendor.email);
+  console.log("Approved vendor ready:", approvedVendor.email);
 
-  // Create Categories
+  // Create/Update Categories (Service categories)
   const categories = await Promise.all([
-    prisma.category.create({
-      data: {
-        name: "Kitchen Equipment",
-        isActive: true,
-      },
+    prisma.category.upsert({
+      where: { name: "Kitchen Equipment" },
+      update: {},
+      create: { name: "Kitchen Equipment", isActive: true },
     }),
-    prisma.category.create({
-      data: {
-        name: "Refrigeration",
-        isActive: true,
-      },
+    prisma.category.upsert({
+      where: { name: "Refrigeration" },
+      update: {},
+      create: { name: "Refrigeration", isActive: true },
     }),
-    prisma.category.create({
-      data: {
-        name: "HVAC",
-        isActive: true,
-      },
+    prisma.category.upsert({
+      where: { name: "HVAC" },
+      update: {},
+      create: { name: "HVAC", isActive: true },
     }),
-    prisma.category.create({
-      data: {
-        name: "Plumbing",
-        isActive: true,
-      },
+    prisma.category.upsert({
+      where: { name: "Plumbing" },
+      update: {},
+      create: { name: "Plumbing", isActive: true },
     }),
-    prisma.category.create({
-      data: {
-        name: "Electrical",
-        isActive: true,
-      },
+    prisma.category.upsert({
+      where: { name: "Electrical" },
+      update: {},
+      create: { name: "Electrical", isActive: true },
     }),
   ]);
-  console.log("Created categories:", categories.length);
+  console.log("Service categories ready:", categories.length);
 
-  // Create SubCategories
+  // Create/Update SubCategories
   const subCategories = await Promise.all([
     // Kitchen Equipment subcategories
-    prisma.subCategory.create({
-      data: {
-        name: "Ovens",
-        categoryId: categories[0].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[0].id, name: "Ovens" } },
+      update: {},
+      create: { name: "Ovens", categoryId: categories[0].id, isActive: true },
     }),
-    prisma.subCategory.create({
-      data: {
-        name: "Grills",
-        categoryId: categories[0].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[0].id, name: "Grills" } },
+      update: {},
+      create: { name: "Grills", categoryId: categories[0].id, isActive: true },
     }),
-    prisma.subCategory.create({
-      data: {
-        name: "Fryers",
-        categoryId: categories[0].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[0].id, name: "Fryers" } },
+      update: {},
+      create: { name: "Fryers", categoryId: categories[0].id, isActive: true },
     }),
     // Refrigeration subcategories
-    prisma.subCategory.create({
-      data: {
-        name: "Walk-in Coolers",
-        categoryId: categories[1].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[1].id, name: "Walk-in Coolers" } },
+      update: {},
+      create: { name: "Walk-in Coolers", categoryId: categories[1].id, isActive: true },
     }),
-    prisma.subCategory.create({
-      data: {
-        name: "Freezers",
-        categoryId: categories[1].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[1].id, name: "Freezers" } },
+      update: {},
+      create: { name: "Freezers", categoryId: categories[1].id, isActive: true },
     }),
     // HVAC subcategories
-    prisma.subCategory.create({
-      data: {
-        name: "Air Conditioning",
-        categoryId: categories[2].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[2].id, name: "Air Conditioning" } },
+      update: {},
+      create: { name: "Air Conditioning", categoryId: categories[2].id, isActive: true },
     }),
-    prisma.subCategory.create({
-      data: {
-        name: "Ventilation",
-        categoryId: categories[2].id,
-        isActive: true,
-      },
+    prisma.subCategory.upsert({
+      where: { categoryId_name: { categoryId: categories[2].id, name: "Ventilation" } },
+      update: {},
+      create: { name: "Ventilation", categoryId: categories[2].id, isActive: true },
     }),
   ]);
-  console.log("Created subcategories:", subCategories.length);
+  console.log("Service subcategories ready:", subCategories.length);
 
-  // Create Service Items
-  const serviceItems = await Promise.all([
-    // Kitchen Equipment Services
-    prisma.serviceItem.create({
-      data: {
-        name: "Oven Repair",
-        description: "Complete oven diagnosis and repair service",
-        price: 250000, // ₹2,500
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
-        isActive: true,
-      },
-    }),
-    prisma.serviceItem.create({
-      data: {
-        name: "Oven Maintenance",
-        description: "Preventive maintenance for commercial ovens",
-        price: 150000, // ₹1,500
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
-        isActive: true,
-      },
-    }),
-    prisma.serviceItem.create({
-      data: {
-        name: "Grill Repair",
-        description: "Commercial grill repair service",
-        price: 200000, // ₹2,000
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[1].id,
-        isActive: true,
-      },
-    }),
-    prisma.serviceItem.create({
-      data: {
-        name: "Deep Fryer Service",
-        description: "Deep fryer cleaning and repair",
-        price: 180000, // ₹1,800
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[2].id,
-        isActive: true,
-      },
-    }),
-    // Refrigeration Services
-    prisma.serviceItem.create({
-      data: {
-        name: "Cooler Repair",
-        description: "Walk-in cooler repair and gas refill",
-        price: 350000, // ₹3,500
-        categoryId: categories[1].id,
-        subCategoryId: subCategories[3].id,
-        isActive: true,
-      },
-    }),
-    prisma.serviceItem.create({
-      data: {
-        name: "Freezer Maintenance",
-        description: "Commercial freezer maintenance service",
-        price: 280000, // ₹2,800
-        categoryId: categories[1].id,
-        subCategoryId: subCategories[4].id,
-        isActive: true,
-      },
-    }),
-    // HVAC Services
-    prisma.serviceItem.create({
-      data: {
-        name: "AC Service",
-        description: "Air conditioning service and cleaning",
-        price: 120000, // ₹1,200
-        categoryId: categories[2].id,
-        subCategoryId: subCategories[5].id,
-        isActive: true,
-      },
-    }),
-    prisma.serviceItem.create({
-      data: {
-        name: "Ventilation Repair",
-        description: "Kitchen ventilation system repair",
-        price: 220000, // ₹2,200
-        categoryId: categories[2].id,
-        subCategoryId: subCategories[6].id,
-        isActive: true,
-      },
-    }),
-  ]);
-  console.log("Created service items:", serviceItems.length);
+  // Create Service Items (skip if exists)
+  const serviceItemsData = [
+    { name: "Oven Repair", description: "Complete oven diagnosis and repair service", price: 250000, categoryId: categories[0].id, subCategoryId: subCategories[0].id },
+    { name: "Oven Maintenance", description: "Preventive maintenance for commercial ovens", price: 150000, categoryId: categories[0].id, subCategoryId: subCategories[0].id },
+    { name: "Grill Repair", description: "Commercial grill repair service", price: 200000, categoryId: categories[0].id, subCategoryId: subCategories[1].id },
+    { name: "Deep Fryer Service", description: "Deep fryer cleaning and repair", price: 180000, categoryId: categories[0].id, subCategoryId: subCategories[2].id },
+    { name: "Cooler Repair", description: "Walk-in cooler repair and gas refill", price: 350000, categoryId: categories[1].id, subCategoryId: subCategories[3].id },
+    { name: "Freezer Maintenance", description: "Commercial freezer maintenance service", price: 280000, categoryId: categories[1].id, subCategoryId: subCategories[4].id },
+    { name: "AC Service", description: "Air conditioning service and cleaning", price: 120000, categoryId: categories[2].id, subCategoryId: subCategories[5].id },
+    { name: "Ventilation Repair", description: "Kitchen ventilation system repair", price: 220000, categoryId: categories[2].id, subCategoryId: subCategories[6].id },
+  ];
+  const serviceItems: any[] = [];
+  for (const item of serviceItemsData) {
+    const existing = await prisma.serviceItem.findFirst({ where: { name: item.name } });
+    if (!existing) {
+      const created = await prisma.serviceItem.create({ data: { ...item, isActive: true } });
+      serviceItems.push(created);
+    } else {
+      serviceItems.push(existing);
+    }
+  }
+  console.log("Service items ready:", serviceItems.length);
 
-  // Create Part Items
-  const partItems = await Promise.all([
-    prisma.partItem.create({
-      data: {
-        name: "Oven Thermostat",
-        description: "Replacement thermostat for commercial ovens",
-        price: 85000, // ₹850
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
-        isActive: true,
-      },
-    }),
-    prisma.partItem.create({
-      data: {
-        name: "Heating Element",
-        description: "Universal heating element for ovens",
-        price: 120000, // ₹1,200
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[0].id,
-        isActive: true,
-      },
-    }),
-    prisma.partItem.create({
-      data: {
-        name: "Grill Grate",
-        description: "Stainless steel grill grate",
-        price: 75000, // ₹750
-        categoryId: categories[0].id,
-        subCategoryId: subCategories[1].id,
-        isActive: true,
-      },
-    }),
-    prisma.partItem.create({
-      data: {
-        name: "Refrigerant Gas (R410A)",
-        description: "1kg refrigerant gas cylinder",
-        price: 150000, // ₹1,500
-        categoryId: categories[1].id,
-        isActive: true,
-      },
-    }),
-    prisma.partItem.create({
-      data: {
-        name: "Compressor",
-        description: "Commercial refrigerator compressor",
-        price: 850000, // ₹8,500
-        categoryId: categories[1].id,
-        isActive: true,
-      },
-    }),
-    prisma.partItem.create({
-      data: {
-        name: "AC Filter",
-        description: "Commercial AC filter",
-        price: 45000, // ₹450
-        categoryId: categories[2].id,
-        subCategoryId: subCategories[5].id,
-        isActive: true,
-      },
-    }),
-  ]);
-  console.log("Created part items:", partItems.length);
+  // Create Part Items (skip if exists)
+  const partItemsData = [
+    { name: "Oven Thermostat", description: "Replacement thermostat for commercial ovens", price: 85000, categoryId: categories[0].id, subCategoryId: subCategories[0].id },
+    { name: "Heating Element", description: "Universal heating element for ovens", price: 120000, categoryId: categories[0].id, subCategoryId: subCategories[0].id },
+    { name: "Grill Grate", description: "Stainless steel grill grate", price: 75000, categoryId: categories[0].id, subCategoryId: subCategories[1].id },
+    { name: "Refrigerant Gas (R410A)", description: "1kg refrigerant gas cylinder", price: 150000, categoryId: categories[1].id },
+    { name: "Compressor", description: "Commercial refrigerator compressor", price: 850000, categoryId: categories[1].id },
+    { name: "AC Filter", description: "Commercial AC filter", price: 45000, categoryId: categories[2].id, subCategoryId: subCategories[5].id },
+  ];
+  const partItems: any[] = [];
+  for (const item of partItemsData) {
+    const existing = await prisma.partItem.findFirst({ where: { name: item.name } });
+    if (!existing) {
+      const created = await prisma.partItem.create({ data: { ...item, isActive: true } });
+      partItems.push(created);
+    } else {
+      partItems.push(existing);
+    }
+  }
+  console.log("Part items ready:", partItems.length);
 
-  // Create a sample restaurant (pending)
-  const pendingRestaurant = await prisma.restaurant.create({
-    data: {
-      name: "Sample Restaurant",
-      address: "123 Main Street",
-      city: "Mumbai",
-      status: RestaurantStatus.PENDING,
-      ownerId: owner.id,
-    },
-  });
-  console.log("Created pending restaurant:", pendingRestaurant.name);
+  // Create a sample restaurant (pending) - skip if exists
+  let pendingRestaurant = await prisma.restaurant.findFirst({ where: { name: "Sample Restaurant", ownerId: owner.id } });
+  if (!pendingRestaurant) {
+    pendingRestaurant = await prisma.restaurant.create({
+      data: {
+        name: "Sample Restaurant",
+        address: "123 Main Street",
+        city: "Mumbai",
+        status: RestaurantStatus.PENDING,
+        ownerId: owner.id,
+      },
+    });
+  }
+  console.log("Pending restaurant ready:", pendingRestaurant.name);
 
-  // Create approved owner and restaurant for demo
-  const approvedOwner = await prisma.user.create({
-    data: {
+  // Create/Update approved owner
+  const approvedOwner = await prisma.user.upsert({
+    where: { email: "approved-owner@kni.com" },
+    update: {},
+    create: {
       name: "Approved Owner",
       email: "approved-owner@kni.com",
       passwordHash: ownerPassword,
@@ -420,118 +257,145 @@ async function main() {
     },
   });
 
-  const approvedRestaurant = await prisma.restaurant.create({
-    data: {
-      name: "Approved Restaurant",
-      address: "456 Food Court",
-      city: "Mumbai",
-      status: RestaurantStatus.APPROVED,
-      ownerId: approvedOwner.id,
-      categories: {
-        create: [
-          { categoryId: categories[0].id },
-          { categoryId: categories[1].id },
-        ],
+  // Create approved restaurant - skip if exists
+  let approvedRestaurant = await prisma.restaurant.findFirst({ where: { name: "Approved Restaurant", ownerId: approvedOwner.id } });
+  if (!approvedRestaurant) {
+    approvedRestaurant = await prisma.restaurant.create({
+      data: {
+        name: "Approved Restaurant",
+        address: "456 Food Court",
+        city: "Mumbai",
+        status: RestaurantStatus.APPROVED,
+        ownerId: approvedOwner.id,
+        categories: {
+          create: [
+            { categoryId: categories[0].id },
+            { categoryId: categories[1].id },
+          ],
+        },
       },
-    },
-  });
-  console.log("Created approved restaurant:", approvedRestaurant.name);
+    });
+  }
+  console.log("Approved restaurant ready:", approvedRestaurant.name);
 
-  // Create vendor products for approved vendor
-  const vendorProducts = await Promise.all([
-    prisma.vendorProduct.create({
-      data: {
-        name: "Cooking Oil (5L)",
-        description: "Premium refined cooking oil",
-        price: 65000, // ₹650
-        unit: "bottle",
-        stockQuantity: 50,
-        vendorId: approvedVendor.id,
-        categoryId: categories[0].id,
-        isActive: true,
-      },
-    }),
-    prisma.vendorProduct.create({
-      data: {
-        name: "Rice (25kg)",
-        description: "Basmati rice, premium quality",
-        price: 180000, // ₹1,800
-        unit: "bag",
-        stockQuantity: 30,
-        vendorId: approvedVendor.id,
-        isActive: true,
-      },
-    }),
-    prisma.vendorProduct.create({
-      data: {
-        name: "Flour (10kg)",
-        description: "All-purpose flour",
-        price: 45000, // ₹450
-        unit: "bag",
-        stockQuantity: 40,
-        vendorId: approvedVendor.id,
-        isActive: true,
-      },
-    }),
-    prisma.vendorProduct.create({
-      data: {
-        name: "Cleaning Supplies Kit",
-        description: "Commercial kitchen cleaning supplies",
-        price: 250000, // ₹2,500
-        unit: "kit",
-        stockQuantity: 20,
-        vendorId: approvedVendor.id,
-        isActive: true,
-      },
-    }),
-  ]);
-  console.log("Created vendor products:", vendorProducts.length);
+  // ==========================================
+  // MARKETPLACE DATA (Admin Side First)
+  // ==========================================
+  console.log("\n--- Setting up Marketplace (Admin Side) ---");
 
-  // Create sample notifications
-  await prisma.notification.createMany({
-    data: [
-      {
-        userId: owner.id,
-        title: "Welcome to KNI Super App!",
-        message: "Start by adding your restaurant details.",
-        linkUrl: "/owner/restaurant/create",
-        isRead: false,
-      },
-      {
-        userId: admin.id,
-        title: "New Restaurant Request",
-        message: "A new restaurant approval request has been submitted.",
-        linkUrl: "/admin/restaurants/requests",
-        isRead: false,
-      },
-      {
-        userId: vendor.id,
-        title: "Registration Complete",
-        message: "Your vendor registration is pending approval.",
-        linkUrl: "/vendor/pending",
-        isRead: false,
-      },
-      {
-        userId: engineer.id,
-        title: "Welcome Engineer!",
-        message: "You are now registered as an engineer on KNI Super App.",
-        isRead: false,
-      },
-    ],
-  });
-  console.log("Created sample notifications");
+  // Step 1: Create Marketplace Categories (Admin creates these)
+  const marketplaceCategoriesData = [
+    { name: "Kitchen Essentials", slug: "kitchen-essentials", sortOrder: 1 },
+    { name: "Cooking Ingredients", slug: "cooking-ingredients", sortOrder: 2 },
+    { name: "Cleaning Supplies", slug: "cleaning-supplies", sortOrder: 3 },
+    { name: "Packaging Materials", slug: "packaging-materials", sortOrder: 4 },
+  ];
+  const marketplaceCategories: any[] = [];
+  for (const cat of marketplaceCategoriesData) {
+    let existing = await prisma.marketplaceCategory.findFirst({ where: { slug: cat.slug } });
+    if (!existing) {
+      existing = await prisma.marketplaceCategory.create({ data: { ...cat, isActive: true } });
+      console.log("  + Created category:", cat.name);
+    }
+    marketplaceCategories.push(existing);
+  }
+  console.log("Marketplace categories ready:", marketplaceCategories.length);
 
-  // Create default payment settings
-  const paymentSettings = await prisma.paymentSettings.create({
-    data: {
-      qrCodeImageUrl: "https://via.placeholder.com/400x400?text=UPI+QR+Code",
-      upiId: "kni@paytm",
-      accountHolderName: "KNI Super App",
-      instructions: "1. Scan the QR code with any UPI app\n2. Pay the exact amount shown\n3. Take a screenshot of the successful payment\n4. Upload the screenshot below for admin verification",
-      isActive: true,
-    },
-  });
-  console.log("Created payment settings");
+  // Step 2: Create Marketplace Subcategories (Admin creates these)
+  const marketplaceSubCategoriesData = [
+    { name: "Utensils", slug: "utensils", categoryId: marketplaceCategories[0].id, sortOrder: 1 },
+    { name: "Cookware", slug: "cookware", categoryId: marketplaceCategories[0].id, sortOrder: 2 },
+    { name: "Oils & Ghee", slug: "oils-ghee", categoryId: marketplaceCategories[1].id, sortOrder: 1 },
+    { name: "Grains & Flour", slug: "grains-flour", categoryId: marketplaceCategories[1].id, sortOrder: 2 },
+    { name: "Spices", slug: "spices", categoryId: marketplaceCategories[1].id, sortOrder: 3 },
+  ];
+  const marketplaceSubCategories: any[] = [];
+  for (const subcat of marketplaceSubCategoriesData) {
+    let existing = await prisma.marketplaceSubCategory.findFirst({ where: { slug: subcat.slug } });
+    if (!existing) {
+      existing = await prisma.marketplaceSubCategory.create({ data: { ...subcat, isActive: true } });
+      console.log("  + Created subcategory:", subcat.name);
+    }
+    marketplaceSubCategories.push(existing);
+  }
+  console.log("Marketplace subcategories ready:", marketplaceSubCategories.length);
+
+  // Step 3: Create Marketplace Products (Admin creates master catalog)
+  const marketplaceProductsData = [
+    { name: "Cooking Oil (5L)", unit: "bottle", description: "Premium refined cooking oil for commercial kitchens", marketplaceCategoryId: marketplaceCategories[1].id, marketplaceSubCategoryId: marketplaceSubCategories[2].id },
+    { name: "Basmati Rice (25kg)", unit: "bag", description: "Premium quality basmati rice", marketplaceCategoryId: marketplaceCategories[1].id, marketplaceSubCategoryId: marketplaceSubCategories[3].id },
+    { name: "All-Purpose Flour (10kg)", unit: "bag", description: "Fine quality all-purpose flour", marketplaceCategoryId: marketplaceCategories[1].id, marketplaceSubCategoryId: marketplaceSubCategories[3].id },
+    { name: "Garam Masala (1kg)", unit: "packet", description: "Authentic blend of Indian spices", marketplaceCategoryId: marketplaceCategories[1].id, marketplaceSubCategoryId: marketplaceSubCategories[4].id },
+    { name: "Stainless Steel Kadai (Large)", unit: "piece", description: "Heavy duty stainless steel kadai for commercial use", marketplaceCategoryId: marketplaceCategories[0].id, marketplaceSubCategoryId: marketplaceSubCategories[1].id },
+    { name: "Kitchen Cleaning Kit", unit: "kit", description: "Complete cleaning supplies for commercial kitchens", marketplaceCategoryId: marketplaceCategories[2].id },
+    { name: "Food Packaging Containers (100pcs)", unit: "pack", description: "Disposable food-grade containers with lids", marketplaceCategoryId: marketplaceCategories[3].id },
+  ];
+  const marketplaceProducts: any[] = [];
+  for (const prod of marketplaceProductsData) {
+    let existing = await prisma.marketplaceProduct.findFirst({ where: { name: prod.name } });
+    if (!existing) {
+      existing = await prisma.marketplaceProduct.create({ data: { ...prod, isActive: true, createdBy: admin.id } });
+      console.log("  + Created product:", prod.name);
+    }
+    marketplaceProducts.push(existing);
+  }
+  console.log("Marketplace products ready:", marketplaceProducts.length);
+
+  // ==========================================
+  // VENDOR SIDE - Vendor adds products with pricing
+  // ==========================================
+  console.log("\n--- Setting up Marketplace (Vendor Side) ---");
+
+  // Step 4: Vendor adds their products with pricing
+  const vendorProductsData = [
+    { productId: marketplaceProducts[0].id, price: 65000, minOrderQty: 2, stockQuantity: 50, deliveryTime: "2-3 days", description: "Premium refined sunflower oil - best for frying" },
+    { productId: marketplaceProducts[1].id, price: 180000, minOrderQty: 1, stockQuantity: 30, deliveryTime: "3-4 days", description: "Aged basmati rice, extra long grain" },
+    { productId: marketplaceProducts[2].id, price: 45000, minOrderQty: 2, stockQuantity: 40, deliveryTime: "2-3 days", description: "Fine quality maida flour" },
+    { productId: marketplaceProducts[3].id, price: 35000, minOrderQty: 3, stockQuantity: 100, deliveryTime: "1-2 days", description: "Freshly ground aromatic spice blend" },
+    { productId: marketplaceProducts[4].id, price: 125000, minOrderQty: 1, stockQuantity: 15, deliveryTime: "4-5 days", description: "14 inch heavy duty kadai with handles" },
+    { productId: marketplaceProducts[5].id, price: 250000, minOrderQty: 1, stockQuantity: 20, deliveryTime: "2-3 days", description: "Includes sanitizer, scrubbers, detergent and gloves" },
+    { productId: marketplaceProducts[6].id, price: 45000, minOrderQty: 5, stockQuantity: 200, deliveryTime: "1-2 days", description: "Leak-proof containers, microwave safe" },
+  ];
+  const vendorProducts: any[] = [];
+  for (const vp of vendorProductsData) {
+    let existing = await prisma.vendorProduct.findFirst({ where: { productId: vp.productId, vendorId: approvedVendor.id } });
+    if (!existing) {
+      existing = await prisma.vendorProduct.create({ data: { ...vp, vendorId: approvedVendor.id, isActive: true, isAvailable: true } });
+      console.log("  + Vendor added product with price:", vp.price / 100);
+    }
+    vendorProducts.push(existing);
+  }
+  console.log("Vendor products ready:", vendorProducts.length);
+
+  // Create sample notifications (skip if user already has notifications)
+  const notificationsData = [
+    { userId: owner.id, title: "Welcome to KNI Super App!", message: "Start by adding your restaurant details.", linkUrl: "/owner/restaurant/create" },
+    { userId: admin.id, title: "New Restaurant Request", message: "A new restaurant approval request has been submitted.", linkUrl: "/admin/restaurants/requests" },
+    { userId: vendor.id, title: "Registration Complete", message: "Your vendor registration is pending approval.", linkUrl: "/vendor/pending" },
+    { userId: engineer.id, title: "Welcome Engineer!", message: "You are now registered as an engineer on KNI Super App." },
+  ];
+  for (const notif of notificationsData) {
+    const exists = await prisma.notification.findFirst({ where: { userId: notif.userId, title: notif.title } });
+    if (!exists) {
+      await prisma.notification.create({ data: { ...notif, isRead: false } });
+    }
+  }
+  console.log("Notifications ready");
+
+  // Create default payment settings (skip if exists)
+  const existingPaymentSettings = await prisma.paymentSettings.findFirst({ where: { isActive: true } });
+  if (!existingPaymentSettings) {
+    await prisma.paymentSettings.create({
+      data: {
+        qrCodeImageUrl: "https://via.placeholder.com/400x400?text=UPI+QR+Code",
+        upiId: "kni@paytm",
+        accountHolderName: "KNI Super App",
+        instructions: "1. Scan the QR code with any UPI app\n2. Pay the exact amount shown\n3. Take a screenshot of the successful payment\n4. Upload the screenshot below for admin verification",
+        isActive: true,
+      },
+    });
+  }
+  console.log("Payment settings ready");
 
   console.log("Seed completed successfully!");
   console.log("\n--- Login Credentials ---");

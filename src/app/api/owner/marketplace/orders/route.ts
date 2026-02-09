@@ -13,6 +13,8 @@ const createOrderSchema = z.object({
       qty: z.number().int().positive(),
     })
   ),
+  deliveryAddress: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { restaurantId, vendorId, items } = validation.data;
+    const { restaurantId, vendorId, items, deliveryAddress, notes } = validation.data;
 
     // Check restaurant access with marketplace:create permission
     await requireRestaurantAccess(session, restaurantId, "marketplace:create");
@@ -112,6 +114,8 @@ export async function POST(request: NextRequest) {
           restaurantId,
           status: "PLACED",
           totalAmount,
+          deliveryAddress: deliveryAddress || null,
+          notes: notes || null,
           items: { create: orderItems },
         },
         include: {

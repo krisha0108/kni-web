@@ -98,10 +98,10 @@ export default function AdminVendorsPage() {
 
   const handleApprove = async (vendorId: string) => {
     try {
-      const response = await fetch(`/api/admin/vendors/${vendorId}`, {
+      const response = await fetch("/api/admin/vendors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
+        body: JSON.stringify({ vendorId, action: "approve" }),
       });
       const data = await response.json();
       if (data.ok) {
@@ -135,10 +135,11 @@ export default function AdminVendorsPage() {
     setRejectionError("");
 
     try {
-      const response = await fetch(`/api/admin/vendors/${selectedVendorId}`, {
+      const response = await fetch("/api/admin/vendors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          vendorId: selectedVendorId,
           action: "reject",
           rejectionReason: rejectionReason.trim(),
         }),
@@ -215,7 +216,7 @@ export default function AdminVendorsPage() {
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">Subscription</TableHead>
               <TableHead className="hidden lg:table-cell">Registered</TableHead>
-              <TableHead className="w-[100px] sm:w-[180px]">Actions</TableHead>
+              <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -278,30 +279,32 @@ export default function AdminVendorsPage() {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
                         onClick={() => openDetailDialog(vendor)}
-                        title="View details"
+                        title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {vendor.vendorProfile?.approvalStatus === "PENDING" && (
+                      {vendor.vendorProfile?.approvalStatus !== "APPROVED" && (
                         <>
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="ghost"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => handleApprove(vendor.id)}
-                            title="Approve vendor"
+                            title="Approve"
                           >
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-4 w-4" />
                           </Button>
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="ghost"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => openRejectDialog(vendor.id)}
-                            title="Reject vendor"
+                            title="Reject"
                           >
-                            <XCircle className="h-4 w-4 text-red-600" />
+                            <XCircle className="h-4 w-4" />
                           </Button>
                         </>
                       )}
@@ -411,8 +414,11 @@ export default function AdminVendorsPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            {selectedVendor?.vendorProfile?.approvalStatus === "PENDING" && (
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+              Close
+            </Button>
+            {selectedVendor?.vendorProfile?.approvalStatus !== "APPROVED" && (
               <>
                 <Button
                   variant="destructive"
@@ -425,6 +431,7 @@ export default function AdminVendorsPage() {
                   Reject
                 </Button>
                 <Button
+                  className="bg-green-600 hover:bg-green-700"
                   onClick={() => {
                     if (selectedVendor) handleApprove(selectedVendor.id);
                     setIsDetailDialogOpen(false);
@@ -434,11 +441,6 @@ export default function AdminVendorsPage() {
                   Approve
                 </Button>
               </>
-            )}
-            {selectedVendor?.vendorProfile?.approvalStatus !== "PENDING" && (
-              <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
-                Close
-              </Button>
             )}
           </DialogFooter>
         </DialogContent>

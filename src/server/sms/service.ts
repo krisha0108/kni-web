@@ -59,6 +59,13 @@ export function generateOTPCode(): string {
 }
 
 /**
+ * Generates a random 4-digit service PIN for engineer verification
+ */
+export function generateServicePin(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+/**
  * Replaces template variables with actual values
  */
 export function replaceTemplateVariables(

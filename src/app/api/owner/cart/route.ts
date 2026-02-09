@@ -25,26 +25,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let cart = await db.cart.findFirst({
-      where: { ownerId: session.id, restaurantId: restaurant.id, status: "DRAFT" },
-      include: {
-        items: {
-          include: {
-            serviceItem: {
-              include: {
-                category: true,
-                subCategory: true,
-              },
+    const cartInclude = {
+      items: {
+        include: {
+          serviceItem: {
+            include: {
+              category: true,
+              subCategory: true,
             },
-            partItem: {
-              include: {
-                category: true,
-                subCategory: true,
-              },
+          },
+          partItem: {
+            include: {
+              category: true,
+              subCategory: true,
             },
           },
         },
       },
+    };
+
+    let cart = await db.cart.findFirst({
+      where: { ownerId: session.id, restaurantId: restaurant.id, status: "DRAFT" },
+      include: cartInclude,
     });
 
     if (!cart) {
@@ -54,24 +56,7 @@ export async function GET(request: NextRequest) {
           restaurantId: restaurant.id,
           status: "DRAFT",
         },
-        include: {
-          items: {
-            include: {
-              serviceItem: {
-                include: {
-                  category: true,
-                  subCategory: true,
-                },
-              },
-              partItem: {
-                include: {
-                  category: true,
-                  subCategory: true,
-                },
-              },
-            },
-          },
-        },
+        include: cartInclude,
       });
     }
 
@@ -123,6 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     let priceSnapshot = 0;
+
     if (itemType === "SERVICE" && serviceItemId) {
       const service = await db.serviceItem.findUnique({ where: { id: serviceItemId } });
       if (!service) {

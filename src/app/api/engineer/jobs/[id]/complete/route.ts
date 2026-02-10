@@ -4,6 +4,7 @@ import { requireEngineer } from "@/server/auth/rbac";
 import { notifyOwnerServiceCompleted, createNotificationForRole } from "@/server/notifications/service";
 import { Role, NotificationType } from "@prisma/client";
 import { calculateCommission } from "@/lib/commission";
+import { updateAMCOnBookingComplete } from "@/server/amc/auto-update";
 
 export async function POST(
   request: NextRequest,
@@ -104,6 +105,9 @@ export async function POST(
       assignment.booking.ownerId,
       assignment.booking.id
     );
+
+    // Auto-update AMC if equipment has active subscription
+    await updateAMCOnBookingComplete(assignment.bookingId);
 
     // Notify admins for review
     await createNotificationForRole(

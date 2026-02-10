@@ -6,6 +6,7 @@ import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
 import { rejectionReasonSchema } from "@/lib/validations/rejection";
 import { calculateCommission } from "@/lib/commission";
+import { updateAMCOnBookingComplete } from "@/server/amc/auto-update";
 
 export async function GET(
   request: NextRequest,
@@ -512,6 +513,9 @@ export async function POST(
           },
         });
       });
+
+      // Auto-update AMC if equipment has active subscription
+      await updateAMCOnBookingComplete(assignment.bookingId);
 
       // Notify admins for payout review
       await createNotificationForRole(

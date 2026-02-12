@@ -15,10 +15,13 @@ import { NotificationType } from "@prisma/client";
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET || "your-secret-key";
+    // Verify cron secret - fail closed if not configured
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return NextResponse.json({ ok: false, error: "CRON_SECRET not configured" }, { status: 500 });
+    }
 
+    const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
@@ -133,9 +136,12 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET || "your-secret-key";
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return NextResponse.json({ ok: false, error: "CRON_SECRET not configured" }, { status: 500 });
+    }
 
+    const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },

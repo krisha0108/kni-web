@@ -63,9 +63,26 @@ export async function saveToLocalStorage(
  */
 export async function deleteFromLocalStorage(url: string): Promise<void> {
   try {
-    // Convert URL to file path
+    // Validate URL to prevent path traversal attacks
+    if (!url.startsWith("/uploads/")) {
+      console.error("Invalid delete URL: must start with /uploads/");
+      return;
+    }
+    if (url.includes("..") || url.includes("\\")) {
+      console.error("Invalid delete URL: path traversal detected");
+      return;
+    }
+
+    const uploadsDir = path.resolve(process.cwd(), "public", "uploads");
     const relativePath = url.replace(/^\//, "");
-    const filePath = path.join(process.cwd(), "public", relativePath);
+    const filePath = path.resolve(process.cwd(), "public", relativePath);
+
+    // Ensure resolved path is inside uploads directory
+    if (!filePath.startsWith(uploadsDir)) {
+      console.error("Invalid delete URL: resolved path outside uploads dir");
+      return;
+    }
+
     await fs.unlink(filePath);
   } catch (error) {
     console.error("Error deleting file:", error);

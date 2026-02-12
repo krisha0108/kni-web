@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { notifyAdminsNewPaymentUploaded } from "@/server/notifications/service";
+import { isValidImageUrl } from "@/lib/validations/url";
 
 export async function POST(
   request: NextRequest,
@@ -14,9 +15,9 @@ export async function POST(
     const body = await request.json();
     const { screenshotUrl } = body;
 
-    if (!screenshotUrl) {
+    if (!screenshotUrl || !isValidImageUrl(screenshotUrl)) {
       return NextResponse.json(
-        { ok: false, error: "No screenshot URL provided" },
+        { ok: false, error: "A valid screenshot URL is required" },
         { status: 400 }
       );
     }

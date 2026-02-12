@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
+import { isValidImageUrl } from "@/lib/validations/url";
 
 /**
  * POST /api/owner/amc-payment/[id]/upload
@@ -19,8 +20,8 @@ export async function POST(
     const body = await request.json();
     const { screenshotUrl } = body;
 
-    if (!screenshotUrl) {
-      return NextResponse.json({ ok: false, error: "Screenshot URL is required" }, { status: 400 });
+    if (!screenshotUrl || !isValidImageUrl(screenshotUrl)) {
+      return NextResponse.json({ ok: false, error: "A valid screenshot URL is required" }, { status: 400 });
     }
 
     const payment = await db.aMCPayment.findFirst({

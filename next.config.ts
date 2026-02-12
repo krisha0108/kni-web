@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Required for Docker containerization
+  output: "standalone",
 
   // Disable Next.js image optimizer so uploaded images served directly via /uploads/ work correctly
   images: {
@@ -25,7 +26,7 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Add headers for service worker
+  // Add headers for service worker and security
   async headers() {
     return [
       {
@@ -38,6 +39,22 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
         ],
       },

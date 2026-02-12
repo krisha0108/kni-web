@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { saveUploadedFile } from "@/server/upload/localUpload";
 
 /**
  * GET /api/support/tickets
@@ -69,26 +68,19 @@ export async function POST(request: NextRequest) {
 
     let photoUrl: string | null = null;
 
-    // Handle photo upload if provided
+    // Handle photo upload if provided (validates type + size via saveUploadedFile)
     if (photo && photo.size > 0) {
       try {
-        const bytes = await photo.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        // Create uploads directory if it doesn't exist
-        const uploadDir = join(process.cwd(), "public", "uploads", "tickets");
-        await mkdir(uploadDir, { recursive: true });
-
-        // Generate unique filename
-        const filename = `${Date.now()}-${photo.name}`;
-        const filepath = join(uploadDir, filename);
-
-        // Save file
-        await writeFile(filepath, buffer);
-        photoUrl = `/uploads/tickets/${filename}`;
+        const result = await saveUploadedFile(photo, "tickets");
+        photoUrl = result.url;
       } catch (uploadError) {
+        if (uploadError instanceof Error) {
+          return NextResponse.json(
+            { ok: false, error: uploadError.message },
+            { status: 400 }
+          );
+        }
         console.error("Photo upload error:", uploadError);
-        // Continue without photo if upload fails
       }
     }
 

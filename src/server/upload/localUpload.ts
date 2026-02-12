@@ -12,7 +12,7 @@ export interface UploadResult {
 
 export async function saveUploadedFile(
   file: File,
-  type: "payment" | "engineer-proof"
+  type: "payment" | "engineer-proof" | "tickets"
 ): Promise<UploadResult> {
   if (!ALLOWED_TYPES.includes(file.type)) {
     throw new Error("Invalid file type. Only PNG, JPG, and WebP are allowed.");

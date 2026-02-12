@@ -234,6 +234,13 @@ model User {
   marketplaceProducts      MarketplaceProduct[]  @relation("MarketplaceProductCreator")
   vendorCategories         VendorCategorySelection[]
   vendorLocationRequests   VendorLocationRequest[]
+  amcRequests              AMCRequest[]
+  amcSurveys               AMCSiteSurvey[]       @relation("EngineerSurveys")
+  amcContracts             AMCContract[]          @relation("OwnerContracts")
+  amcScheduledVisits       AMCScheduledVisit[]    @relation("EngineerVisits")
+  amcBreakdownRequests     AMCBreakdownRequest[]  @relation("OwnerBreakdowns")
+  amcPayments              AMCPayment[]           @relation("OwnerAMCPayments")
+  amcPaymentsVerified      AMCPayment[]           @relation("AdminVerifiedPayments")
 
   @@index([email])
   @@index([role])
@@ -455,6 +462,8 @@ model Restaurant {
   staffAttendance   StaffAttendance[]
   staffSalaries     StaffSalary[]
   supportTickets    SupportTicket[]
+  amcRequests       AMCRequest[]
+  amcContracts      AMCContract[]
 
   @@index([ownerId])
   @@index([status])
@@ -1082,6 +1091,312 @@ model AMCServiceUse {
 
   @@index([subscriptionId])
   @@index([bookingId])
+}
+
+// ========================================
+// L2) AMC REQUEST SYSTEM (New Professional AMC Flow)
+// ========================================
+
+model AMCRequest {
+  id              String           @id @default(cuid())
+  ownerId         String
+  restaurantId    String
+  status          AMCRequestStatus @default(REQUESTED)
+
+  // What owner selects
+  equipmentCategories Json       @default("[]")
+  kitchenType         String
+  planType            String       // BASIC / STANDARD / PREMIUM
+  visitFrequency      String       // MONTHLY / BI_MONTHLY / QUARTERLY
+  preferredStartDate  DateTime
+  notes               String?      @db.Text
+
+  // Renewal link (if this request is a renewal of an existing contract)
+  renewalOfContractId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner              User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant         Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  renewalOfContract  AMCContract?      @relation("ContractRenewals", fields: [renewalOfContractId], references: [id])
+  survey             AMCSiteSurvey?
+  proposal           AMCProposal?
+  payment            AMCPayment?
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([renewalOfContractId])
+}
+
+enum AMCRequestStatus {
+  REQUESTED
+  SURVEY_SCHEDULED
+  SURVEY_COMPLETED
+  PROPOSAL_SENT
+  PROPOSAL_ACCEPTED
+  PROPOSAL_REJECTED
+  PAYMENT_PENDING
+  PAYMENT_UPLOADED
+  CONTRACT_ACTIVE
+  CANCELLED
+}
+
+// ========================================
+// L3) AMC SITE SURVEY
+// ========================================
+
+model AMCSiteSurvey {
+  id            String       @id @default(cuid())
+  requestId     String       @unique
+  engineerId    String
+  scheduledDate DateTime
+  completedDate DateTime?
+  status        SurveyStatus @default(SCHEDULED)
+
+  // Survey data (engineer fills after site visit)
+  equipmentList    Json? // [{name, brand, model, age, condition, spareRisk, notes}]
+  overallCondition String?    // GOOD / AVERAGE / CRITICAL
+  specialNotes     String?    @db.Text
+  photoUrls        Json?      @default("[]")
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  request    AMCRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  engineer   User       @relation("EngineerSurveys", fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@index([engineerId])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+enum SurveyStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ========================================
+// L4) AMC PROPOSAL
+// ========================================
+
+model AMCProposal {
+  id          String         @id @default(cuid())
+  requestId   String         @unique
+  status      ProposalStatus @default(DRAFT)
+
+  // Proposal details
+  coveredEquipment    Json? // [{name, brand, model}]
+  preventiveVisits    Int        // e.g., 12 per year
+  freeBreakdownVisits Int        @default(0)
+  responseTimeSLA     String?    // e.g., "4 hours"
+  resolutionTimeSLA   String?    // e.g., "24 hours"
+  exclusions          Json?      @default("[]")
+  sparePartsPolicy    String?    @db.Text
+
+  // Pricing (in paise)
+  monthlyPrice    Int
+  quarterlyPrice  Int?
+  annualPrice     Int?
+  contractPeriod  String     @default("1 YEAR") // "1 YEAR" / "2 YEAR"
+
+  // Approval tracking
+  sentAt          DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?    @db.Text
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  request    AMCRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  contract   AMCContract?
+
+  @@index([status])
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+// ========================================
+// L5) AMC CONTRACT
+// ========================================
+
+model AMCContract {
+  id           String         @id @default(cuid())
+  proposalId   String?        @unique
+  requestId    String
+  ownerId      String
+  restaurantId String
+
+  contractNumber  String         @unique // e.g., "AMC-2026-001"
+  status          ContractStatus @default(ACTIVE)
+
+  // Contract terms (copied from proposal)
+  coveredEquipment    Json?
+  preventiveVisits    Int
+  freeBreakdownVisits Int        @default(0)
+  breakdownVisitsUsed Int        @default(0)
+  responseTimeSLA     String?
+  resolutionTimeSLA   String?
+
+  // Dates & Billing
+  startDate      DateTime
+  endDate        DateTime
+  billingCycle   String      // MONTHLY / QUARTERLY / ANNUAL
+  amountPerCycle Int         // in paise
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  proposal          AMCProposal?         @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  owner             User                 @relation("OwnerContracts", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant        Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  scheduledVisits   AMCScheduledVisit[]
+  breakdownRequests AMCBreakdownRequest[]
+  renewalRequests   AMCRequest[]         @relation("ContractRenewals")
+
+  @@index([ownerId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([endDate])
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  RENEWED
+}
+
+// ========================================
+// L6) AMC SCHEDULED VISITS
+// ========================================
+
+model AMCScheduledVisit {
+  id          String      @id @default(cuid())
+  contractId  String
+  engineerId  String?
+
+  visitNumber   Int        // 1, 2, 3... 12
+  visitType     String     @default("PREVENTIVE") // PREVENTIVE / BREAKDOWN
+  scheduledDate DateTime
+  completedDate DateTime?
+  status        VisitStatus @default(SCHEDULED)
+
+  // Engineer work
+  checklistJson    Json? // [{item, checked, notes}]
+  workNotes        String?    @db.Text
+  photoUrls        Json?      @default("[]")
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  contract   AMCContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  engineer   User?       @relation("EngineerVisits", fields: [engineerId], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+  @@index([engineerId])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+enum VisitStatus {
+  SCHEDULED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  RESCHEDULED
+  CANCELLED
+}
+
+// ========================================
+// L7) AMC BREAKDOWN REQUESTS
+// ========================================
+
+model AMCBreakdownRequest {
+  id          String          @id @default(cuid())
+  contractId  String
+  ownerId     String
+
+  equipmentName   String
+  problemDesc     String      @db.Text
+  urgency         String      @default("MEDIUM") // LOW / MEDIUM / HIGH
+  photoUrls       Json?       @default("[]")
+
+  // System checks
+  isCoveredByAMC  Boolean     @default(true)
+  freeVisitsUsed  Int         @default(0)
+  freeVisitsTotal Int         @default(0)
+
+  // Resolution
+  status          BreakdownStatus @default(REQUESTED)
+  assignedVisitId String?
+  resolvedAt      DateTime?
+  chargeAmount    Int?        // in paise, if chargeable
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contract    AMCContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  owner       User        @relation("OwnerBreakdowns", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+enum BreakdownStatus {
+  REQUESTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CHARGEABLE
+}
+
+// ========================================
+// L8) AMC PAYMENT (Screenshot-based)
+// ========================================
+
+model AMCPayment {
+  id          String        @id @default(cuid())
+  requestId   String        @unique
+  ownerId     String
+
+  paymentType   String      // PROPOSAL / RENEWAL
+  amount        Int         // in rupees
+  screenshotUrl String?     @db.Text
+  status        PaymentStatus @default(PENDING)
+
+  // Admin verification
+  verifiedById    String?
+  verifiedAt      DateTime?
+  rejectionReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  request    AMCRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  owner      User       @relation("OwnerAMCPayments", fields: [ownerId], references: [id], onDelete: Cascade)
+  verifiedBy User?      @relation("AdminVerifiedPayments", fields: [verifiedById], references: [id])
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  PENDING
+  UPLOADED
+  VERIFIED
+  REJECTED
 }
 
 // ========================================

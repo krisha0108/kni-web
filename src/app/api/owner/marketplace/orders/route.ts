@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
             product: { select: { id: true, name: true, unit: true } },
           },
         },
+        rating: { select: { id: true, overallRating: true, review: true } },
       },
       orderBy: { createdAt: "desc" },
     });

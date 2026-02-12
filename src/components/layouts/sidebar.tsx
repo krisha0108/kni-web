@@ -40,6 +40,8 @@ import {
   FileCheck,
   User,
   UserCircle,
+  Shield,
+  AlertTriangle,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -120,6 +122,10 @@ export const adminSidebarItems: SidebarItem[] = [
   { title: "Payment Settings", href: "/admin/payment-settings", icon: CreditCard },
   { title: "Content Management", href: "/admin/content", icon: Image },
   { title: "Notifications", href: "/admin/notifications", icon: Bell },
+  { title: "AMC Dashboard", href: "/admin/amc-dashboard", icon: Shield },
+  { title: "AMC Requests", href: "/admin/amc-requests", icon: Shield },
+  { title: "AMC Visits", href: "/admin/amc-visits", icon: Clock },
+  { title: "AMC Breakdowns", href: "/admin/amc-breakdowns", icon: AlertTriangle },
   { title: "Support Tickets", href: "/admin/support", icon: MessageSquare },
 ];
 
@@ -139,6 +145,9 @@ export const ownerSidebarItems: SidebarItem[] = [
   { title: "Category Request", href: "/owner/category-request", icon: FileText },
   { title: "My Cart", href: "/owner/cart", icon: ShoppingCart },
   // { title: "New Service Request", href: "/owner/service-request", icon: Wrench }, // TODO: Coming soon
+  { title: "AMC Dashboard", href: "/owner/amc-dashboard", icon: Shield },
+  { title: "AMC Requests", href: "/owner/amc-requests", icon: Shield },
+  { title: "AMC Contracts", href: "/owner/amc-contracts", icon: FileCheck },
   { title: "My Bookings", href: "/owner/bookings", icon: ClipboardList },
   { title: "Pending Approvals", href: "/owner/pending-approvals", icon: FileCheck },
   { title: "Marketplace", href: "/owner/marketplace", icon: ShoppingBag },
@@ -165,6 +174,7 @@ export const engineerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/engineer/dashboard", icon: LayoutDashboard },
   { title: "My Jobs", href: "/engineer/jobs", icon: ClipboardList },
   { title: "Completed", href: "/engineer/completed", icon: CheckCircle },
+  { title: "AMC Tasks", href: "/engineer/amc-tasks", icon: Shield },
   // { title: "Parts Request", href: "/engineer/parts-request", icon: Package }, // TODO: Parts request flow disabled
   { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
   { title: "Notifications", href: "/engineer/notifications", icon: Bell },

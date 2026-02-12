@@ -75,7 +75,7 @@ export async function createVendorRating(input: CreateVendorRatingInput) {
       },
     });
   } else {
-    // Create new rating
+    // Create new rating (auto-publish)
     rating = await db.vendorRating.create({
       data: {
         orderId: input.orderId,
@@ -90,6 +90,7 @@ export async function createVendorRating(input: CreateVendorRatingInput) {
         packaging: input.packaging,
         review: input.review,
         images: input.images || [],
+        isPublished: true,
       },
     });
   }

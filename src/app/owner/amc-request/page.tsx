@@ -1,0 +1,292 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Shield, Loader2, CheckCircle2 } from "lucide-react";
+
+// Equipment categories fetched from database (admin manages these)
+
+const KITCHEN_TYPES = [
+  { value: "CLOUD_KITCHEN", label: "Cloud Kitchen" },
+  { value: "QSR", label: "QSR (Quick Service)" },
+  { value: "FINE_DINE", label: "Fine Dine" },
+  { value: "HOTEL", label: "Hotel" },
+  { value: "CAFE", label: "Cafe" },
+  { value: "CATERING", label: "Catering" },
+];
+
+const PLAN_TYPES = [
+  {
+    value: "BASIC",
+    label: "Basic",
+    color: "bg-green-100 text-green-800",
+    description: "Preventive maintenance visits only",
+  },
+  {
+    value: "STANDARD",
+    label: "Standard",
+    color: "bg-blue-100 text-blue-800",
+    description: "Preventive + free breakdown visits",
+  },
+  {
+    value: "PREMIUM",
+    label: "Premium",
+    color: "bg-purple-100 text-purple-800",
+    description: "Preventive + breakdown + priority + parts discount",
+  },
+];
+
+const VISIT_FREQUENCIES = [
+  { value: "MONTHLY", label: "Monthly" },
+  { value: "BI_MONTHLY", label: "Bi-Monthly (Every 2 months)" },
+  { value: "QUARTERLY", label: "Quarterly (Every 3 months)" },
+];
+
+export default function AMCRequestPage() {
+  const [restaurants, setRestaurants] = useState<{ id: string; name: string; city: string }[]>([]);
+  const [equipmentCategories, setEquipmentCategories] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    restaurantId: "",
+    kitchenType: "",
+    planType: "",
+    visitFrequency: "",
+    preferredStartDate: "",
+    notes: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/owner/restaurants").then((r) => r.json()),
+      fetch("/api/app/categories").then((r) => r.json()),
+    ])
+      .then(([restData, catData]) => {
+        if (restData.ok) {
+          const approved = (restData.data || []).filter((r: any) => r.status === "APPROVED");
+          setRestaurants(approved);
+        }
+        if (catData.ok) {
+          setEquipmentCategories(catData.data || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.restaurantId || selectedCategories.length === 0 || !formData.kitchenType || !formData.planType || !formData.visitFrequency || !formData.preferredStartDate) {
+      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/owner/amc-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          equipmentCategories: selectedCategories,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({ title: "Success", description: "AMC request submitted successfully!" });
+        router.push("/owner/amc-requests");
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to submit request", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to submit request", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6" />
+            Request AMC
+          </h1>
+          <p className="text-muted-foreground">Submit an Annual Maintenance Contract request</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Restaurant Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Restaurant</CardTitle>
+            <CardDescription>Select the restaurant for AMC</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={formData.restaurantId} onValueChange={(v) => setFormData({ ...formData, restaurantId: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                {restaurants.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name} ({r.city})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Equipment Categories */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Equipment Categories <span className="text-destructive">*</span></CardTitle>
+            <CardDescription>Select all equipment types that need maintenance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {equipmentCategories.map((cat) => (
+                <Badge
+                  key={cat.id}
+                  variant={selectedCategories.includes(cat.name) ? "default" : "outline"}
+                  className="cursor-pointer text-sm py-2 px-3"
+                  onClick={() => toggleCategory(cat.name)}
+                >
+                  {selectedCategories.includes(cat.name) && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                  {cat.name}
+                </Badge>
+              ))}
+            </div>
+            {selectedCategories.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-2">{selectedCategories.length} selected</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Kitchen Type & Plan */}
+        <Card>
+          <CardHeader>
+            <CardTitle>AMC Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Kitchen / Outlet Type <span className="text-destructive">*</span></Label>
+                <Select value={formData.kitchenType} onValueChange={(v) => setFormData({ ...formData, kitchenType: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KITCHEN_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Visit Frequency <span className="text-destructive">*</span></Label>
+                <Select value={formData.visitFrequency} onValueChange={(v) => setFormData({ ...formData, visitFrequency: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIT_FREQUENCIES.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Plan Type Selection */}
+            <div className="space-y-2">
+              <Label>Preferred AMC Plan <span className="text-destructive">*</span></Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {PLAN_TYPES.map((plan) => (
+                  <div
+                    key={plan.value}
+                    onClick={() => setFormData({ ...formData, planType: plan.value })}
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition ${
+                      formData.planType === plan.value ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge className={plan.color}>{plan.label}</Badge>
+                      {formData.planType === plan.value && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Preferred Start Date <span className="text-destructive">*</span></Label>
+                <input
+                  type="date"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.preferredStartDate}
+                  onChange={(e) => setFormData({ ...formData, preferredStartDate: e.target.value })}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Additional Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Any special requirements or notes..."
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit */}
+        <div className="flex gap-3">
+          <Button type="submit" disabled={isSubmitting} size="lg">
+            {isSubmitting ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+            ) : (
+              <><Shield className="mr-2 h-4 w-4" /> Submit AMC Request</>
+            )}
+          </Button>
+          <Button type="button" variant="outline" size="lg" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

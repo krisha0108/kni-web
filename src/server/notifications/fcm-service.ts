@@ -82,22 +82,16 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
         try {
           const message = {
             token: deviceToken.token,
-            notification: {
-              title: payload.title,
-              body: payload.body,
-            },
+            // NOTE: No top-level `notification` key — data-only message.
+            // This prevents FCM from auto-displaying on Android (which caused
+            // duplicates when the app's background handler also displayed via Notifee).
+            // The mobile apps read title/body from `data` and display via Notifee.
             data: fcmData,
-            // Android-specific configuration for background notifications
+            // Android: high priority ensures data-only messages wake the app
             android: {
               priority: "high" as const,
-              notification: {
-                channelId: "high_importance_channel",
-                priority: "high" as const,
-                defaultSound: true,
-                defaultVibrateTimings: true,
-              },
             },
-            // iOS-specific configuration for background notifications
+            // iOS: content-available ensures background delivery for data-only messages
             apns: {
               payload: {
                 aps: {
@@ -114,12 +108,14 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
                 "apns-priority": "10",
               },
             },
-            // Web-specific configuration
+            // Web: uses its own notification display
             webpush: {
               fcmOptions: {
                 link: payload.linkUrl || "/",
               },
               notification: {
+                title: payload.title,
+                body: payload.body,
                 icon: "/icon-192x192.png",
                 badge: "/badge-72x72.png",
                 requireInteraction: false,

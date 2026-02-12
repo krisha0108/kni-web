@@ -101,35 +101,11 @@ export async function PATCH(
       );
     }
 
-    if (action === "verify_payment") {
-      // Prevent re-verification
-      if (booking.paymentProof?.status === "VERIFIED") {
-        return NextResponse.json(
-          { ok: false, error: "Payment is already verified" },
-          { status: 400 }
-        );
-      }
-
-      await db.paymentProof.update({
-        where: { bookingId: id },
-        data: { status: "VERIFIED", verifiedAt: new Date(), rejectionReason: null, adminNote: null },
-      });
-      await db.serviceBooking.update({
-        where: { id },
-        data: { status: "PAYMENT_VERIFIED" },
-      });
-      await notifyOwnerPaymentVerified(booking.ownerId, id);
-      return NextResponse.json({ ok: true });
-    }
-
-    if (action === "reject_payment") {
-      // DEPRECATED: This action format is deprecated. Use POST with "reject-payment" action instead.
-      // For backward compatibility, we'll require a rejection reason via query param or body
+    if (action === "verify_payment" || action === "reject_payment") {
+      // DEPRECATED: Payment actions moved to POST handler with kebab-case format.
+      // Frontend uses POST with "verify-payment" / "reject-payment".
       return NextResponse.json(
-        {
-          ok: false,
-          error: "This endpoint is deprecated. Use POST /api/admin/bookings/:id with action 'reject-payment' and rejectionReason field",
-        },
+        { ok: false, error: "Use POST method with 'verify-payment' or 'reject-payment' action instead" },
         { status: 400 }
       );
     }

@@ -29,6 +29,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Deactivate old tokens for this user (prevents sending to stale devices)
+    await db.deviceToken.updateMany({
+      where: {
+        userId: restaurant_owner_id,
+        token: { not: fcm_token },
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+
     // Upsert the device token
     await db.deviceToken.upsert({
       where: { token: fcm_token },

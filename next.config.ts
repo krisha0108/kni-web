@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
 
+  // Disable Next.js image optimizer so uploaded images served directly via /uploads/ work correctly
+  images: {
+    unoptimized: true,
+  },
+
   // Turbopack config (empty to silence warning, service worker works by default)
   turbopack: {},
 

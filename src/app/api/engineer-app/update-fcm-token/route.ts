@@ -23,6 +23,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Deactivate old tokens for this user (prevents sending to stale devices)
+    await db.deviceToken.updateMany({
+      where: {
+        userId: session.id,
+        token: { not: fcmToken },
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+
     // Check if token already exists
     const existingToken = await db.deviceToken.findUnique({
       where: { token: fcmToken },
@@ -37,7 +47,7 @@ export async function POST(request: NextRequest) {
           isActive: true,
           lastUsed: new Date(),
           deviceId: deviceId || null,
-          platform: "android", // Engineer app is primarily Android
+          platform: "android",
         },
       });
 

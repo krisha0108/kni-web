@@ -21,6 +21,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Token is required" }, { status: 400 });
     }
 
+    // Deactivate old tokens for this user (prevents sending to stale devices)
+    await db.deviceToken.updateMany({
+      where: {
+        userId: session.id,
+        token: { not: token },
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+
     // Check if token already exists
     const existingToken = await db.deviceToken.findUnique({
       where: { token },

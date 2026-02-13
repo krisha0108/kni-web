@@ -6,12 +6,16 @@ import { requireOwner } from "@/server/auth/rbac";
  * GET /api/owner/amc-requests
  * List all AMC requests for the logged-in owner
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireOwner();
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
     const requests = await db.aMCRequest.findMany({
-      where: { ownerId: session.id },
+      where: {
+        ownerId: session.id,
+        ...(restaurantId ? { restaurantId } : {}),
+      },
       include: {
         restaurant: { select: { id: true, name: true, city: true } },
       },

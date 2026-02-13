@@ -80,12 +80,16 @@ export async function POST(request: NextRequest) {
  * GET /api/owner/amc-breakdown
  * List owner's breakdown requests
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireOwner();
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
     const breakdowns = await db.aMCBreakdownRequest.findMany({
-      where: { ownerId: session.id },
+      where: {
+        ownerId: session.id,
+        ...(restaurantId ? { contract: { restaurantId } } : {}),
+      },
       include: {
         contract: {
           select: {

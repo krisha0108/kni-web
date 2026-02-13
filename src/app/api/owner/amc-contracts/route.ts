@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
 
@@ -6,12 +6,13 @@ import { requireOwner } from "@/server/auth/rbac";
  * GET /api/owner/amc-contracts
  * List all AMC contracts for the logged-in owner
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireOwner();
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
     const contracts = await db.aMCContract.findMany({
-      where: { ownerId: session.id },
+      where: { ownerId: session.id, ...(restaurantId ? { restaurantId } : {}) },
       include: {
         restaurant: { select: { id: true, name: true, city: true } },
         scheduledVisits: {

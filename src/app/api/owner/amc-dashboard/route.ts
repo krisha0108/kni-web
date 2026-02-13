@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwner } from "@/server/auth/rbac";
 
@@ -6,24 +6,33 @@ import { requireOwner } from "@/server/auth/rbac";
  * GET /api/owner/amc-dashboard
  * Owner AMC dashboard data
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireOwner();
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+
+    const where = {
+      ownerId: session.id,
+      ...(restaurantId ? { restaurantId } : {}),
+    };
 
     const [contracts, requests, breakdowns] = await Promise.all([
       db.aMCContract.findMany({
-        where: { ownerId: session.id },
+        where,
         include: {
           restaurant: { select: { name: true } },
           scheduledVisits: { select: { status: true, scheduledDate: true } },
         },
       }),
       db.aMCRequest.findMany({
-        where: { ownerId: session.id },
+        where,
         select: { id: true, status: true },
       }),
       db.aMCBreakdownRequest.findMany({
-        where: { ownerId: session.id },
+        where: {
+          ownerId: session.id,
+          ...(restaurantId ? { contract: { restaurantId } } : {}),
+        },
         select: { id: true, status: true },
       }),
     ]);

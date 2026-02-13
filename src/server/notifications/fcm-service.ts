@@ -36,15 +36,25 @@ export async function sendPushNotification(payload: PushNotificationPayload): Pr
       return false;
     }
 
-    // Get active device tokens for the user
-    const deviceTokens = await db.deviceToken.findMany({
+    // Get active device tokens for the user (latest per platform to avoid duplicates)
+    const allTokens = await db.deviceToken.findMany({
       where: {
         userId: payload.userId,
         isActive: true,
       },
+      orderBy: { lastUsed: "desc" },
     });
 
-    console.log(`📱 Found ${deviceTokens.length} active device token(s) for user ${payload.userId}`);
+    // Keep only the most recent token per platform to prevent duplicate push notifications
+    const seenPlatforms = new Set<string>();
+    const deviceTokens = allTokens.filter((t) => {
+      const platform = t.platform || "unknown";
+      if (seenPlatforms.has(platform)) return false;
+      seenPlatforms.add(platform);
+      return true;
+    });
+
+    console.log(`📱 Found ${allTokens.length} active token(s), using ${deviceTokens.length} (latest per platform) for user ${payload.userId}`);
 
     if (deviceTokens.length === 0) {
       console.log(`❌ No active device tokens found for user ${payload.userId}`);

@@ -32,7 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Search, Loader2, Eye, ArrowRight, Calendar, FileText, IndianRupee, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Search, Loader2, Eye, ArrowRight, Calendar, FileText, IndianRupee, CheckCircle, XCircle, Plus } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 
 interface AMCRequest {
@@ -307,12 +307,17 @@ export default function AdminAMCRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-6 w-6" />
-          AMC Requests
-        </h1>
-        <p className="text-muted-foreground">Manage Annual Maintenance Contract requests from owners</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6" />
+            AMC Requests
+          </h1>
+          <p className="text-muted-foreground">Manage Annual Maintenance Contract requests from owners</p>
+        </div>
+        <Button onClick={() => router.push("/admin/amc-requests/create")}>
+          <Plus className="mr-2 h-4 w-4" /> Create AMC Request
+        </Button>
       </div>
 
       {/* Filters */}

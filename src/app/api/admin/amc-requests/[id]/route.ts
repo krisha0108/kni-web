@@ -91,14 +91,11 @@ export async function PATCH(
     });
 
     // Send notification to owner based on status change
+    // NOTE: PROPOSAL_SENT notification is handled in /api/admin/amc-proposals/[id]/send
     const notificationMessages: Record<string, { title: string; message: string }> = {
       SURVEY_SCHEDULED: {
         title: "AMC Survey Scheduled",
         message: `A site survey has been scheduled for your AMC request at "${amcRequest.restaurant.name}".`,
-      },
-      PROPOSAL_SENT: {
-        title: "AMC Proposal Ready",
-        message: `An AMC proposal is ready for your restaurant "${amcRequest.restaurant.name}". Please review and accept.`,
       },
       CANCELLED: {
         title: "AMC Request Cancelled",

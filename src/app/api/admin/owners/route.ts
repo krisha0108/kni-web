@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
+import { z } from "zod";
+import bcrypt from "bcrypt";
+
+const createOwnerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -111,6 +120,62 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get owners error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await requireAdmin();
+
+    const body = await req.json();
+    const validation = createOwnerSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { ok: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, phone, password } = validation.data;
+
+    // Check if email already exists
+    const existingUser = await db.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json(
+        { ok: false, error: "Email already registered" },
+        { status: 409 }
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const owner = await db.user.create({
+      data: {
+        name,
+        email,
+        phone: phone || null,
+        passwordHash,
+        role: "OWNER",
+        isActive: true,
+        emailVerified: true,
+        ownerProfile: { create: {} },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+      },
+    });
+
+    return NextResponse.json({ ok: true, data: owner }, { status: 201 });
+  } catch (error) {
+    console.error("Create owner error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
       { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }

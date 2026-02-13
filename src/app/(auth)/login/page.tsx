@@ -15,12 +15,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [vendorError, setVendorError] = useState<{ code: string; message: string } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -43,6 +44,16 @@ export default function LoginPage() {
         // Check for vendor-specific errors
         if (data.code === "VENDOR_PENDING_APPROVAL" || data.code === "VENDOR_REJECTED") {
           setVendorError({ code: data.code, message: data.error });
+          return;
+        }
+
+        // Handle email not verified - redirect to verification page
+        if (data.code === "EMAIL_NOT_VERIFIED") {
+          toast({
+            title: "Email Not Verified",
+            description: "A verification code has been sent to your email.",
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(data.email || email)}`);
           return;
         }
 
@@ -134,15 +145,33 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { registerOwnerSchema } from "@/server/validators/auth";
-import { createSession } from "@/server/auth/session";
 import { Role } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { generateAndSendEmailCode } from "@/server/email-code/service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user with owner profile
+    // Create user with owner profile (emailVerified defaults to false)
     const user = await db.user.create({
       data: {
         name,
@@ -59,8 +59,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create session and get token for mobile apps
-    const token = await createSession(user.id);
+    // Send verification code (don't create session - user must verify first)
+    await generateAndSendEmailCode({
+      email,
+      purpose: "EMAIL_VERIFICATION",
+      userName: name,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -71,8 +75,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           role: user.role,
         },
-        token, // Include token for mobile apps
-        redirectUrl: "/owner/dashboard",
+        requiresVerification: true,
       },
     });
   } catch (error) {

@@ -136,6 +136,11 @@ enum OTPPurpose {
   BOOKING_CONFIRMATION
 }
 
+enum EmailCodePurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 enum SMSStatus {
   PENDING
   SENT
@@ -179,16 +184,17 @@ enum EngineerRatingCategory {
 // ========================================
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  phone        String?
-  passwordHash String
-  role         Role
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  phone          String?
+  passwordHash   String
+  role           Role
+  emailVerified  Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   // Relations
   sessions               Session[]
@@ -1746,6 +1752,20 @@ model OTP {
 
   @@index([phone])
   @@index([phone, purpose, isVerified])
+  @@index([expiresAt])
+}
+
+model EmailCode {
+  id         String           @id @default(cuid())
+  email      String
+  code       String
+  purpose    EmailCodePurpose
+  isVerified Boolean          @default(false)
+  attempts   Int              @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime         @default(now())
+
+  @@index([email, purpose])
   @@index([expiresAt])
 }
 

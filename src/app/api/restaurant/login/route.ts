@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { loginSchema } from "@/server/validators/auth";
 import { createSession } from "@/server/auth/session";
+import { generateAndSendEmailCode } from "@/server/email-code/service";
 import bcrypt from "bcrypt";
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,6 +60,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, error: "Invalid email or password" },
         { status: 401 }
+      );
+    }
+
+    // Block login for unverified email
+    if (!user.emailVerified) {
+      await generateAndSendEmailCode({
+        email,
+        purpose: "EMAIL_VERIFICATION",
+        userName: user.name,
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Email not verified. A new verification code has been sent to your email.",
+          code: "EMAIL_NOT_VERIFIED",
+          email: user.email,
+        },
+        { status: 403 }
       );
     }
 

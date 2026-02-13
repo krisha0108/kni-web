@@ -1,13 +1,19 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
-
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@knisuperapp.com";
-const FROM_NAME = process.env.SENDGRID_FROM_NAME || "KNI Super App";
+const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL || "noreply@knisuperapp.com";
+const FROM_NAME = process.env.SMTP_FROM_NAME || process.env.SENDGRID_FROM_NAME || "KNI Super App";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+// Create nodemailer transporter (Gmail SMTP)
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 interface EmailOptions {
   to: string;
@@ -18,8 +24,8 @@ interface EmailOptions {
 
 // Base email sender
 async function sendEmail(options: EmailOptions): Promise<void> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn("SendGrid API key not configured. Email not sent.");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("SMTP credentials not configured. Email not sent.");
     console.log("Would send email:", {
       to: options.to,
       subject: options.subject,
@@ -28,15 +34,12 @@ async function sendEmail(options: EmailOptions): Promise<void> {
   }
 
   try {
-    await sgMail.send({
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       to: options.to,
-      from: {
-        email: FROM_EMAIL,
-        name: FROM_NAME,
-      },
       subject: options.subject,
       html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
+      text: options.text || options.html.replace(/<[^>]*>/g, ""),
     });
     console.log(`Email sent successfully to ${options.to}`);
   } catch (error) {
@@ -740,6 +743,78 @@ export async function sendOrderStatusUpdateEmail(
   });
 }
 
+// 10. Email Verification Code
+export async function sendEmailVerificationCode(
+  email: string,
+  name: string,
+  code: string
+): Promise<void> {
+  const content = `
+    <h2>Verify Your Email Address</h2>
+    <p>Hello ${name},</p>
+    <p>Thank you for registering on KNI Super App. Please use the following verification code to verify your email address:</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; background: #f0f4ff; border: 2px dashed #667eea; border-radius: 12px; padding: 20px 40px;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #667eea;">${code}</span>
+      </div>
+    </div>
+
+    <div class="credentials">
+      <strong>Important:</strong>
+      <ul>
+        <li>This code is valid for <strong>10 minutes</strong></li>
+        <li>Do not share this code with anyone</li>
+        <li>If you didn't create an account, please ignore this email</li>
+      </ul>
+    </div>
+
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: `${code} - Email Verification Code | KNI Super App`,
+    html: emailTemplate(content, "Email Verification"),
+  });
+}
+
+// 11. Password Reset Code
+export async function sendPasswordResetCode(
+  email: string,
+  name: string,
+  code: string
+): Promise<void> {
+  const content = `
+    <h2>Password Reset Request</h2>
+    <p>Hello ${name},</p>
+    <p>We received a request to reset your password. Use the following code to proceed:</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; background: #fff3cd; border: 2px dashed #ffc107; border-radius: 12px; padding: 20px 40px;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #856404;">${code}</span>
+      </div>
+    </div>
+
+    <div class="credentials">
+      <strong>Important:</strong>
+      <ul>
+        <li>This code is valid for <strong>10 minutes</strong></li>
+        <li>Do not share this code with anyone</li>
+        <li>If you didn't request a password reset, please ignore this email</li>
+      </ul>
+    </div>
+
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: `${code} - Password Reset Code | KNI Super App`,
+    html: emailTemplate(content, "Password Reset"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -750,4 +825,6 @@ export default {
   sendPaymentRejectedEmail,
   sendTeamInvitationEmail,
   sendOrderStatusUpdateEmail,
+  sendEmailVerificationCode,
+  sendPasswordResetCode,
 };

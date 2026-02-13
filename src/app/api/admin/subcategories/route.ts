@@ -72,6 +72,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Restore soft-deleted record if exists (avoids unique constraint conflict)
+    const softDeleted = await db.subCategory.findFirst({
+      where: {
+        categoryId: validation.data.categoryId,
+        name: validation.data.name,
+        deletedAt: { not: null },
+      },
+    });
+
+    if (softDeleted) {
+      const restored = await db.subCategory.update({
+        where: { id: softDeleted.id },
+        data: {
+          name: validation.data.name,
+          categoryId: validation.data.categoryId,
+          imageUrl: validation.data.imageUrl || null,
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+      return NextResponse.json({ ok: true, data: restored });
+    }
+
     const subCategory = await db.subCategory.create({
       data: {
         name: validation.data.name,

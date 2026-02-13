@@ -62,6 +62,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check active duplicate
+    const existing = await db.serviceItem.findFirst({
+      where: {
+        name: validation.data.name,
+        categoryId: validation.data.categoryId,
+        ...(validation.data.subCategoryId ? { subCategoryId: validation.data.subCategoryId } : {}),
+        deletedAt: null,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { ok: false, error: "Service with this name already exists" },
+        { status: 409 }
+      );
+    }
+
+    // Restore soft-deleted record if exists
+    const softDeleted = await db.serviceItem.findFirst({
+      where: {
+        name: validation.data.name,
+        categoryId: validation.data.categoryId,
+        ...(validation.data.subCategoryId ? { subCategoryId: validation.data.subCategoryId } : {}),
+        deletedAt: { not: null },
+      },
+    });
+
+    if (softDeleted) {
+      const restored = await db.serviceItem.update({
+        where: { id: softDeleted.id },
+        data: {
+          name: validation.data.name,
+          description: validation.data.description || null,
+          price: validation.data.price,
+          categoryId: validation.data.categoryId,
+          subCategoryId: validation.data.subCategoryId || null,
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+      return NextResponse.json({ ok: true, data: restored });
+    }
+
     const service = await db.serviceItem.create({
       data: {
         name: validation.data.name,

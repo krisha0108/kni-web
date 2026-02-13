@@ -65,6 +65,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Restore soft-deleted record if exists (avoids unique constraint conflict)
+    const softDeleted = await db.category.findFirst({
+      where: { name: validation.data.name, deletedAt: { not: null } },
+    });
+
+    if (softDeleted) {
+      const restored = await db.category.update({
+        where: { id: softDeleted.id },
+        data: { name: validation.data.name, isActive: true, deletedAt: null },
+      });
+      return NextResponse.json({ ok: true, data: restored });
+    }
+
     const category = await db.category.create({
       data: {
         name: validation.data.name,

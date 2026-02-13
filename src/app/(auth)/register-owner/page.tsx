@@ -58,13 +58,20 @@ export default function RegisterOwnerPage() {
         return;
       }
 
-      toast({
-        title: "Registration Successful",
-        description: "Welcome to KNI Super App!",
-        variant: "success",
-      });
-
-      router.push(data.data.redirectUrl);
+      if (data.data?.requiresVerification) {
+        toast({
+          title: "Verify Your Email",
+          description: "A verification code has been sent to your email.",
+        });
+        router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+      } else {
+        toast({
+          title: "Registration Successful",
+          description: "Welcome to KNI Super App!",
+          variant: "success",
+        });
+        router.push(data.data?.redirectUrl || "/owner");
+      }
     } catch {
       toast({
         title: "Error",

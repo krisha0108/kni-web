@@ -118,8 +118,14 @@ export default function AdminCreateAMCRequestPage() {
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
   const [selectedStateId, setSelectedStateId] = useState("");
 
+  // Active AMC check
+  const [activeAMC, setActiveAMC] = useState<{ contractNumber: string; status: string } | null>(null);
+  const [checkingAMC, setCheckingAMC] = useState(false);
+
   // Step 3: Equipment
   const [categories, setCategories] = useState<Category[]>([]);
+  const [existingEquipment, setExistingEquipment] = useState<EquipmentItem[]>([]);
+  const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
   const [addedEquipment, setAddedEquipment] = useState<EquipmentItem[]>([]);
   const [newEquipment, setNewEquipment] = useState({
     name: "",
@@ -182,6 +188,51 @@ export default function AdminCreateAMCRequestPage() {
       })
       .catch(() => {});
   }, [selectedOwner]);
+
+  // --- Fetch restaurant's existing equipment when restaurant selected ---
+  useEffect(() => {
+    if (!selectedRestaurant) {
+      setExistingEquipment([]);
+      return;
+    }
+
+    setIsLoadingEquipment(true);
+    fetch(`/api/admin/equipment?restaurantId=${selectedRestaurant.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) setExistingEquipment(data.data || []);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingEquipment(false));
+  }, [selectedRestaurant]);
+
+  // --- Check if restaurant has active AMC ---
+  useEffect(() => {
+    if (!selectedRestaurant || !selectedOwner) {
+      setActiveAMC(null);
+      return;
+    }
+
+    setCheckingAMC(true);
+    setActiveAMC(null);
+    fetch(`/api/admin/amc-requests?status=CONTRACT_ACTIVE`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) {
+          const active = (data.data || []).find(
+            (r: any) => r.restaurantId === selectedRestaurant.id && r.owner?.id === selectedOwner.id
+          );
+          if (active?.proposal?.contract) {
+            setActiveAMC({
+              contractNumber: active.proposal.contract.contractNumber,
+              status: active.proposal.contract.status,
+            });
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingAMC(false));
+  }, [selectedRestaurant, selectedOwner]);
 
   // --- Fetch categories ---
   useEffect(() => {
@@ -361,13 +412,13 @@ export default function AdminCreateAMCRequestPage() {
   const canProceed = useCallback(() => {
     switch (currentStep) {
       case 0: return !!selectedOwner;
-      case 1: return !!selectedRestaurant;
+      case 1: return !!selectedRestaurant && !activeAMC && !checkingAMC;
       case 2: return true; // equipment is optional
       case 3:
         return !!(amcData.kitchenType && amcData.equipmentCategories.length > 0 && amcData.planType && amcData.visitFrequency && amcData.preferredStartDate);
       default: return false;
     }
-  }, [currentStep, selectedOwner, selectedRestaurant, amcData]);
+  }, [currentStep, selectedOwner, selectedRestaurant, activeAMC, checkingAMC, amcData]);
 
   // --- Render ---
   return (
@@ -427,7 +478,7 @@ export default function AdminCreateAMCRequestPage() {
                   <p className="font-medium">{selectedOwner.name}</p>
                   <p className="text-sm text-muted-foreground">{selectedOwner.email} {selectedOwner.phone ? `| ${selectedOwner.phone}` : ""}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setSelectedOwner(null); setSelectedRestaurant(null); setOwnerRestaurants([]); setAddedEquipment([]); }}>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedOwner(null); setSelectedRestaurant(null); setOwnerRestaurants([]); setAddedEquipment([]); setExistingEquipment([]); setActiveAMC(null); }}>
                   Change
                 </Button>
               </div>
@@ -521,15 +572,35 @@ export default function AdminCreateAMCRequestPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedRestaurant ? (
-              <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div>
-                  <p className="font-medium">{selectedRestaurant.name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedRestaurant.address}, {selectedRestaurant.city}</p>
+              <>
+                <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div>
+                    <p className="font-medium">{selectedRestaurant.name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedRestaurant.address}, {selectedRestaurant.city}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedRestaurant(null); setAddedEquipment([]); setExistingEquipment([]); setActiveAMC(null); }}>
+                    Change
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setSelectedRestaurant(null); setAddedEquipment([]); }}>
-                  Change
-                </Button>
-              </div>
+
+                {/* Active AMC Warning */}
+                {checkingAMC && (
+                  <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground bg-muted/50 rounded-lg">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Checking existing AMC...
+                  </div>
+                )}
+                {activeAMC && (
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <XCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-red-700">AMC Already Active</p>
+                      <p className="text-sm text-red-600 mt-1">
+                        Contract {activeAMC.contractNumber} is active for this restaurant. Use renewal instead of creating a new request.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 {/* Existing restaurants */}
@@ -620,18 +691,47 @@ export default function AdminCreateAMCRequestPage() {
       {currentStep === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" /> Add Equipment (Optional)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" /> Equipment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Added equipment list */}
+            {/* Existing equipment for this restaurant */}
+            {isLoadingEquipment ? (
+              <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading existing equipment...
+              </div>
+            ) : existingEquipment.length > 0 ? (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Existing Equipment ({existingEquipment.length})</Label>
+                <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                  {existingEquipment.map((eq) => (
+                    <div key={eq.id} className="flex items-center justify-between px-4 py-3">
+                      <div>
+                        <p className="font-medium">{eq.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {eq.category?.name}{eq.brand ? ` | ${eq.brand}` : ""}{eq.model ? ` | ${eq.model}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="outline">Existing</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center text-sm text-muted-foreground border border-dashed rounded-lg">
+                No equipment found for this restaurant
+              </div>
+            )}
+
+            {/* Newly added equipment */}
             {addedEquipment.length > 0 && (
               <div className="space-y-2">
+                <Label className="text-muted-foreground">Newly Added</Label>
                 {addedEquipment.map((eq, i) => (
-                  <div key={eq.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={eq.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
                     <div>
                       <p className="font-medium">{eq.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {eq.category?.name} {eq.brand ? `| ${eq.brand}` : ""} {eq.model ? `| ${eq.model}` : ""}
+                        {eq.category?.name}{eq.brand ? ` | ${eq.brand}` : ""}{eq.model ? ` | ${eq.model}` : ""}
                       </p>
                     </div>
                     <Badge variant="secondary">Added</Badge>

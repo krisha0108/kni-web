@@ -112,18 +112,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate active AMC request
+    // Check for duplicate active AMC request or active contract
     const existingRequest = await db.aMCRequest.findFirst({
       where: {
         restaurantId,
         ownerId,
-        status: { in: ["REQUESTED", "SURVEY_SCHEDULED", "SURVEY_COMPLETED", "PROPOSAL_SENT", "PAYMENT_PENDING", "PAYMENT_UPLOADED"] },
+        status: { in: ["REQUESTED", "SURVEY_SCHEDULED", "SURVEY_COMPLETED", "PROPOSAL_SENT", "PAYMENT_PENDING", "PAYMENT_UPLOADED", "CONTRACT_ACTIVE"] },
       },
     });
 
     if (existingRequest) {
+      const error = existingRequest.status === "CONTRACT_ACTIVE"
+        ? "AMC is already active for this restaurant. Use renewal instead."
+        : "An AMC request is already in progress for this restaurant.";
       return NextResponse.json(
-        { ok: false, error: "An active AMC request already exists for this restaurant" },
+        { ok: false, error },
         { status: 400 }
       );
     }

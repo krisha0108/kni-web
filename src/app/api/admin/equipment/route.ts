@@ -19,6 +19,39 @@ const createEquipmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * GET /api/admin/equipment?restaurantId=xxx
+ * List equipment for a restaurant (admin only)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    await requireAdmin();
+
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "restaurantId is required" },
+        { status: 400 }
+      );
+    }
+
+    const equipment = await db.equipment.findMany({
+      where: { restaurantId, deletedAt: null },
+      include: {
+        category: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ ok: true, data: equipment });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();

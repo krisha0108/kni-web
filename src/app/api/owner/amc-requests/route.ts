@@ -86,18 +86,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing pending request for this restaurant
+    // Check for existing pending request or active contract for this restaurant
     const existingRequest = await db.aMCRequest.findFirst({
       where: {
         restaurantId,
         ownerId: session.id,
-        status: { in: ["REQUESTED", "SURVEY_SCHEDULED", "SURVEY_COMPLETED", "PROPOSAL_SENT", "PAYMENT_PENDING", "PAYMENT_UPLOADED"] },
+        status: { in: ["REQUESTED", "SURVEY_SCHEDULED", "SURVEY_COMPLETED", "PROPOSAL_SENT", "PAYMENT_PENDING", "PAYMENT_UPLOADED", "CONTRACT_ACTIVE"] },
       },
     });
 
     if (existingRequest) {
+      const error = existingRequest.status === "CONTRACT_ACTIVE"
+        ? "AMC is already active for this restaurant. You can renew from your contract details."
+        : "An AMC request is already in progress for this restaurant.";
       return NextResponse.json(
-        { ok: false, error: "An active AMC request already exists for this restaurant" },
+        { ok: false, error },
         { status: 400 }
       );
     }

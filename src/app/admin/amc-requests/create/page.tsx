@@ -34,6 +34,7 @@ import {
   Loader2,
   Trash2,
   SkipForward,
+  XCircle,
 } from "lucide-react";
 
 // --- Types ---

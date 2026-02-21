@@ -61,24 +61,36 @@ export async function GET(request: NextRequest) {
           ...(categoryId ? { marketplaceCategoryId: categoryId } : {}),
         },
         // Vendor must be approved, have active subscription, and approved for restaurant's city
+        // OR be a system vendor (admin store) — bypasses all checks
         vendor: {
-          vendorProfile: {
-            approvalStatus: "APPROVED",
-            OR: [
-              { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
-              { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
-            ],
-          },
-          vendorLocationRequests: {
-            some: {
-              status: "APPROVED",
-              area: {
-                city: {
-                  name: restaurant.city,
+          OR: [
+            // System vendor (admin store) — bypass all checks, serves everywhere
+            {
+              vendorProfile: {
+                isSystemVendor: true,
+              },
+            },
+            // Regular vendors — existing location/subscription checks
+            {
+              vendorProfile: {
+                approvalStatus: "APPROVED",
+                OR: [
+                  { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
+                  { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
+                ],
+              },
+              vendorLocationRequests: {
+                some: {
+                  status: "APPROVED",
+                  area: {
+                    city: {
+                      name: restaurant.city,
+                    },
+                  },
                 },
               },
             },
-          },
+          ],
         },
       },
       include: {

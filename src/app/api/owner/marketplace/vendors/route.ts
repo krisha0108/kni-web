@@ -47,30 +47,40 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
 
-    // Fetch all approved and active vendors
+    // Fetch all approved and active vendors + system vendor (admin store)
     const vendors = await db.user.findMany({
       where: {
-        role: "VENDOR",
         isActive: true,
         ...(search ? { name: { contains: search } } : {}),
-        vendorProfile: {
-          approvalStatus: "APPROVED",
-          OR: [
-            { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
-            { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
-          ],
-        },
-        // Vendor must have approved location matching restaurant's city
-        vendorLocationRequests: {
-          some: {
-            status: "APPROVED",
-            area: {
-              city: {
-                name: restaurant.city,
+        OR: [
+          // System vendor (admin) — always visible
+          {
+            role: "ADMIN",
+            vendorProfile: { isSystemVendor: true },
+          },
+          // Regular vendors — existing checks
+          {
+            role: "VENDOR",
+            vendorProfile: {
+              approvalStatus: "APPROVED",
+              OR: [
+                { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
+                { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
+              ],
+            },
+            // Vendor must have approved location matching restaurant's city
+            vendorLocationRequests: {
+              some: {
+                status: "APPROVED",
+                area: {
+                  city: {
+                    name: restaurant.city,
+                  },
+                },
               },
             },
           },
-        },
+        ],
       },
       include: {
         vendorProfile: {
@@ -79,6 +89,7 @@ export async function GET(request: NextRequest) {
             subscriptionStatus: true,
             trialEndsAt: true,
             activeUntil: true,
+            isSystemVendor: true,
           },
         },
         vendorLocationRequests: {
@@ -114,23 +125,28 @@ export async function GET(request: NextRequest) {
 
     // Format response for mobile app
     const formattedVendors = vendors.map((vendor) => {
-      // Get unique city names from approved locations
-      const approvedCities = [
-        ...new Set(
-          vendor.vendorLocationRequests.map((lr) => lr.area.city.name)
-        ),
-      ];
+      const isSystemVendor = vendor.vendorProfile?.isSystemVendor === true;
+
+      // Get unique city names from approved locations (empty for system vendor)
+      const approvedCities = isSystemVendor
+        ? []
+        : [
+            ...new Set(
+              vendor.vendorLocationRequests.map((lr) => lr.area.city.name)
+            ),
+          ];
 
       return {
         id: vendor.id,
-        name: vendor.name,
+        name: isSystemVendor ? "KNI Official Store" : vendor.name,
         email: vendor.email,
         phone: vendor.phone,
         approvalStatus: vendor.vendorProfile?.approvalStatus,
         subscriptionStatus: vendor.vendorProfile?.subscriptionStatus,
+        isSystemVendor,
         locations: {
           cities: approvedCities,
-          areas: vendor.vendorLocationRequests.map((lr) => lr.area.name),
+          areas: isSystemVendor ? [] : vendor.vendorLocationRequests.map((lr) => lr.area.name),
         },
         stats: {
           avgRating: vendor.vendorStats?.averageRating || 0,

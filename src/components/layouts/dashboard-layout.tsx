@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sidebar, type SidebarItem } from "./sidebar";
+import { Sidebar, type SidebarEntry } from "./sidebar";
 import { Topbar } from "./topbar";
 import { ClientOnly } from "@/components/client-only";
 import { EnablePushBanner } from "@/components/notifications/enable-push-banner";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  sidebarItems: SidebarItem[];
+  sidebarItems: SidebarEntry[];
   sidebarTitle: string;
   user: {
     name: string;

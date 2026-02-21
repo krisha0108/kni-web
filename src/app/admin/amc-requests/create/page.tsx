@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -134,6 +135,7 @@ export default function AdminCreateAMCRequestPage() {
     brand: "",
     model: "",
     purchaseDate: new Date().toISOString().split("T")[0],
+    photoUrls: [] as string[],
   });
   const [showEquipmentForm, setShowEquipmentForm] = useState(false);
   const [isAddingEquipment, setIsAddingEquipment] = useState(false);
@@ -344,6 +346,7 @@ export default function AdminCreateAMCRequestPage() {
           brand: newEquipment.brand || undefined,
           model: newEquipment.model || undefined,
           purchaseDate: new Date(newEquipment.purchaseDate).toISOString(),
+          photoUrls: newEquipment.photoUrls.length > 0 ? newEquipment.photoUrls : undefined,
         }),
       });
       const data = await res.json();
@@ -355,6 +358,7 @@ export default function AdminCreateAMCRequestPage() {
           brand: "",
           model: "",
           purchaseDate: new Date().toISOString().split("T")[0],
+          photoUrls: [],
         });
         setShowEquipmentForm(false);
         toast({ title: "Success", description: "Equipment added" });
@@ -782,6 +786,15 @@ export default function AdminCreateAMCRequestPage() {
                       onChange={(e) => setNewEquipment({ ...newEquipment, purchaseDate: e.target.value })}
                     />
                   </div>
+                </div>
+                <div className="sm:col-span-2 space-y-1">
+                  <Label>Equipment Photos (Optional)</Label>
+                  <MultipleImageUpload
+                    value={newEquipment.photoUrls}
+                    onChange={(urls) => setNewEquipment({ ...newEquipment, photoUrls: urls })}
+                    folder="equipment"
+                    maxImages={5}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddEquipment} disabled={isAddingEquipment}>

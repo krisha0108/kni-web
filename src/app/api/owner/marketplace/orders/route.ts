@@ -87,24 +87,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify vendor has approved location matching restaurant's city
-    const vendorApprovedLocation = await db.vendorLocationRequest.findFirst({
-      where: {
-        vendorId,
-        status: "APPROVED",
-        area: {
-          city: {
-            name: restaurant.city,
-          },
-        },
-      },
+    // Check if vendor is system vendor (admin store) — skip location check
+    const vendorProfile = await db.vendorProfile.findUnique({
+      where: { userId: vendorId },
+      select: { isSystemVendor: true },
     });
 
-    if (!vendorApprovedLocation) {
-      return NextResponse.json(
-        { ok: false, error: "Vendor is not approved to serve in your restaurant's city" },
-        { status: 400 }
-      );
+    if (!vendorProfile?.isSystemVendor) {
+      // Verify vendor has approved location matching restaurant's city
+      const vendorApprovedLocation = await db.vendorLocationRequest.findFirst({
+        where: {
+          vendorId,
+          status: "APPROVED",
+          area: {
+            city: {
+              name: restaurant.city,
+            },
+          },
+        },
+      });
+
+      if (!vendorApprovedLocation) {
+        return NextResponse.json(
+          { ok: false, error: "Vendor is not approved to serve in your restaurant's city" },
+          { status: 400 }
+        );
+      }
     }
 
     const products = await db.vendorProduct.findMany({

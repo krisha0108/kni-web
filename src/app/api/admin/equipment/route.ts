@@ -17,6 +17,7 @@ const createEquipmentSchema = z.object({
   installLocation: z.string().optional(),
   status: z.enum(["AVAILABLE", "IN_USE", "MAINTENANCE", "RETIRED"]).optional(),
   notes: z.string().optional(),
+  photoUrls: z.array(z.string()).optional(),
 });
 
 /**
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
         installLocation: data.installLocation || null,
         status: (data.status as any) || "AVAILABLE",
         notes: data.notes || null,
+        photoUrls: data.photoUrls || undefined,
       },
       include: {
         category: { select: { id: true, name: true } },

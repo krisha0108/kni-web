@@ -54,7 +54,7 @@ export async function POST(
     await requireAdmin();
     const { id } = await params;
     const body = await request.json();
-    const { action, rejectionReason } = body;
+    const { action, rejectionReason, durationMonths } = body;
 
     // Check if vendor exists
     const vendor = await db.user.findUnique({
@@ -149,8 +149,69 @@ export async function POST(
       });
     }
 
+    if (action === "activate") {
+      const months = typeof durationMonths === "number" && durationMonths > 0 ? durationMonths : 12;
+      const activeUntil = new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000);
+
+      await db.vendorProfile.update({
+        where: { userId: id },
+        data: {
+          subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+          activeUntil,
+        },
+      });
+
+      await db.user.update({
+        where: { id },
+        data: { isActive: true },
+      });
+
+      const durationLabel = months >= 12 ? `${Math.floor(months / 12)} year(s)` : `${months} month(s)`;
+      await db.notification.create({
+        data: {
+          userId: id,
+          title: "Subscription Activated!",
+          message: `Your vendor subscription has been activated for ${durationLabel}.`,
+          linkUrl: "/vendor/dashboard",
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: `Vendor subscription activated for ${durationLabel}`,
+      });
+    }
+
+    if (action === "block") {
+      await db.vendorProfile.update({
+        where: { userId: id },
+        data: {
+          subscriptionStatus: "BLOCKED",
+        },
+      });
+
+      await db.user.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      await db.notification.create({
+        data: {
+          userId: id,
+          title: "Account Blocked",
+          message: "Your vendor account has been blocked. Please contact support for more information.",
+          linkUrl: "/vendor/subscription",
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: "Vendor blocked successfully",
+      });
+    }
+
     return NextResponse.json(
-      { ok: false, error: "Invalid action" },
+      { ok: false, error: "Invalid action. Use 'approve', 'reject', 'activate', or 'block'" },
       { status: 400 }
     );
   } catch (error) {

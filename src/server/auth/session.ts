@@ -14,6 +14,8 @@ export interface SessionUser {
   isActive: boolean;
   vendorApprovalStatus?: VendorApprovalStatus | null;
   vendorSubscriptionStatus?: VendorSubscriptionStatus | null;
+  vendorTrialEndsAt?: Date | null;
+  vendorActiveUntil?: Date | null;
   hasApprovedRestaurant?: boolean;
   hasApprovedLocation?: boolean;
 }
@@ -88,6 +90,8 @@ export async function getSession(): Promise<SessionUser | null> {
     isActive: session.user.isActive,
     vendorApprovalStatus: session.user.vendorProfile?.approvalStatus ?? null,
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
+    vendorTrialEndsAt: session.user.vendorProfile?.trialEndsAt ?? null,
+    vendorActiveUntil: session.user.vendorProfile?.activeUntil ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0,
     hasApprovedLocation: session.user.vendorLocationRequests.length > 0,
   };

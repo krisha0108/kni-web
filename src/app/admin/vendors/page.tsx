@@ -29,9 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, Eye, MapPin, Tags } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, MapPin, Tags, ShieldBan } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { RejectionReasonInput } from "@/components/rejection-reason-input";
+import Link from "next/link";
 
 interface VendorCategory {
   id: string;
@@ -46,10 +47,12 @@ interface Vendor {
   createdAt: string;
   vendorProfile: {
     approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
-    subscriptionStatus: "TRIAL" | "ACTIVE" | "INACTIVE";
+    subscriptionStatus: "TRIAL" | "ACTIVE" | "EXPIRED" | "BLOCKED" | null;
     approvalNote: string | null;
     city: string | null;
     state: string | null;
+    trialEndsAt: string | null;
+    activeUntil: string | null;
   } | null;
   categories: VendorCategory[];
 }
@@ -66,7 +69,18 @@ export default function AdminVendorsPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionError, setRejectionError] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
+  const [pendingSubRequests, setPendingSubRequests] = useState(0);
   const { toast } = useToast();
+
+  // Fetch pending subscription request count
+  useEffect(() => {
+    fetch("/api/admin/vendor-subscriptions?status=REQUESTED")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) setPendingSubRequests(data.data.length);
+      })
+      .catch(() => {});
+  }, []);
 
   const openDetailDialog = (vendor: Vendor) => {
     setSelectedVendor(vendor);
@@ -170,14 +184,76 @@ export default function AdminVendorsPage() {
   const subscriptionColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
     TRIAL: "secondary",
     ACTIVE: "success",
-    INACTIVE: "destructive",
+    EXPIRED: "destructive",
+    BLOCKED: "destructive",
+    INACTIVE: "warning",
+  };
+
+  const handleBlock = async (vendorId: string) => {
+    try {
+      const response = await fetch("/api/admin/vendors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId, action: "block" }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Vendor blocked" });
+        fetchVendors();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to block vendor", variant: "destructive" });
+    }
+  };
+
+  const getSubscriptionLabel = (vendor: Vendor) => {
+    const profile = vendor.vendorProfile;
+    if (!profile) return "N/A";
+    const status = profile.subscriptionStatus;
+    if (status === "TRIAL" && profile.trialEndsAt) {
+      const days = Math.ceil((new Date(profile.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (days <= 0) return "TRIAL EXPIRED";
+      return `TRIAL (${days}d left)`;
+    }
+    if (status === "ACTIVE" && profile.activeUntil) {
+      const days = Math.ceil((new Date(profile.activeUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (days <= 0) return "EXPIRED";
+      return `ACTIVE (${days}d left)`;
+    }
+    return status || "INACTIVE";
+  };
+
+  const isSubscriptionExpired = (vendor: Vendor) => {
+    const profile = vendor.vendorProfile;
+    if (!profile) return true;
+    const status = profile.subscriptionStatus;
+    if (status === "TRIAL" && profile.trialEndsAt) {
+      return new Date(profile.trialEndsAt).getTime() < Date.now();
+    }
+    if (status === "ACTIVE" && profile.activeUntil) {
+      return new Date(profile.activeUntil).getTime() < Date.now();
+    }
+    if (status === "BLOCKED" || status === "EXPIRED") return true;
+    if (!status) return true;
+    return false;
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Vendors</h1>
-        <p className="text-muted-foreground">Manage vendor accounts and approvals</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Vendors</h1>
+          <p className="text-muted-foreground">Manage vendor accounts and approvals</p>
+        </div>
+        {pendingSubRequests > 0 && (
+          <Link href="/admin/vendor-subscriptions">
+            <Badge variant="warning" className="cursor-pointer">
+              {pendingSubRequests} Pending Subscription Request{pendingSubRequests > 1 ? "s" : ""}
+            </Badge>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -271,8 +347,8 @@ export default function AdminVendorsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <Badge variant={subscriptionColors[vendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
-                      {vendor.vendorProfile?.subscriptionStatus || "INACTIVE"}
+                    <Badge variant={isSubscriptionExpired(vendor) ? "destructive" : subscriptionColors[vendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
+                      {getSubscriptionLabel(vendor)}
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">{formatDate(vendor.createdAt)}</TableCell>
@@ -286,7 +362,7 @@ export default function AdminVendorsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {vendor.vendorProfile?.approvalStatus !== "APPROVED" && (
+                      {vendor.vendorProfile?.approvalStatus !== "APPROVED" ? (
                         <>
                           <Button
                             size="icon"
@@ -306,6 +382,20 @@ export default function AdminVendorsPage() {
                           >
                             <XCircle className="h-4 w-4" />
                           </Button>
+                        </>
+                      ) : (
+                        <>
+                          {vendor.vendorProfile?.subscriptionStatus !== "BLOCKED" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleBlock(vendor.id)}
+                              title="Block Vendor"
+                            >
+                              <ShieldBan className="h-4 w-4" />
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
@@ -398,11 +488,23 @@ export default function AdminVendorsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Subscription</p>
-                    <Badge variant={subscriptionColors[selectedVendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
-                      {selectedVendor.vendorProfile?.subscriptionStatus || "INACTIVE"}
+                    <Badge variant={isSubscriptionExpired(selectedVendor) ? "destructive" : subscriptionColors[selectedVendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
+                      {getSubscriptionLabel(selectedVendor)}
                     </Badge>
                   </div>
                 </div>
+                {selectedVendor.vendorProfile?.trialEndsAt && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">Trial Ends</p>
+                    <p className="font-medium text-sm">{formatDate(selectedVendor.vendorProfile.trialEndsAt)}</p>
+                  </div>
+                )}
+                {selectedVendor.vendorProfile?.activeUntil && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">Active Until</p>
+                    <p className="font-medium text-sm">{formatDate(selectedVendor.vendorProfile.activeUntil)}</p>
+                  </div>
+                )}
                 {selectedVendor.vendorProfile?.approvalNote && (
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">Rejection Note</p>
@@ -418,7 +520,7 @@ export default function AdminVendorsPage() {
             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
               Close
             </Button>
-            {selectedVendor?.vendorProfile?.approvalStatus !== "APPROVED" && (
+            {selectedVendor?.vendorProfile?.approvalStatus !== "APPROVED" ? (
               <>
                 <Button
                   variant="destructive"
@@ -440,6 +542,21 @@ export default function AdminVendorsPage() {
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Approve
                 </Button>
+              </>
+            ) : (
+              <>
+                {selectedVendor && selectedVendor.vendorProfile?.subscriptionStatus !== "BLOCKED" && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      handleBlock(selectedVendor.id);
+                      setIsDetailDialogOpen(false);
+                    }}
+                  >
+                    <ShieldBan className="h-4 w-4 mr-2" />
+                    Block
+                  </Button>
+                )}
               </>
             )}
           </DialogFooter>

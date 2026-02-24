@@ -8,6 +8,7 @@ const bulkVendorActionSchema = z.object({
   vendorIds: z.array(z.string()).min(1),
   action: z.enum(["APPROVE", "REJECT", "BLOCK", "ACTIVATE"]),
   note: z.string().optional(),
+  durationMonths: z.number().int().positive().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { vendorIds, action, note } = validation.data;
+    const { vendorIds, action, note, durationMonths } = validation.data;
 
     let updateData: any = {};
     let profileUpdate: any = {};
@@ -54,12 +55,15 @@ export async function POST(request: NextRequest) {
         };
         updateData = { isActive: false };
         break;
-      case "ACTIVATE":
+      case "ACTIVATE": {
+        const months = durationMonths && durationMonths > 0 ? durationMonths : 12;
         updateData = { isActive: true };
         profileUpdate = {
           subscriptionStatus: "ACTIVE",
+          activeUntil: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000),
         };
         break;
+      }
     }
 
     // Update vendors

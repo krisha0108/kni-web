@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     const vendors = await db.user.findMany({
       where: {
         role: "VENDOR",
-        isActive: true,
         ...where,
       },
       include: {
@@ -55,7 +54,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const { vendorId, action, rejectionReason } = body;
+    const { vendorId, action, rejectionReason, durationMonths } = body;
 
     if (!vendorId) {
       return NextResponse.json(
@@ -137,8 +136,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, message: "Vendor rejected successfully" });
     }
 
+    if (action === "activate") {
+      const months = typeof durationMonths === "number" && durationMonths > 0 ? durationMonths : 12;
+      const activeUntil = new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000);
+
+      await db.vendorProfile.update({
+        where: { userId: vendorId },
+        data: {
+          subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+          activeUntil,
+        },
+      });
+
+      await db.user.update({
+        where: { id: vendorId },
+        data: { isActive: true },
+      });
+
+      const durationLabel = months >= 12 ? `${Math.floor(months / 12)} year(s)` : `${months} month(s)`;
+      await db.notification.create({
+        data: {
+          userId: vendorId,
+          title: "Subscription Activated!",
+          message: `Your vendor subscription has been activated for ${durationLabel}.`,
+          linkUrl: "/vendor/dashboard",
+        },
+      });
+
+      return NextResponse.json({ ok: true, message: `Vendor subscription activated for ${durationLabel}` });
+    }
+
+    if (action === "block") {
+      await db.vendorProfile.update({
+        where: { userId: vendorId },
+        data: {
+          subscriptionStatus: "BLOCKED",
+        },
+      });
+
+      await db.user.update({
+        where: { id: vendorId },
+        data: { isActive: false },
+      });
+
+      await db.notification.create({
+        data: {
+          userId: vendorId,
+          title: "Account Blocked",
+          message: "Your vendor account has been blocked. Please contact support.",
+          linkUrl: "/vendor/subscription",
+        },
+      });
+
+      return NextResponse.json({ ok: true, message: "Vendor blocked successfully" });
+    }
+
     return NextResponse.json(
-      { ok: false, error: "Invalid action. Use 'approve' or 'reject'" },
+      { ok: false, error: "Invalid action. Use 'approve', 'reject', 'activate', or 'block'" },
       { status: 400 }
     );
   } catch (error) {

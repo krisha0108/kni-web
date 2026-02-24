@@ -32,6 +32,12 @@ export default async function VendorLayout({
   // Use session data for approval and subscription status
   const approvalStatus = session.vendorApprovalStatus;
   const subscriptionStatus = session.vendorSubscriptionStatus;
+  const now = new Date();
+
+  // Check if subscription is actually expired (date-based check)
+  const isTrialExpired = subscriptionStatus === "TRIAL" && session.vendorTrialEndsAt && new Date(session.vendorTrialEndsAt) < now;
+  const isActiveExpired = subscriptionStatus === "ACTIVE" && session.vendorActiveUntil && new Date(session.vendorActiveUntil) < now;
+  const isSubscriptionInvalid = subscriptionStatus === "EXPIRED" || subscriptionStatus === "BLOCKED" || isTrialExpired || isActiveExpired;
 
   // Check if current path is allowed for the vendor's status
   const isAllowedUnapprovedPath = ALLOWED_UNAPPROVED_PATHS.some(p => pathname.startsWith(p));
@@ -43,9 +49,7 @@ export default async function VendorLayout({
   }
 
   // Redirect blocked/expired vendors to subscription page
-  if (approvalStatus === "APPROVED" &&
-      (subscriptionStatus === "EXPIRED" || subscriptionStatus === "BLOCKED") &&
-      !isAllowedBlockedPath) {
+  if (approvalStatus === "APPROVED" && isSubscriptionInvalid && !isAllowedBlockedPath) {
     redirect("/vendor/subscription");
   }
 

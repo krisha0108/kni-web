@@ -241,6 +241,7 @@ export const adminSidebarItems: SidebarEntry[] = [
     icon: Store,
     children: [
       { title: "Vendors", href: "/admin/vendors", icon: Store },
+      { title: "Subscription Requests", href: "/admin/vendor-subscriptions", icon: CreditCard },
       { title: "Locations", href: "/admin/locations", icon: MapPin },
       { title: "Location Requests", href: "/admin/location-requests", icon: FileCheck },
     ],

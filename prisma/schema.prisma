@@ -74,6 +74,14 @@ enum VendorSubscriptionStatus {
   BLOCKED
 }
 
+enum VendorSubscriptionRequestStatus {
+  REQUESTED
+  PRICE_SENT
+  PAYMENT_UPLOADED
+  PAYMENT_REJECTED
+  ACTIVATED
+}
+
 enum MarketplaceOrderStatus {
   PLACED
   CONFIRMED
@@ -247,6 +255,9 @@ model User {
   amcBreakdownRequests     AMCBreakdownRequest[]  @relation("OwnerBreakdowns")
   amcPayments              AMCPayment[]           @relation("OwnerAMCPayments")
   amcPaymentsVerified      AMCPayment[]           @relation("AdminVerifiedPayments")
+  vendorSubscriptionRequests  VendorSubscriptionRequest[] @relation("VendorSubscriptionRequests")
+  vendorSubPriceSent          VendorSubscriptionRequest[] @relation("AdminPriceSentSubscriptions")
+  vendorSubVerified           VendorSubscriptionRequest[] @relation("AdminVerifiedSubscriptions")
 
   @@index([email])
   @@index([role])
@@ -2269,6 +2280,38 @@ model VendorLocationRequest {
   @@unique([vendorId, areaId])
   @@index([vendorId])
   @@index([areaId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ========================================
+// VENDOR SUBSCRIPTION REQUESTS
+// ========================================
+
+model VendorSubscriptionRequest {
+  id              String                          @id @default(cuid())
+  vendorId        String
+  durationMonths  Int
+  status          VendorSubscriptionRequestStatus @default(REQUESTED)
+  price           Int?
+  priceSentAt     DateTime?
+  priceSentById   String?
+  screenshotUrl   String?                         @db.Text
+  paymentUploadedAt DateTime?
+  verifiedById    String?
+  verifiedAt      DateTime?
+  rejectionReason String?                         @db.Text
+  adminNote       String?                         @db.Text
+  activatedAt     DateTime?
+  activeUntil     DateTime?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+
+  vendor      User  @relation("VendorSubscriptionRequests", fields: [vendorId], references: [id], onDelete: Cascade)
+  priceSentBy User? @relation("AdminPriceSentSubscriptions", fields: [priceSentById], references: [id])
+  verifiedBy  User? @relation("AdminVerifiedSubscriptions", fields: [verifiedById], references: [id])
+
+  @@index([vendorId])
   @@index([status])
   @@index([createdAt])
 }

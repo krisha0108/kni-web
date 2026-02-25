@@ -45,6 +45,8 @@ interface SubscriptionFlowProps {
   trialEndsAt: string | null;
   activeUntil: string | null;
   latestRequest: SubscriptionRequest | null;
+  revenueModel?: string;
+  commissionRate?: number | null;
 }
 
 const DURATION_OPTIONS = [
@@ -60,6 +62,8 @@ export function SubscriptionFlow({
   trialEndsAt,
   activeUntil,
   latestRequest: initialRequest,
+  revenueModel,
+  commissionRate,
 }: SubscriptionFlowProps) {
   const [latestRequest, setLatestRequest] = useState<SubscriptionRequest | null>(initialRequest);
   const [selectedDuration, setSelectedDuration] = useState<number>(6);
@@ -171,6 +175,43 @@ export function SubscriptionFlow({
   const showPriceSentState = requestStatus === "PRICE_SENT";
   const showPaymentUploadedState = requestStatus === "PAYMENT_UPLOADED";
   const showPaymentRejectedState = requestStatus === "PAYMENT_REJECTED";
+
+  // Commission model vendors don't need subscription
+  if (revenueModel === "COMMISSION") {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Revenue Model</h1>
+          <p className="text-muted-foreground">Your vendor account revenue model</p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Commission Model
+            </CardTitle>
+            <CardDescription>
+              You are on the Commission model. The platform takes {commissionRate}% commission on each delivered order.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Model:</span>
+              <Badge variant="success">Commission {commissionRate}%</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No subscription fees required. Your products are always visible in the marketplace.
+              Commission is calculated automatically when orders are delivered.
+            </p>
+            <Button variant="outline" asChild>
+              <a href="/vendor/commission">View Commission Details</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

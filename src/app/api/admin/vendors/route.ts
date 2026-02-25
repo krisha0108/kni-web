@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { VendorApprovalStatus, VendorSubscriptionStatus } from "@prisma/client";
+import { VendorApprovalStatus, VendorSubscriptionStatus, VendorRevenueModel, VendorLocationRequestStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,27 +84,79 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "approve") {
-      await db.vendorProfile.update({
-        where: { userId: vendorId },
+      const revenueModel = body.revenueModel || "SUBSCRIPTION";
+      const commissionRate = body.commissionRate;
+
+      // Validate commission rate if commission model
+      if (revenueModel === "COMMISSION") {
+        if (!commissionRate || commissionRate < 1 || commissionRate > 100) {
+          return NextResponse.json(
+            { ok: false, error: "Commission rate must be between 1 and 100" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (revenueModel === "COMMISSION") {
+        // Commission model: no trial/subscription needed, instantly active
+        await db.vendorProfile.update({
+          where: { userId: vendorId },
+          data: {
+            approvalStatus: VendorApprovalStatus.APPROVED,
+            revenueModel: VendorRevenueModel.COMMISSION,
+            commissionRate,
+            subscriptionStatus: null,
+            trialEndsAt: null,
+            approvalNote: null,
+            rejectionReason: null,
+          },
+        });
+      } else {
+        // Subscription model: set trial subscription (existing behavior)
+        await db.vendorProfile.update({
+          where: { userId: vendorId },
+          data: {
+            approvalStatus: VendorApprovalStatus.APPROVED,
+            revenueModel: VendorRevenueModel.SUBSCRIPTION,
+            commissionRate: null,
+            subscriptionStatus: VendorSubscriptionStatus.TRIAL,
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            approvalNote: null,
+            rejectionReason: null,
+          },
+        });
+      }
+
+      // Auto-approve all pending location requests for this vendor
+      await db.vendorLocationRequest.updateMany({
+        where: {
+          vendorId,
+          status: VendorLocationRequestStatus.PENDING,
+        },
         data: {
-          approvalStatus: VendorApprovalStatus.APPROVED,
-          subscriptionStatus: VendorSubscriptionStatus.TRIAL,
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          approvalNote: null,
-          rejectionReason: null,
+          status: VendorLocationRequestStatus.APPROVED,
         },
       });
+
+      const notificationMessage = revenueModel === "COMMISSION"
+        ? `Congratulations! Your vendor account has been approved with Commission model (${commissionRate}%). No subscription required.`
+        : "Congratulations! Your vendor account has been approved. You now have a 14-day free trial.";
 
       await db.notification.create({
         data: {
           userId: vendorId,
           title: "Account Approved!",
-          message: "Congratulations! Your vendor account has been approved. You now have a 14-day free trial.",
+          message: notificationMessage,
           linkUrl: "/vendor/dashboard",
         },
       });
 
-      return NextResponse.json({ ok: true, message: "Vendor approved successfully" });
+      return NextResponse.json({
+        ok: true,
+        message: revenueModel === "COMMISSION"
+          ? `Vendor approved with Commission model (${commissionRate}%)`
+          : "Vendor approved with Subscription model (14-day trial)",
+      });
     }
 
     if (action === "reject") {

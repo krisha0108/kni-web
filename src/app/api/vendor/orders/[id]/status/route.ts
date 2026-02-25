@@ -5,6 +5,7 @@ import { z } from "zod";
 import { MarketplaceOrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { cancellationReasonSchema } from "@/lib/validations/rejection";
+import { calculateCommission } from "@/lib/commission";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -171,6 +172,34 @@ export async function PATCH(
           changedBy: session.id,
         },
       });
+
+      // Auto-calculate commission on delivery for commission-model vendors
+      if (newStatus === "DELIVERED") {
+        const vendorProfile = await tx.vendorProfile.findUnique({
+          where: { userId: session.id },
+          select: { revenueModel: true, commissionRate: true },
+        });
+
+        if (
+          vendorProfile?.revenueModel === "COMMISSION" &&
+          vendorProfile.commissionRate
+        ) {
+          const commissionAmount = calculateCommission(
+            updatedOrder.totalAmount,
+            vendorProfile.commissionRate
+          );
+
+          await tx.vendorCommission.create({
+            data: {
+              orderId,
+              vendorId: session.id,
+              orderAmount: updatedOrder.totalAmount,
+              commissionRate: vendorProfile.commissionRate,
+              commissionAmount,
+            },
+          });
+        }
+      }
 
       return updatedOrder;
     });

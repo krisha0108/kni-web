@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { VendorApprovalStatus, VendorSubscriptionStatus, VendorLocationRequestStatus } from "@prisma/client";
+import { VendorApprovalStatus, VendorSubscriptionStatus, VendorLocationRequestStatus, VendorRevenueModel } from "@prisma/client";
+import { z } from "zod";
 
 export async function GET(
   request: NextRequest,
@@ -77,17 +78,48 @@ export async function POST(
     }
 
     if (action === "approve") {
-      // Approve vendor and set trial subscription
-      await db.vendorProfile.update({
-        where: { userId: id },
-        data: {
-          approvalStatus: VendorApprovalStatus.APPROVED,
-          subscriptionStatus: VendorSubscriptionStatus.TRIAL,
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
-          approvalNote: null,
-          rejectionReason: null,
-        },
-      });
+      const revenueModel = body.revenueModel || "SUBSCRIPTION"; // SUBSCRIPTION or COMMISSION
+      const commissionRate = body.commissionRate; // e.g. 10 for 10%
+
+      // Validate commission rate if commission model
+      if (revenueModel === "COMMISSION") {
+        if (!commissionRate || commissionRate < 1 || commissionRate > 100) {
+          return NextResponse.json(
+            { ok: false, error: "Commission rate must be between 1 and 100" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (revenueModel === "COMMISSION") {
+        // Commission model: no trial/subscription needed, instantly active
+        await db.vendorProfile.update({
+          where: { userId: id },
+          data: {
+            approvalStatus: VendorApprovalStatus.APPROVED,
+            revenueModel: VendorRevenueModel.COMMISSION,
+            commissionRate,
+            subscriptionStatus: null,
+            trialEndsAt: null,
+            approvalNote: null,
+            rejectionReason: null,
+          },
+        });
+      } else {
+        // Subscription model: set trial subscription (existing behavior)
+        await db.vendorProfile.update({
+          where: { userId: id },
+          data: {
+            approvalStatus: VendorApprovalStatus.APPROVED,
+            revenueModel: VendorRevenueModel.SUBSCRIPTION,
+            commissionRate: null,
+            subscriptionStatus: VendorSubscriptionStatus.TRIAL,
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
+            approvalNote: null,
+            rejectionReason: null,
+          },
+        });
+      }
 
       // Auto-approve all pending location requests for this vendor
       await db.vendorLocationRequest.updateMany({
@@ -101,18 +133,24 @@ export async function POST(
       });
 
       // Create notification for vendor
+      const notificationMessage = revenueModel === "COMMISSION"
+        ? `Congratulations! Your vendor account has been approved with Commission model (${commissionRate}%). No subscription required.`
+        : "Congratulations! Your vendor account has been approved. You now have a 14-day free trial.";
+
       await db.notification.create({
         data: {
           userId: id,
           title: "Account Approved!",
-          message: "Congratulations! Your vendor account has been approved. You now have a 14-day free trial.",
+          message: notificationMessage,
           linkUrl: "/vendor/dashboard",
         },
       });
 
       return NextResponse.json({
         ok: true,
-        message: "Vendor approved successfully",
+        message: revenueModel === "COMMISSION"
+          ? `Vendor approved with Commission model (${commissionRate}%)`
+          : "Vendor approved with Subscription model (14-day trial)",
       });
     }
 
@@ -216,6 +254,103 @@ export async function POST(
     );
   } catch (error) {
     console.error("Update vendor error:", error);
+    return NextResponse.json(
+      { ok: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+const patchBodySchema = z.object({
+  revenueModel: z.enum(["SUBSCRIPTION", "COMMISSION"]),
+  commissionRate: z.number().min(1).max(100).optional(),
+}).refine(
+  (data) => data.revenueModel !== "COMMISSION" || (data.commissionRate !== undefined && data.commissionRate >= 1 && data.commissionRate <= 100),
+  { message: "commissionRate (1-100) is required when revenueModel is COMMISSION", path: ["commissionRate"] }
+);
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+    const body = await request.json();
+
+    const parsed = patchBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const { revenueModel, commissionRate } = parsed.data;
+
+    // Check if vendor exists
+    const vendor = await db.user.findUnique({
+      where: { id, role: "VENDOR" },
+      include: { vendorProfile: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json(
+        { ok: false, error: "Vendor not found" },
+        { status: 404 }
+      );
+    }
+
+    if (!vendor.vendorProfile) {
+      return NextResponse.json(
+        { ok: false, error: "Vendor profile not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build the update payload
+    const updateData: {
+      revenueModel: VendorRevenueModel;
+      commissionRate: number | null;
+      approvalStatus?: VendorApprovalStatus;
+    } = {
+      revenueModel: revenueModel as VendorRevenueModel,
+      commissionRate: revenueModel === "COMMISSION" ? commissionRate! : null,
+    };
+
+    // Commission vendors are instantly active if currently pending
+    if (
+      revenueModel === "COMMISSION" &&
+      vendor.vendorProfile.approvalStatus === VendorApprovalStatus.PENDING
+    ) {
+      updateData.approvalStatus = VendorApprovalStatus.APPROVED;
+    }
+
+    await db.vendorProfile.update({
+      where: { userId: id },
+      data: updateData,
+    });
+
+    // Notify the vendor about their revenue model change
+    const modelLabel = revenueModel === "COMMISSION"
+      ? `Commission-based (${commissionRate}%)`
+      : "Subscription-based";
+
+    await db.notification.create({
+      data: {
+        userId: id,
+        title: "Revenue Model Updated",
+        message: `Your revenue model has been changed to ${modelLabel} by an administrator.`,
+        linkUrl: "/vendor/dashboard",
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: `Vendor revenue model updated to ${revenueModel}`,
+    });
+  } catch (error) {
+    console.error("Patch vendor revenue model error:", error);
     return NextResponse.json(
       { ok: false, error: "Internal server error" },
       { status: 500 }

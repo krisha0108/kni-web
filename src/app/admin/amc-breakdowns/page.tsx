@@ -99,7 +99,7 @@ export default function AdminAMCBreakdownsPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 items-center">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Statuses</SelectItem>
                 <SelectItem value="REQUESTED">Requested</SelectItem>

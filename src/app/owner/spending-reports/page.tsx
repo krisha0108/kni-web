@@ -184,7 +184,7 @@ export default function SpendingReportsPage() {
         </div>
         <div className="flex gap-2">
           <Select value={timePeriod} onValueChange={setTimePeriod}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select period" />
             </SelectTrigger>

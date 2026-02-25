@@ -26,6 +26,8 @@ export default async function VendorSubscriptionPage() {
       subscriptionStatus={vendorProfile.subscriptionStatus}
       trialEndsAt={vendorProfile.trialEndsAt?.toISOString() ?? null}
       activeUntil={vendorProfile.activeUntil?.toISOString() ?? null}
+      revenueModel={vendorProfile.revenueModel}
+      commissionRate={vendorProfile.commissionRate}
       latestRequest={latestRequest ? {
         id: latestRequest.id,
         durationMonths: latestRequest.durationMonths,

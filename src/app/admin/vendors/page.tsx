@@ -27,9 +27,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, Eye, MapPin, Tags, ShieldBan } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, MapPin, Tags, ShieldBan, Pencil } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { RejectionReasonInput } from "@/components/rejection-reason-input";
 import Link from "next/link";
@@ -53,6 +54,8 @@ interface Vendor {
     state: string | null;
     trialEndsAt: string | null;
     activeUntil: string | null;
+    revenueModel: "SUBSCRIPTION" | "COMMISSION" | null;
+    commissionRate: number | null;
   } | null;
   categories: VendorCategory[];
 }
@@ -70,6 +73,16 @@ export default function AdminVendorsPage() {
   const [rejectionError, setRejectionError] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
   const [pendingSubRequests, setPendingSubRequests] = useState(0);
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [approveVendorId, setApproveVendorId] = useState<string | null>(null);
+  const [approveRevenueModel, setApproveRevenueModel] = useState<string>("SUBSCRIPTION");
+  const [approveCommissionRate, setApproveCommissionRate] = useState<string>("10");
+  const [isApproving, setIsApproving] = useState(false);
+  const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
+  const [editVendorId, setEditVendorId] = useState<string | null>(null);
+  const [editRevenueModel, setEditRevenueModel] = useState<string>("SUBSCRIPTION");
+  const [editCommissionRate, setEditCommissionRate] = useState<string>("10");
+  const [isSavingModel, setIsSavingModel] = useState(false);
   const { toast } = useToast();
 
   // Fetch pending subscription request count
@@ -110,22 +123,43 @@ export default function AdminVendorsPage() {
     fetchVendors();
   }, [search, statusFilter]);
 
-  const handleApprove = async (vendorId: string) => {
+  const openApproveDialog = (vendorId: string) => {
+    setApproveVendorId(vendorId);
+    setApproveRevenueModel("SUBSCRIPTION");
+    setApproveCommissionRate("10");
+    setIsApproveDialogOpen(true);
+  };
+
+  const handleApprove = async () => {
+    if (!approveVendorId) return;
+    setIsApproving(true);
     try {
+      const body: Record<string, unknown> = {
+        vendorId: approveVendorId,
+        action: "approve",
+        revenueModel: approveRevenueModel,
+      };
+      if (approveRevenueModel === "COMMISSION") {
+        body.commissionRate = parseInt(approveCommissionRate, 10);
+      }
       const response = await fetch("/api/admin/vendors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vendorId, action: "approve" }),
+        body: JSON.stringify(body),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Success", description: "Vendor approved" });
+        toast({ title: "Success", description: data.message || "Vendor approved" });
+        setIsApproveDialogOpen(false);
+        setApproveVendorId(null);
         fetchVendors();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {
       toast({ title: "Error", description: "Failed to approve vendor", variant: "destructive" });
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -205,6 +239,44 @@ export default function AdminVendorsPage() {
       }
     } catch {
       toast({ title: "Error", description: "Failed to block vendor", variant: "destructive" });
+    }
+  };
+
+  const openEditModelDialog = (vendor: Vendor) => {
+    setEditVendorId(vendor.id);
+    setEditRevenueModel(vendor.vendorProfile?.revenueModel || "SUBSCRIPTION");
+    setEditCommissionRate(String(vendor.vendorProfile?.commissionRate || 10));
+    setIsEditModelDialogOpen(true);
+  };
+
+  const handleSaveModel = async () => {
+    if (!editVendorId) return;
+    setIsSavingModel(true);
+    try {
+      const body: Record<string, unknown> = {
+        revenueModel: editRevenueModel,
+      };
+      if (editRevenueModel === "COMMISSION") {
+        body.commissionRate = parseInt(editCommissionRate, 10);
+      }
+      const response = await fetch(`/api/admin/vendors/${editVendorId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: data.message || "Revenue model updated" });
+        setIsEditModelDialogOpen(false);
+        setEditVendorId(null);
+        fetchVendors();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update revenue model", variant: "destructive" });
+    } finally {
+      setIsSavingModel(false);
     }
   };
 
@@ -291,6 +363,7 @@ export default function AdminVendorsPage() {
               <TableHead className="hidden lg:table-cell">Categories</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">Subscription</TableHead>
+              <TableHead className="hidden lg:table-cell">Revenue Model</TableHead>
               <TableHead className="hidden lg:table-cell">Registered</TableHead>
               <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
@@ -298,13 +371,13 @@ export default function AdminVendorsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : vendors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No vendors found
                 </TableCell>
               </TableRow>
@@ -351,6 +424,13 @@ export default function AdminVendorsPage() {
                       {getSubscriptionLabel(vendor)}
                     </Badge>
                   </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Badge variant={vendor.vendorProfile?.revenueModel === "COMMISSION" ? "success" : "secondary"}>
+                      {vendor.vendorProfile?.revenueModel === "COMMISSION"
+                        ? `Commission ${vendor.vendorProfile?.commissionRate || 0}%`
+                        : "Subscription"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="hidden lg:table-cell">{formatDate(vendor.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -368,7 +448,7 @@ export default function AdminVendorsPage() {
                             size="icon"
                             variant="ghost"
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => handleApprove(vendor.id)}
+                            onClick={() => openApproveDialog(vendor.id)}
                             title="Approve"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -385,6 +465,15 @@ export default function AdminVendorsPage() {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => openEditModelDialog(vendor)}
+                            title="Edit Revenue Model"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           {vendor.vendorProfile?.subscriptionStatus !== "BLOCKED" && (
                             <Button
                               size="icon"
@@ -492,6 +581,14 @@ export default function AdminVendorsPage() {
                       {getSubscriptionLabel(selectedVendor)}
                     </Badge>
                   </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Revenue Model</p>
+                    <Badge variant={selectedVendor.vendorProfile?.revenueModel === "COMMISSION" ? "success" : "secondary"}>
+                      {selectedVendor.vendorProfile?.revenueModel === "COMMISSION"
+                        ? `Commission ${selectedVendor.vendorProfile?.commissionRate || 0}%`
+                        : "Subscription"}
+                    </Badge>
+                  </div>
                 </div>
                 {selectedVendor.vendorProfile?.trialEndsAt && (
                   <div className="mt-2">
@@ -535,8 +632,8 @@ export default function AdminVendorsPage() {
                 <Button
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => {
-                    if (selectedVendor) handleApprove(selectedVendor.id);
                     setIsDetailDialogOpen(false);
+                    if (selectedVendor) openApproveDialog(selectedVendor.id);
                   }}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
@@ -545,6 +642,18 @@ export default function AdminVendorsPage() {
               </>
             ) : (
               <>
+                {selectedVendor && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsDetailDialogOpen(false);
+                      openEditModelDialog(selectedVendor);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Model
+                  </Button>
+                )}
                 {selectedVendor && selectedVendor.vendorProfile?.subscriptionStatus !== "BLOCKED" && (
                   <Button
                     variant="destructive"
@@ -559,6 +668,170 @@ export default function AdminVendorsPage() {
                 )}
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vendor Approve Dialog - Choose Revenue Model */}
+      <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Vendor</DialogTitle>
+            <DialogDescription>
+              Choose the revenue model for this vendor before approving.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Revenue Model</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant={approveRevenueModel === "SUBSCRIPTION" ? "default" : "outline"}
+                  className="h-auto py-3 flex flex-col items-center gap-1"
+                  onClick={() => setApproveRevenueModel("SUBSCRIPTION")}
+                >
+                  <span className="font-semibold">Subscription</span>
+                  <span className="text-xs opacity-80">14-day free trial, then paid</span>
+                </Button>
+                <Button
+                  variant={approveRevenueModel === "COMMISSION" ? "default" : "outline"}
+                  className="h-auto py-3 flex flex-col items-center gap-1"
+                  onClick={() => setApproveRevenueModel("COMMISSION")}
+                >
+                  <span className="font-semibold">Commission</span>
+                  <span className="text-xs opacity-80">X% per delivered order</span>
+                </Button>
+              </div>
+            </div>
+
+            {approveRevenueModel === "COMMISSION" && (
+              <div className="space-y-2">
+                <Label htmlFor="commissionRate" className="text-sm font-medium">
+                  Commission Rate (%)
+                </Label>
+                <Input
+                  id="commissionRate"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={approveCommissionRate}
+                  onChange={(e) => setApproveCommissionRate(e.target.value)}
+                  placeholder="e.g. 10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Platform will take {approveCommissionRate}% commission on each delivered order. Vendor is instantly active — no subscription needed.
+                </p>
+              </div>
+            )}
+
+            {approveRevenueModel === "SUBSCRIPTION" && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                Vendor will get a 14-day free trial. After trial ends, they need to request a paid subscription to stay visible in the marketplace.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsApproveDialogOpen(false);
+                setApproveVendorId(null);
+              }}
+              disabled={isApproving}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleApprove}
+              disabled={isApproving || (approveRevenueModel === "COMMISSION" && (!approveCommissionRate || parseInt(approveCommissionRate) < 1 || parseInt(approveCommissionRate) > 100))}
+            >
+              {isApproving ? "Approving..." : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve as {approveRevenueModel === "COMMISSION" ? `Commission ${approveCommissionRate}%` : "Subscription"}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Revenue Model Dialog */}
+      <Dialog open={isEditModelDialogOpen} onOpenChange={setIsEditModelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Revenue Model</DialogTitle>
+            <DialogDescription>
+              Change the revenue model and commission rate for this vendor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Revenue Model</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant={editRevenueModel === "SUBSCRIPTION" ? "default" : "outline"}
+                  className="h-auto py-3 flex flex-col items-center gap-1"
+                  onClick={() => setEditRevenueModel("SUBSCRIPTION")}
+                >
+                  <span className="font-semibold">Subscription</span>
+                  <span className="text-xs opacity-80">Fixed fee model</span>
+                </Button>
+                <Button
+                  variant={editRevenueModel === "COMMISSION" ? "default" : "outline"}
+                  className="h-auto py-3 flex flex-col items-center gap-1"
+                  onClick={() => setEditRevenueModel("COMMISSION")}
+                >
+                  <span className="font-semibold">Commission</span>
+                  <span className="text-xs opacity-80">X% per delivered order</span>
+                </Button>
+              </div>
+            </div>
+
+            {editRevenueModel === "COMMISSION" && (
+              <div className="space-y-2">
+                <Label htmlFor="editCommissionRate" className="text-sm font-medium">
+                  Commission Rate (%)
+                </Label>
+                <Input
+                  id="editCommissionRate"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={editCommissionRate}
+                  onChange={(e) => setEditCommissionRate(e.target.value)}
+                  placeholder="e.g. 10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Platform will take {editCommissionRate}% commission on each delivered order.
+                </p>
+              </div>
+            )}
+
+            {editRevenueModel === "SUBSCRIPTION" && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                Vendor will use subscription-based billing. Their existing subscription status will be preserved.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditModelDialogOpen(false);
+                setEditVendorId(null);
+              }}
+              disabled={isSavingModel}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveModel}
+              disabled={isSavingModel || (editRevenueModel === "COMMISSION" && (!editCommissionRate || parseInt(editCommissionRate) < 1 || parseInt(editCommissionRate) > 100))}
+            >
+              {isSavingModel ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

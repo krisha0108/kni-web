@@ -70,10 +70,28 @@ export async function GET(request: NextRequest) {
                 isSystemVendor: true,
               },
             },
-            // Regular vendors — existing location/subscription checks
+            // Commission vendors — no subscription check, always visible if approved
             {
               vendorProfile: {
                 approvalStatus: "APPROVED",
+                revenueModel: "COMMISSION",
+              },
+              vendorLocationRequests: {
+                some: {
+                  status: "APPROVED",
+                  area: {
+                    city: {
+                      name: restaurant.city,
+                    },
+                  },
+                },
+              },
+            },
+            // Subscription vendors — existing location/subscription checks
+            {
+              vendorProfile: {
+                approvalStatus: "APPROVED",
+                revenueModel: "SUBSCRIPTION",
                 OR: [
                   { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
                   { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
@@ -105,6 +123,9 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            vendorProfile: {
+              select: { isSystemVendor: true },
+            },
           },
         },
       },
@@ -134,8 +155,9 @@ export async function GET(request: NextRequest) {
       // Vendor info
       vendor: {
         id: vp.vendor.id,
-        name: vp.vendor.name,
+        name: vp.vendor.vendorProfile?.isSystemVendor ? "KNI Official Store" : vp.vendor.name,
       },
+      isAdminStore: vp.vendor.vendorProfile?.isSystemVendor === true,
       // Stock status
       inStock: vp.stockQuantity > 0,
       canPurchase: vp.isActive && vp.stockQuantity > 0,

@@ -435,7 +435,7 @@ export default function OwnerExpensesPage() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-[150px]"
+            className="w-full sm:w-[150px]"
           />
         </div>
 
@@ -445,7 +445,7 @@ export default function OwnerExpensesPage() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-[150px]"
+            className="w-full sm:w-[150px]"
           />
         </div>
 

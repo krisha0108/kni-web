@@ -44,6 +44,7 @@ import {
   Shield,
   AlertTriangle,
   ChevronDown,
+  QrCode,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -242,6 +243,7 @@ export const adminSidebarItems: SidebarEntry[] = [
     children: [
       { title: "Vendors", href: "/admin/vendors", icon: Store },
       { title: "Subscription Requests", href: "/admin/vendor-subscriptions", icon: CreditCard },
+      { title: "Vendor Commissions", href: "/admin/vendor-commissions", icon: Receipt },
       { title: "Locations", href: "/admin/locations", icon: MapPin },
       { title: "Location Requests", href: "/admin/location-requests", icon: FileCheck },
     ],
@@ -266,6 +268,8 @@ export const adminSidebarItems: SidebarEntry[] = [
     children: [
       { title: "My Store Products", href: "/admin/my-store/products", icon: Store },
       { title: "My Store Orders", href: "/admin/my-store/orders", icon: ShoppingCart },
+      { title: "Store Payments", href: "/admin/my-store/payments", icon: CreditCard },
+      { title: "Store Payment Settings", href: "/admin/my-store/payment-settings", icon: QrCode },
       { title: "My Store Analytics", href: "/admin/my-store/analytics", icon: BarChart },
     ],
   },
@@ -367,8 +371,11 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "My Categories", href: "/vendor/categories", icon: FolderOpen },
   { title: "My Products", href: "/vendor/products", icon: Package },
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
+  { title: "Payments", href: "/vendor/payments", icon: CreditCard },
+  { title: "Payment Settings", href: "/vendor/payment-settings", icon: QrCode },
   { title: "My Locations", href: "/vendor/locations", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
+  { title: "Commission", href: "/vendor/commission", icon: Receipt },
   { title: "Notifications", href: "/vendor/notifications", icon: Bell },
   { title: "Profile", href: "/vendor/profile", icon: User },
 ];

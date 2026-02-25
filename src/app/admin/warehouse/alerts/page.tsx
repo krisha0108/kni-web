@@ -127,7 +127,7 @@ export default function WarehouseAlertsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <ClientOnly>
           <Select value={severityFilter} onValueChange={setSeverityFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by severity" />
             </SelectTrigger>
             <SelectContent>

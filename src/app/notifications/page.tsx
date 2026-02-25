@@ -232,7 +232,7 @@ export default function NotificationsPage() {
         </Select>
 
         <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

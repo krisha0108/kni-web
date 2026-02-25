@@ -308,7 +308,7 @@ export default function AdminSupportTicketDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           {getStatusBadge(ticket.status)}
           <Select value={ticket.status} onValueChange={(v) => handleStatusChange(v as TicketStatus)}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

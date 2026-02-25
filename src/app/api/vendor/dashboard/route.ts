@@ -70,8 +70,14 @@ export async function GET() {
     const subscriptionStatus = vendorProfile?.subscriptionStatus;
     const trialEndsAt = vendorProfile?.trialEndsAt;
     const activeUntil = vendorProfile?.activeUntil;
+    const revenueModel = vendorProfile?.revenueModel || "SUBSCRIPTION";
+    const commissionRate = vendorProfile?.commissionRate;
 
     const getSubscriptionInfo = () => {
+      // Commission model vendors don't have subscription
+      if (revenueModel === "COMMISSION") {
+        return { label: `Commission ${commissionRate}%`, daysLeft: 0, variant: "success" as const };
+      }
       if (subscriptionStatus === "TRIAL" && trialEndsAt) {
         const daysLeft = Math.ceil(
           (trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
@@ -89,6 +95,32 @@ export async function GET() {
 
     const subInfo = getSubscriptionInfo();
 
+    // Fetch commission summary for commission-model vendors
+    let commissionInfo = null;
+    if (revenueModel === "COMMISSION") {
+      const commissions = await db.vendorCommission.findMany({
+        where: { vendorId: session.id },
+        include: {
+          collection: { select: { status: true } },
+        },
+      });
+
+      const totalCommission = commissions.reduce((sum, c) => sum + c.commissionAmount, 0);
+      const pendingCommission = commissions
+        .filter((c) => !c.collectionId)
+        .reduce((sum, c) => sum + c.commissionAmount, 0);
+      const paidCommission = commissions
+        .filter((c) => c.collection?.status === "VERIFIED")
+        .reduce((sum, c) => sum + c.commissionAmount, 0);
+
+      commissionInfo = {
+        commissionRate,
+        totalCommission,
+        pendingCommission,
+        paidCommission,
+      };
+    }
+
     return NextResponse.json({
       ok: true,
       data: {
@@ -97,7 +129,9 @@ export async function GET() {
         orders,
         totalRevenue: totalRevenue,
         topProductsData,
-        subInfo
+        subInfo,
+        revenueModel,
+        commissionInfo,
       }
     });
   } catch (error) {

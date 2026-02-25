@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Users,
   MapPin,
-  Star
+  Star,
+  Percent,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -141,7 +142,7 @@ export default function VendorDashboardPage() {
           <p className="text-muted-foreground">Welcome back, {dashboardData.userName}</p>
         </div>
         <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -157,19 +158,42 @@ export default function VendorDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subscription</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              {dashboardData.revenueModel === "COMMISSION" ? "Revenue Model" : "Subscription"}
+            </CardTitle>
+            {dashboardData.revenueModel === "COMMISSION" ? (
+              <Percent className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            )}
           </CardHeader>
           <CardContent>
             <Badge variant={dashboardData.subInfo.variant}>{dashboardData.subInfo.label}</Badge>
-            {dashboardData.subInfo.daysLeft > 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {dashboardData.subInfo.daysLeft} days remaining
-              </p>
+            {dashboardData.revenueModel === "COMMISSION" && dashboardData.commissionInfo && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Pending: {formatPrice(dashboardData.commissionInfo.pendingCommission)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Total Paid: {formatPrice(dashboardData.commissionInfo.paidCommission)}
+                </p>
+                <Button size="sm" variant="outline" asChild className="mt-1">
+                  <Link href="/vendor/commission">View Commission</Link>
+                </Button>
+              </div>
             )}
-            <Button size="sm" variant="outline" asChild className="mt-2">
-              <Link href="/vendor/subscription">Manage</Link>
-            </Button>
+            {dashboardData.revenueModel !== "COMMISSION" && (
+              <>
+                {dashboardData.subInfo.daysLeft > 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {dashboardData.subInfo.daysLeft} days remaining
+                  </p>
+                )}
+                <Button size="sm" variant="outline" asChild className="mt-2">
+                  <Link href="/vendor/subscription">Manage</Link>
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 

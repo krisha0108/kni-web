@@ -380,7 +380,7 @@ export default function StaffAttendancePage() {
                                 })
                               }
                             >
-                              <SelectTrigger className="w-[140px]">
+                              <SelectTrigger className="w-full sm:w-[140px]">
                                 <SelectValue placeholder="Select status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -413,7 +413,7 @@ export default function StaffAttendancePage() {
                                   [member.id]: { ...formData, checkInTime: e.target.value },
                                 })
                               }
-                              className="w-[120px]"
+                              className="w-full sm:w-[120px]"
                             />
                           ) : (
                             "-"
@@ -439,7 +439,7 @@ export default function StaffAttendancePage() {
                                   [member.id]: { ...formData, checkOutTime: e.target.value },
                                 })
                               }
-                              className="w-[120px]"
+                              className="w-full sm:w-[120px]"
                             />
                           ) : (
                             "-"

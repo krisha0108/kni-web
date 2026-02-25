@@ -58,17 +58,35 @@ export async function GET(request: NextRequest) {
             role: "ADMIN",
             vendorProfile: { isSystemVendor: true },
           },
-          // Regular vendors — existing checks
+          // Commission vendors — no subscription check needed
           {
             role: "VENDOR",
             vendorProfile: {
               approvalStatus: "APPROVED",
+              revenueModel: "COMMISSION",
+            },
+            vendorLocationRequests: {
+              some: {
+                status: "APPROVED",
+                area: {
+                  city: {
+                    name: restaurant.city,
+                  },
+                },
+              },
+            },
+          },
+          // Subscription vendors — existing checks
+          {
+            role: "VENDOR",
+            vendorProfile: {
+              approvalStatus: "APPROVED",
+              revenueModel: "SUBSCRIPTION",
               OR: [
                 { subscriptionStatus: "TRIAL", trialEndsAt: { gt: now } },
                 { subscriptionStatus: "ACTIVE", activeUntil: { gt: now } },
               ],
             },
-            // Vendor must have approved location matching restaurant's city
             vendorLocationRequests: {
               some: {
                 status: "APPROVED",

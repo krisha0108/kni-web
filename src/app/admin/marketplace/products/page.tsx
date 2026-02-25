@@ -444,7 +444,7 @@ export default function AdminMarketplaceProductsPage() {
           />
         </div>
         <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -457,7 +457,7 @@ export default function AdminMarketplaceProductsPage() {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>

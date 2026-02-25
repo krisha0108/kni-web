@@ -82,6 +82,18 @@ enum VendorSubscriptionRequestStatus {
   ACTIVATED
 }
 
+enum VendorRevenueModel {
+  SUBSCRIPTION
+  COMMISSION
+}
+
+enum VendorCommissionCollectionStatus {
+  REQUESTED
+  PAYMENT_UPLOADED
+  PAYMENT_REJECTED
+  VERIFIED
+}
+
 enum MarketplaceOrderStatus {
   PLACED
   CONFIRMED
@@ -89,6 +101,12 @@ enum MarketplaceOrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum MarketplacePaymentStatus {
+  PENDING   // owner uploaded screenshot, waiting vendor verification
+  VERIFIED  // vendor verified, order auto-created
+  REJECTED  // vendor rejected, owner can re-upload
 }
 
 enum CartItemType {
@@ -258,6 +276,11 @@ model User {
   vendorSubscriptionRequests  VendorSubscriptionRequest[] @relation("VendorSubscriptionRequests")
   vendorSubPriceSent          VendorSubscriptionRequest[] @relation("AdminPriceSentSubscriptions")
   vendorSubVerified           VendorSubscriptionRequest[] @relation("AdminVerifiedSubscriptions")
+  vendorCommissions           VendorCommission[]          @relation("VendorCommissions")
+  commissionCollections       VendorCommissionCollection[] @relation("VendorCommissionCollections")
+  commissionCollectionsVerified VendorCommissionCollection[] @relation("AdminVerifiedCommissionCollections")
+  ownerPayments                 MarketplacePayment[]         @relation("OwnerPayments")
+  vendorPayments                MarketplacePayment[]         @relation("VendorPayments")
 
   @@index([email])
   @@index([role])
@@ -300,6 +323,11 @@ model VendorProfile {
   trialEndsAt        DateTime?
   activeUntil        DateTime?
   isSystemVendor     Boolean                   @default(false)
+  revenueModel       VendorRevenueModel        @default(SUBSCRIPTION)
+  commissionRate     Int?                      // percentage (e.g. 10 = 10%)
+  paymentQrCodeUrl   String?                   @db.Text
+  paymentUpiId       String?
+  paymentAccountName String?
   createdAt          DateTime                  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -468,8 +496,9 @@ model Restaurant {
   categoryRequests  CategoryRequest[]
   carts             Cart[]
   serviceBookings   ServiceBooking[]
-  marketplaceOrders MarketplaceOrder[]
-  equipments        Equipment[]
+  marketplaceOrders    MarketplaceOrder[]
+  marketplacePayments  MarketplacePayment[]
+  equipments           Equipment[]
   amcSubscriptions  AMCSubscription[]
   expenses          Expense[]
   vendorRatings     VendorRating[]
@@ -855,12 +884,41 @@ model MarketplaceOrder {
   items         MarketplaceOrderItem[]
   statusHistory OrderStatusHistory[]
   rating        VendorRating?
+  vendorCommission VendorCommission?
+  payment       MarketplacePayment?
 
   @@index([ownerId])
   @@index([vendorId])
   @@index([restaurantId])
   @@index([status])
   @@index([createdAt])
+}
+
+model MarketplacePayment {
+  id               String                   @id @default(cuid())
+  ownerId          String
+  vendorId         String
+  restaurantId     String
+  totalAmount      Int                      // in paise
+  items            Json                     // [{productId, qty, priceSnapshot, name}]
+  deliveryAddress  String?                  @db.Text
+  notes            String?                  @db.Text
+  screenshotUrl    String                   @db.Text
+  status           MarketplacePaymentStatus @default(PENDING)
+  rejectionReason  String?                  @db.Text
+  orderId          String?                  @unique
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  verifiedAt       DateTime?
+
+  owner      User              @relation("OwnerPayments", fields: [ownerId], references: [id])
+  vendor     User              @relation("VendorPayments", fields: [vendorId], references: [id])
+  restaurant Restaurant        @relation(fields: [restaurantId], references: [id])
+  order      MarketplaceOrder? @relation(fields: [orderId], references: [id])
+
+  @@index([ownerId])
+  @@index([vendorId])
+  @@index([status])
 }
 
 model MarketplaceOrderItem {
@@ -2310,6 +2368,52 @@ model VendorSubscriptionRequest {
   vendor      User  @relation("VendorSubscriptionRequests", fields: [vendorId], references: [id], onDelete: Cascade)
   priceSentBy User? @relation("AdminPriceSentSubscriptions", fields: [priceSentById], references: [id])
   verifiedBy  User? @relation("AdminVerifiedSubscriptions", fields: [verifiedById], references: [id])
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ========================================
+// VENDOR COMMISSION SYSTEM
+// ========================================
+
+model VendorCommission {
+  id               String   @id @default(cuid())
+  orderId          String   @unique
+  vendorId         String
+  orderAmount      Int      // total order amount
+  commissionRate   Int      // rate at time of calculation
+  commissionAmount Int      // calculated commission
+  collectionId     String?  // link to collection when collected
+  createdAt        DateTime @default(now())
+
+  order      MarketplaceOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor     User                        @relation("VendorCommissions", fields: [vendorId], references: [id], onDelete: Cascade)
+  collection VendorCommissionCollection? @relation(fields: [collectionId], references: [id])
+
+  @@index([vendorId])
+  @@index([collectionId])
+  @@index([createdAt])
+}
+
+model VendorCommissionCollection {
+  id                String                            @id @default(cuid())
+  vendorId          String
+  totalAmount       Int                               // total commission to collect
+  status            VendorCommissionCollectionStatus   @default(REQUESTED)
+  screenshotUrl     String?                           @db.Text
+  paymentUploadedAt DateTime?
+  verifiedById      String?
+  verifiedAt        DateTime?
+  rejectionReason   String?                           @db.Text
+  adminNote         String?                           @db.Text
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  vendor      User               @relation("VendorCommissionCollections", fields: [vendorId], references: [id], onDelete: Cascade)
+  verifiedBy  User?              @relation("AdminVerifiedCommissionCollections", fields: [verifiedById], references: [id])
+  commissions VendorCommission[]
 
   @@index([vendorId])
   @@index([status])

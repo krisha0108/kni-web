@@ -326,7 +326,7 @@ export default function OrderTrackingPage() {
                   />
                 </div>
                 <Select value={serviceStatusFilter} onValueChange={setServiceStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filter status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -412,7 +412,7 @@ export default function OrderTrackingPage() {
                   />
                 </div>
                 <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filter status" />
                   </SelectTrigger>
                   <SelectContent>

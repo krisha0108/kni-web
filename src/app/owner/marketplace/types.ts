@@ -1,0 +1,40 @@
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stockQuantity: number;
+  imageUrl?: string;
+  vendor: { id: string; name: string };
+  category: { id: string; name: string };
+  isAdminStore?: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface VendorPaymentInfo {
+  vendorName: string;
+  paymentQrCodeUrl?: string;
+  paymentUpiId?: string;
+  paymentAccountName?: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  vendorId: string;
+  totalAmount: number;
+  items: Array<{ productId: string; qty: number; priceSnapshot: number; name: string }>;
+  status: "PENDING" | "VERIFIED" | "REJECTED";
+  rejectionReason?: string;
+  createdAt: string;
+  vendor: { id: string; name: string };
+  order?: { id: string; status: string } | null;
+}

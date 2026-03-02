@@ -353,6 +353,7 @@ export const ownerSidebarItems: SidebarEntry[] = [
     icon: ShoppingBag,
     children: [
       { title: "Marketplace", href: "/owner/marketplace", icon: ShoppingBag },
+      { title: "Cart", href: "/owner/marketplace/cart", icon: ShoppingCart },
       { title: "My Orders", href: "/owner/marketplace/orders", icon: Package },
       { title: "Order Tracking", href: "/owner/order-tracking", icon: Truck },
     ],

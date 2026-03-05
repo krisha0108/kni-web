@@ -47,7 +47,33 @@ export const RESTAURANT_PERMISSIONS = {
   "team:update": [RestaurantRole.OWNER],
   "team:remove": [RestaurantRole.OWNER],
 
+  // Resource: staff management
+  "staff:create": [RestaurantRole.OWNER, RestaurantRole.MANAGER],
+  "staff:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+  "staff:update": [RestaurantRole.OWNER, RestaurantRole.MANAGER],
+  "staff:delete": [RestaurantRole.OWNER],
+
+  // Resource: support tickets
+  "support:create": [RestaurantRole.OWNER, RestaurantRole.MANAGER],
+  "support:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+
+  // Resource: analytics
+  "analytics:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+
+  // Resource: vendor ledger
+  "vendor-ledger:create": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT],
+  "vendor-ledger:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+
+  // Resource: service requests / bookings
+  "service:create": [RestaurantRole.OWNER, RestaurantRole.MANAGER],
+  "service:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+
+  // Resource: category requests
+  "category:create": [RestaurantRole.OWNER, RestaurantRole.MANAGER],
+  "category:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
+
   // Resource: restaurant settings
+  "restaurant:read": [RestaurantRole.OWNER, RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT, RestaurantRole.VIEWER],
   "restaurant:update": [RestaurantRole.OWNER],
   "restaurant:delete": [RestaurantRole.OWNER],
 } as const;
@@ -164,6 +190,21 @@ export async function getUserRestaurants(
       restaurant: m.restaurant,
     })),
   ];
+}
+
+/**
+ * Get the actual restaurant owner ID
+ * Used for POST routes that need to set ownerId FK to the real owner
+ */
+export async function getRestaurantOwnerId(restaurantId: string): Promise<string> {
+  const restaurant = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { ownerId: true },
+  });
+  if (!restaurant) {
+    throw new Error("Restaurant not found");
+  }
+  return restaurant.ownerId;
 }
 
 /**

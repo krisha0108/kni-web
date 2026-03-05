@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { amcSubscriptionUpdateSchema } from "@/server/validators/amc";
 
 // GET /api/owner/equipment/[id]/amc/[amcId] - Get specific AMC subscription
@@ -12,11 +13,25 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id: equipmentId, amcId } = await params;
 
+    // Verify equipment exists and get restaurantId for RBAC
+    const equipment = await db.equipment.findFirst({
+      where: { id: equipmentId, deletedAt: null },
+    });
+
+    if (!equipment) {
+      return NextResponse.json(
+        { ok: false, error: "Equipment not found" },
+        { status: 404 }
+      );
+    }
+
+    // RBAC check - verify user has access to read AMC for this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:read");
+
     const subscription = await db.aMCSubscription.findFirst({
       where: {
         id: amcId,
         equipmentId,
-        ownerId: session.id,
       },
       include: {
         equipment: {
@@ -83,12 +98,26 @@ export async function PATCH(
       );
     }
 
-    // Verify ownership
+    // Verify equipment exists and get restaurantId for RBAC
+    const equipment = await db.equipment.findFirst({
+      where: { id: equipmentId, deletedAt: null },
+    });
+
+    if (!equipment) {
+      return NextResponse.json(
+        { ok: false, error: "Equipment not found" },
+        { status: 404 }
+      );
+    }
+
+    // RBAC check - verify user has access to update AMC for this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:update");
+
+    // Verify AMC subscription exists
     const existing = await db.aMCSubscription.findFirst({
       where: {
         id: amcId,
         equipmentId,
-        ownerId: session.id,
       },
     });
 
@@ -148,12 +177,26 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id: equipmentId, amcId } = await params;
 
-    // Verify ownership
+    // Verify equipment exists and get restaurantId for RBAC
+    const equipment = await db.equipment.findFirst({
+      where: { id: equipmentId, deletedAt: null },
+    });
+
+    if (!equipment) {
+      return NextResponse.json(
+        { ok: false, error: "Equipment not found" },
+        { status: 404 }
+      );
+    }
+
+    // RBAC check - verify user has access to cancel AMC for this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:cancel");
+
+    // Verify AMC subscription exists
     const existing = await db.aMCSubscription.findFirst({
       where: {
         id: amcId,
         equipmentId,
-        ownerId: session.id,
       },
     });
 

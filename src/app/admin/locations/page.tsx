@@ -548,7 +548,7 @@ export default function AdminLocationsPage() {
                 Add {tabLabel}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create {tabLabel}</DialogTitle>
                 <DialogDescription>
@@ -715,21 +715,25 @@ export default function AdminLocationsPage() {
         {/* States Table */}
         {activeTab === "states" && (
           <div className="border rounded-lg">
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>State Name</TableHead>
                   <TableHead>Cities</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead>Sort Order</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {statesLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
                 ) : states.length === 0 ? (
                   <TableRow>
+                    
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       <MapPin className="mx-auto h-8 w-8 mb-2 opacity-50" />
                       No states found
@@ -737,6 +741,7 @@ export default function AdminLocationsPage() {
                   </TableRow>
                 ) : (
                   states.map((state) => (
+                    
                     <TableRow key={state.id}>
                       <TableCell className="font-medium">{state.name}</TableCell>
                       <TableCell>{state._count.cities}</TableCell>
@@ -745,6 +750,7 @@ export default function AdminLocationsPage() {
                           {state.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell>{state.sortOrder}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -761,28 +767,38 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
+                      
+                    
+                    
+              
+                  
+            
           </div>
         )}
 
         {/* Cities Table */}
         {activeTab === "cities" && (
           <div className="border rounded-lg">
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>City Name</TableHead>
                   <TableHead>State</TableHead>
+                  
                   <TableHead>Areas</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Sort Order</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {citiesLoading ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
                 ) : cities.length === 0 ? (
                   <TableRow>
+                    
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       <MapPin className="mx-auto h-8 w-8 mb-2 opacity-50" />
                       No cities found
@@ -790,6 +806,7 @@ export default function AdminLocationsPage() {
                   </TableRow>
                 ) : (
                   cities.map((city) => (
+                    
                     <TableRow key={city.id}>
                       <TableCell className="font-medium">{city.name}</TableCell>
                       <TableCell><Badge variant="outline">{city.state.name}</Badge></TableCell>
@@ -799,6 +816,7 @@ export default function AdminLocationsPage() {
                           {city.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell>{city.sortOrder}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -815,17 +833,25 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
+                      
+                    
+                    
+              
+                  
+            
           </div>
         )}
 
         {/* Areas Table */}
         {activeTab === "areas" && (
           <div className="border rounded-lg">
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Area Name</TableHead>
                   <TableHead>City</TableHead>
+                  
                   <TableHead>State</TableHead>
                   <TableHead>Requests</TableHead>
                   <TableHead>Status</TableHead>
@@ -833,11 +859,13 @@ export default function AdminLocationsPage() {
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {areasLoading ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
                 ) : areas.length === 0 ? (
                   <TableRow>
+                    
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       <MapPin className="mx-auto h-8 w-8 mb-2 opacity-50" />
                       No areas found
@@ -845,16 +873,19 @@ export default function AdminLocationsPage() {
                   </TableRow>
                 ) : (
                   areas.map((area) => (
+                    
                     <TableRow key={area.id}>
                       <TableCell className="font-medium">{area.name}</TableCell>
                       <TableCell><Badge variant="outline">{area.city.name}</Badge></TableCell>
                       <TableCell><Badge variant="outline">{area.city.state.name}</Badge></TableCell>
                       <TableCell>{area._count.locationRequests}</TableCell>
+                      
                       <TableCell>
                         <Badge variant={area.isActive ? "success" : "secondary"}>
                           {area.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell>{area.sortOrder}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -871,6 +902,13 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
+                      
+                      
+                    
+                    
+              
+                  
+            
           </div>
         )}
 
@@ -879,7 +917,7 @@ export default function AdminLocationsPage() {
           setIsEditOpen(open);
           if (!open) { setSelectedItem(null); resetForm(); }
         }}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit {tabLabel}</DialogTitle>
               <DialogDescription>Update {tabLabel.toLowerCase()} details</DialogDescription>

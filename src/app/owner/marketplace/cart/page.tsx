@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { fetchCart, addCartItem, updateCartItemQuantity, removeCartItem, clearCart } from "@/lib/marketplace-cart";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -38,27 +39,15 @@ export default function OwnerCartPage() {
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
-  // ========== CART PERSISTENCE (localStorage) ==========
-  const loadCart = useCallback(() => {
+
+  // ========== CART MANAGEMENT (Server-Side) ==========
+  const loadCart = useCallback(async () => {
     if (!selectedRestaurant) return;
     try {
-      const paidVendorId = localStorage.getItem("marketplace_paid_vendor");
-      const saved = localStorage.getItem(`marketplace_cart_${selectedRestaurant.restaurantId}`);
-      let parsed = saved ? JSON.parse(saved) : [];
-      if (!Array.isArray(parsed)) parsed = [];
-      if (paidVendorId) {
-        parsed = parsed.filter((item: CartItem) => {
-          const vid = item.product.vendor?.id || "unknown";
-          return vid !== paidVendorId;
-        });
-        localStorage.setItem(
-          `marketplace_cart_${selectedRestaurant.restaurantId}`,
-          JSON.stringify(parsed)
-        );
-        localStorage.removeItem("marketplace_paid_vendor");
-      }
-      setCart(parsed);
-    } catch {
+      const data = await fetchCart(selectedRestaurant.restaurantId);
+      setCart(data.items as CartItem[]);
+    } catch (error: any) {
+      console.error("Load cart error:", error);
       setCart([]);
     }
     setLoading(false);
@@ -89,49 +78,35 @@ export default function OwnerCartPage() {
   }, [selectedRestaurant]);
 
   // ========== CART HELPERS ==========
-  const saveCart = (items: CartItem[]) => {
-    setCart(items);
-    if (selectedRestaurant) {
-      try {
-        localStorage.setItem(
-          `marketplace_cart_${selectedRestaurant.restaurantId}`,
-          JSON.stringify(items)
-        );
-      } catch {}
-    }
-  };
-
-  const updateCartQuantity = (productId: string, delta: number) => {
+  const updateCartQuantity = async (productId: string, delta: number) => {
+    if (!selectedRestaurant) return;
     const item = cart.find((i) => i.product.id === productId);
     if (!item) return;
 
     const newQty = item.quantity + delta;
-    if (newQty <= 0) {
-      saveCart(cart.filter((i) => i.product.id !== productId));
-      return;
-    }
 
-    saveCart(
-      cart.map((i) =>
-        i.product.id === productId
-          ? { ...i, quantity: Math.min(newQty, i.product.stockQuantity || 999) }
-          : i
-      )
-    );
+    try {
+      if (newQty <= 0) {
+        await removeCartItem(item.id);
+      } else {
+        const clamped = Math.min(newQty, item.product.stockQuantity || 999);
+        await updateCartItemQuantity(item.id, clamped);
+      }
+      await loadCart();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update cart", variant: "destructive" });
+    }
   };
 
-  const addToCart = (product: Product) => {
-    const existing = cart.find((item) => item.product.id === product.id);
-    if (existing) {
-      saveCart(
-        cart.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: Math.min(item.quantity + 1, product.stockQuantity) }
-            : item
-        )
-      );
-    } else {
-      saveCart([...cart, { product, quantity: 1 }]);
+  const addToCart = async (product: Product) => {
+    if (!selectedRestaurant) return;
+    try {
+      const existing = cart.find((item) => item.product.id === product.id);
+      const newQuantity = existing ? Math.min(existing.quantity + 1, product.stockQuantity) : 1;
+      await addCartItem(selectedRestaurant.restaurantId, product.id, newQuantity);
+      await loadCart();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to add to cart", variant: "destructive" });
     }
   };
 
@@ -145,9 +120,14 @@ export default function OwnerCartPage() {
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const handleClearCart = () => {
-    if (confirm("Remove all items from cart?")) {
-      saveCart([]);
+  const handleClearCart = async () => {
+    if (!selectedRestaurant || !confirm("Remove all items from cart?")) return;
+    try {
+      await clearCart(selectedRestaurant.restaurantId, { clearAll: true });
+      await loadCart();
+      toast({ title: "Success", description: "Cart cleared" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to clear cart", variant: "destructive" });
     }
   };
 
@@ -219,12 +199,12 @@ export default function OwnerCartPage() {
   // ========== LOADING STATE ==========
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push("/owner/marketplace")}>
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Your Cart</h1>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">Your Cart</h1>
         </div>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -236,40 +216,40 @@ export default function OwnerCartPage() {
   // ========== EMPTY STATE ==========
   if (cart.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push("/owner/marketplace")}>
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Your Cart</h1>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">Your Cart</h1>
         </div>
 
         {/* Show pending payments even when cart is empty */}
         {pendingPayments.filter((p) => p.status === "PENDING" || p.status === "REJECTED").length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Pending Payments</CardTitle>
+              <CardTitle className="text-sm sm:text-base">Pending Payments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {pendingPayments
                 .filter((p) => p.status === "PENDING" || p.status === "REJECTED")
                 .map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{payment.vendor.name}</span>
+                  <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 sm:p-3 rounded-lg border">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-xs sm:text-sm truncate\">{payment.vendor.name}</span>
                         {payment.status === "PENDING" ? (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs shrink-0">
                             <Clock className="mr-1 h-3 w-3" />
                             Pending
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-xs shrink-0">
                             Rejected
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         {formatPrice(payment.totalAmount)} &middot; {payment.items.length} items
                       </p>
                     </div>
@@ -280,13 +260,13 @@ export default function OwnerCartPage() {
         )}
 
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-5">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-muted flex items-center justify-center mb-4 sm:mb-5">
+              <ShoppingBag className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
             </div>
-            <p className="text-lg font-semibold text-muted-foreground mb-2">Your cart is empty</p>
-            <p className="text-sm text-muted-foreground mb-6">Browse marketplace to add products</p>
-            <Button onClick={() => router.push("/owner/marketplace")}>
+            <p className="text-base sm:text-lg font-semibold text-muted-foreground mb-2">Your cart is empty</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 text-center">Browse marketplace to add products</p>
+            <Button onClick={() => router.push("/owner/marketplace")} size="sm">
               Browse Marketplace
             </Button>
           </CardContent>
@@ -297,48 +277,50 @@ export default function OwnerCartPage() {
 
   // ========== MAIN RENDER ==========
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/owner/marketplace")}>
-            <ArrowLeft className="h-5 w-5" />
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/owner/marketplace")} className="shrink-0 mt-0.5">
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Your Cart</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight">Your Cart</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {totalItems} item{totalItems !== 1 ? "s" : ""} from {vendorGroups.length} vendor{vendorGroups.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleClearCart} className="text-destructive hover:text-destructive">
-          <Trash2 className="h-5 w-5" />
+        <Button variant="ghost" size="icon" onClick={handleClearCart} className="text-destructive hover:text-destructive shrink-0" title="Clear cart">
+          <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
 
       {/* Delivery Details */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Delivery Details</CardTitle>
+          <CardTitle className="text-sm sm:text-base">Delivery Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="address">Delivery Address *</Label>
+            <Label htmlFor="address" className="text-xs sm:text-sm">Delivery Address *</Label>
             <Textarea
               id="address"
               value={deliveryAddress}
               onChange={(e) => setDeliveryAddress(e.target.value)}
               placeholder="Enter complete delivery address"
               rows={3}
+              className="text-xs sm:text-sm"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes" className="text-xs sm:text-sm">Notes (Optional)</Label>
             <Input
               id="notes"
               value={deliveryNotes}
               onChange={(e) => setDeliveryNotes(e.target.value)}
               placeholder="Any special instructions"
+              className="text-xs sm:text-sm"
             />
           </div>
         </CardContent>
@@ -349,18 +331,18 @@ export default function OwnerCartPage() {
         return (
           <Card key={group.vendorId} className={group.isAdminStore ? "border-blue-200" : ""}>
             {/* Vendor Header */}
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Store className="h-4 w-4" />
-                  {group.vendorName}
+            <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm sm:text-base flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                  <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">{group.vendorName}</span>
                   {group.isAdminStore && (
-                    <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0">
+                    <Badge className="bg-blue-600 text-white text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 shrink-0">
                       Official
                     </Badge>
                   )}
                 </CardTitle>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground shrink-0">
                   {group.items.length} item{group.items.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -371,7 +353,7 @@ export default function OwnerCartPage() {
               {group.items.map((item) => (
                 <div
                   key={item.product.id}
-                  className="flex items-center gap-3 px-6 py-3 border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-2 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-3 border-b cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => {
                     setSelectedProduct(item.product);
                     setIsProductDetailOpen(true);
@@ -382,66 +364,69 @@ export default function OwnerCartPage() {
                     <img
                       src={item.product.imageUrl}
                       alt={item.product.name}
-                      className="w-14 h-14 object-cover rounded-lg flex-shrink-0"
+                      className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Package className="h-5 w-5 text-muted-foreground" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Package className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     </div>
                   )}
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm leading-tight line-clamp-2">{item.product.name}</p>
-                    {item.product.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.product.description}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground mt-0.5">{formatPrice(item.product.price)}</p>
-                  </div>
+                  {/* Info + Controls Column */}
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    {/* Product Name */}
+                    <p className="font-medium text-xs sm:text-sm leading-tight line-clamp-2">{item.product.name}</p>
+                    
+                    {/* Price */}
+                    <p className="text-xs sm:text-sm text-muted-foreground">{formatPrice(item.product.price)}</p>
 
-                  {/* Qty Controls */}
-                  <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7 rounded-lg"
-                      onClick={() => updateCartQuantity(item.product.id, -1)}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm font-bold w-7 text-center">{item.quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7 rounded-lg"
-                      onClick={() => updateCartQuantity(item.product.id, 1)}
-                      disabled={item.quantity >= (item.product.stockQuantity || 999)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
+                    {/* Qty Controls + Line Total in one row on mobile */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg"
+                          onClick={() => updateCartQuantity(item.product.id, -1)}
+                        >
+                          <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        </Button>
+                        <span className="text-xs sm:text-sm font-bold w-6 sm:w-7 text-center">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg"
+                          onClick={() => updateCartQuantity(item.product.id, 1)}
+                          disabled={item.quantity >= (item.product.stockQuantity || 999)}
+                        >
+                          <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        </Button>
+                      </div>
 
-                  {/* Line Total */}
-                  <span className="text-sm font-bold flex-shrink-0 min-w-[60px] text-right">
-                    {formatPrice(item.product.price * item.quantity)}
-                  </span>
+                      {/* Line Total */}
+                      <span className="text-sm sm:text-base font-bold">
+                        {formatPrice(item.product.price * item.quantity)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ))}
 
               {/* Vendor Footer: Subtotal + Pay Button */}
-              <div className="px-6 py-4 bg-muted/30">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
-                  <span className="text-lg font-bold">{formatPrice(group.total)}</span>
+              <div className="px-3 sm:px-6 py-3 sm:py-4 bg-muted/30">
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">Subtotal</span>
+                  <span className="text-base sm:text-lg font-bold leading-tight break-all">{formatPrice(group.total)}</span>
                 </div>
 
                 <Button
-                  className="w-full"
+                  className="w-full text-sm"
+                  size="sm"
                   onClick={() => handlePayAndOrder(group)}
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
+                  <CreditCard className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Pay & Order
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -451,10 +436,10 @@ export default function OwnerCartPage() {
 
       {/* Grand Total Footer */}
       <Card>
-        <CardContent className="py-4">
+        <CardContent className="py-3 sm:py-4">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Grand Total</span>
-            <span className="text-2xl font-bold">{formatPrice(getCartTotal())}</span>
+            <span className="text-sm sm:text-base text-muted-foreground">Grand Total</span>
+            <span className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(getCartTotal())}</span>
           </div>
         </CardContent>
       </Card>
@@ -467,6 +452,7 @@ export default function OwnerCartPage() {
         cartQuantity={selectedProduct ? getCartItemQuantity(selectedProduct.id) : 0}
         onAddToCart={addToCart}
         onUpdateQuantity={updateCartQuantity}
+        canCreate
       />
     </div>
   );

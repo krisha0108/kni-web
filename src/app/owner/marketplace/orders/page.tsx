@@ -83,6 +83,9 @@ export default function OwnerMarketplaceOrdersPage() {
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+
   // Payments state
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
@@ -156,6 +159,13 @@ export default function OwnerMarketplaceOrdersPage() {
   const openRatingDialog = (order: Order) => {
     setOrderToRate(order);
     setIsRatingDialogOpen(true);
+  };
+
+  const openPaymentDetails = (payment: Payment) => {
+    console.log('Opening payment details:', payment);
+    console.log('Screenshot URL:', payment.screenshotUrl);
+    setSelectedPayment(payment);
+    setIsPaymentDialogOpen(true);
   };
 
   const handleRatingSuccess = () => {
@@ -312,7 +322,7 @@ export default function OwnerMarketplaceOrdersPage() {
                         <Button size="sm" onClick={() => openOrderDetails(order)}>
                           View Full Details
                         </Button>
-                        {order.status === "DELIVERED" && (
+                        {order.status === "DELIVERED" && canCreate && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -442,10 +452,7 @@ export default function OwnerMarketplaceOrdersPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              setSelectedPayment(payment);
-                              setIsPaymentDialogOpen(true);
-                            }}
+                            onClick={() => openPaymentDetails(payment)}
                           >
                             View Details
                           </Button>
@@ -477,7 +484,7 @@ export default function OwnerMarketplaceOrdersPage() {
 
       {/* ===== ORDER DETAIL DIALOG ===== */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
@@ -573,7 +580,7 @@ export default function OwnerMarketplaceOrdersPage() {
           )}
 
           <DialogFooter>
-            {selectedOrder?.status === "DELIVERED" && (
+            {selectedOrder?.status === "DELIVERED" && canCreate && (
               <Button
                 variant="default"
                 onClick={() => {
@@ -594,7 +601,7 @@ export default function OwnerMarketplaceOrdersPage() {
 
       {/* ===== PAYMENT DETAIL DIALOG ===== */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Payment Details</DialogTitle>
           </DialogHeader>
@@ -651,14 +658,43 @@ export default function OwnerMarketplaceOrdersPage() {
               )}
 
               <div>
-                <h3 className="font-semibold mb-2">Payment Screenshot</h3>
-                <div className="border rounded-lg p-2">
-                  <img
-                    src={selectedPayment.screenshotUrl}
-                    alt="Payment screenshot"
-                    className="max-h-64 mx-auto rounded-md object-contain"
-                  />
-                </div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Screenshot
+                </h3>
+                {selectedPayment.screenshotUrl ? (
+                  <div className="border-2 border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <img
+                      src={selectedPayment.screenshotUrl}
+                      alt="Payment screenshot"
+                      className="max-h-96 w-full mx-auto rounded-md object-contain cursor-pointer"
+                      onClick={() => window.open(selectedPayment.screenshotUrl, '_blank')}
+                      onError={(e) => {
+                        console.error('Failed to load screenshot:', selectedPayment.screenshotUrl);
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-8 text-red-500">
+                              <svg class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <p class="text-sm font-medium">Failed to load screenshot</p>
+                              <p class="text-xs text-gray-500 mt-1">The image may have been deleted or the URL is invalid</p>
+                            </div>
+                          `;
+                        }
+                      }}
+                      onLoad={() => console.log('Screenshot loaded successfully')}
+                    />
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                    <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 font-medium">No payment screenshot available</p>
+                    <p className="text-xs text-gray-400 mt-1">The screenshot may not have been uploaded</p>
+                  </div>
+                )}
               </div>
 
               <div>

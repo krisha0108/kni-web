@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * PATCH /api/admin/amc-visits/[id]/assign
@@ -47,6 +47,17 @@ export async function PATCH(
       message: `You have been assigned an AMC visit at "${visit.contract.restaurant.name}" on ${new Date(visit.scheduledDate).toLocaleDateString()}.`,
       type: NotificationType.AMC,
       linkUrl: `/engineer/amc-visits`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: visit.contract.restaurantId,
+      excludeUserIds: [visit.contract.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "AMC Visit Engineer Assigned",
+      message: `An engineer has been assigned for an AMC visit at "${visit.contract.restaurant.name}" on ${new Date(visit.scheduledDate).toLocaleDateString()}.`,
+      type: NotificationType.AMC,
+      linkUrl: `/owner/amc-contracts/${visit.contractId}`,
     });
 
     return NextResponse.json({ ok: true, data: updated });

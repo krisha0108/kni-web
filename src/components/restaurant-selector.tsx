@@ -40,11 +40,11 @@ export function RestaurantSelector({
   const fetchRestaurants = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/restaurants");
+      const response = await fetch("/api/owner/restaurants/accessible");
       const data = await response.json();
 
       if (data.ok) {
-        let allRestaurants = Array.isArray(data.data) ? data.data : [];
+        let allRestaurants = (Array.isArray(data.data) ? data.data : []).map((item: any) => item.restaurant);
 
         // Filter to only approved if specified
         if (showOnlyApproved) {

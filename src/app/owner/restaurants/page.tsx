@@ -34,6 +34,7 @@ interface Restaurant {
   fssaiNumber: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
+  userRole?: "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
 }
 
 export default function RestaurantsPage() {
@@ -130,9 +131,16 @@ export default function RestaurantsPage() {
     });
   };
 
-  // Can delete if PENDING or REJECTED (no active bookings likely)
+  // User owns at least one restaurant (or has none yet — new user)
+  const hasOwnedRestaurants = restaurants.length === 0 || restaurants.some((r) => r.userRole === "OWNER");
+
+  // Can only edit/delete owned restaurants with PENDING or REJECTED status
   const canDelete = (restaurant: Restaurant) => {
-    return restaurant.status === "PENDING" || restaurant.status === "REJECTED";
+    return restaurant.userRole === "OWNER" && (restaurant.status === "PENDING" || restaurant.status === "REJECTED");
+  };
+
+  const canEdit = (restaurant: Restaurant) => {
+    return restaurant.userRole === "OWNER";
   };
 
   if (isLoading) {
@@ -152,10 +160,12 @@ export default function RestaurantsPage() {
             Manage all your restaurant locations
           </p>
         </div>
-        <Button onClick={() => router.push("/owner/restaurant/create")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Restaurant
-        </Button>
+        {hasOwnedRestaurants && (
+          <Button onClick={() => router.push("/owner/restaurant/create")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Restaurant
+          </Button>
+        )}
       </div>
 
       {restaurants.length === 0 ? (
@@ -203,12 +213,14 @@ export default function RestaurantsPage() {
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.push(`/owner/restaurant/${restaurant.id}/edit`)}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
+                      {canEdit(restaurant) && (
+                        <DropdownMenuItem
+                          onClick={() => router.push(`/owner/restaurant/${restaurant.id}/edit`)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
                       {canDelete(restaurant) && (
                         <>
                           <DropdownMenuSeparator />
@@ -274,6 +286,13 @@ export default function RestaurantsPage() {
                         {formatDate(restaurant.createdAt)}
                       </span>
                     </div>
+                    {restaurant.userRole && restaurant.userRole !== "OWNER" && (
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {restaurant.userRole}
+                        </Badge>
+                      </div>
+                    )}
                     {restaurant.fssaiNumber && (
                       <div className="mt-2 text-xs text-muted-foreground">
                         FSSAI: {restaurant.fssaiNumber}

@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
 
 /**
  * POST /api/owner/amc-contracts/[id]/renew
- * Owner requests renewal → Creates a new AMCRequest (with renewalOfContractId)
- * This goes through the full flow: Admin schedules re-survey → Engineer surveys → Admin creates proposal → Owner pays → New contract
+ * Request renewal of an AMC contract
  */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    const contract = await db.aMCContract.findFirst({
-      where: { id, ownerId: session.id },
+    const contract = await db.aMCContract.findUnique({
+      where: { id },
       include: {
         restaurant: { select: { id: true, name: true } },
         proposal: {
@@ -34,6 +34,9 @@ export async function POST(
     if (!contract) {
       return NextResponse.json({ ok: false, error: "Contract not found" }, { status: 404 });
     }
+
+    // Validate RBAC access
+    await requireRestaurantAccess(session, contract.restaurantId, "amc:create");
 
     if (contract.status !== "ACTIVE" && contract.status !== "EXPIRED") {
       return NextResponse.json({ ok: false, error: "Contract cannot be renewed. Only ACTIVE or EXPIRED contracts can be renewed." }, { status: 400 });
@@ -61,10 +64,13 @@ export async function POST(
     // New preferred start date = old contract end date
     const preferredStartDate = new Date(contract.endDate);
 
+    // Use actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(contract.restaurantId);
+
     // Create renewal AMC request
     const renewalRequest = await db.aMCRequest.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: contract.restaurantId,
         renewalOfContractId: id,
         kitchenType,
@@ -93,7 +99,7 @@ export async function POST(
     console.error("Renew contract error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

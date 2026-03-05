@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -35,20 +36,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // First verify restaurant belongs to owner
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id: restaurantId,
-        ownerId: session.id,
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
-        { status: 404 }
-      );
-    }
+    // Verify restaurant access via RBAC
+    await requireRestaurantAccess(session, restaurantId, "staff:read");
 
     const where: any = {
       restaurantId,
@@ -97,12 +86,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createSalarySchema.parse(body);
 
-    // Verify staff belongs to owner
+    // Verify restaurant access via RBAC
+    await requireRestaurantAccess(session, validated.restaurantId, "staff:create");
+
+    // Verify staff belongs to this restaurant
     const staff = await db.staff.findFirst({
       where: {
         id: validated.staffId,
         restaurantId: validated.restaurantId,
-        ownerId: session.id,
       },
     });
 

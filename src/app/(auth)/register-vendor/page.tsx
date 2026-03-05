@@ -288,7 +288,7 @@ export default function RegisterVendorPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address *</Label>
                       <div className="relative">
@@ -348,7 +348,7 @@ export default function RegisterVendorPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label>State *</Label>
                           <Select value={selectedStateId} onValueChange={handleStateChange} disabled={isLoading}>
@@ -411,7 +411,7 @@ export default function RegisterVendorPage() {
                             </div>
                           )}
 
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {serviceAreas.map((area) => {
                               const isSelected = selectedAreaIds.includes(area.id);
                               return (
@@ -493,7 +493,7 @@ export default function RegisterVendorPage() {
                       <p className="font-medium">No categories available yet</p>
                     </div>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
                       {categories.map((category) => {
                         const isSelected = selectedCategories.includes(category.id);
                         return (
@@ -558,7 +558,7 @@ export default function RegisterVendorPage() {
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="password">Password *</Label>
                       <div className="relative">

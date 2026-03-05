@@ -40,6 +40,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface CategoryRequest {
   id: string;
@@ -75,10 +76,12 @@ export default function OwnerCategoryRequestPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
 
   const loadMyRequests = useCallback(async () => {
+    if (!selectedRestaurant) return;
     try {
-      const response = await fetch("/api/owner/category-request");
+      const response = await fetch(`/api/owner/category-request?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         setMyRequests(data.data || []);
@@ -88,7 +91,7 @@ export default function OwnerCategoryRequestPage() {
     } finally {
       setLoadingRequests(false);
     }
-  }, []);
+  }, [selectedRestaurant]);
 
   useEffect(() => {
     loadMyRequests();
@@ -112,7 +115,7 @@ export default function OwnerCategoryRequestPage() {
       const response = await fetch("/api/owner/category-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, restaurantId: selectedRestaurant?.restaurantId }),
       });
 
       const data = await response.json();
@@ -183,6 +186,16 @@ export default function OwnerCategoryRequestPage() {
   const approvedCount = myRequests.filter(r => r.status === "APPROVED").length;
   const rejectedCount = myRequests.filter(r => r.status === "REJECTED").length;
 
+  const canCreate = selectedRestaurant?.role === "OWNER" || selectedRestaurant?.role === "MANAGER";
+
+  if (!selectedRestaurant) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-slate-500">Please select a restaurant first.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-4rem)]">
       {/* Header */}
@@ -201,10 +214,12 @@ export default function OwnerCategoryRequestPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* New Request Button in Header */}
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Request
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Request
+            </Button>
+          )}
           <button
             onClick={() => {
               setLoadingRequests(true);
@@ -219,7 +234,7 @@ export default function OwnerCategoryRequestPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
@@ -328,7 +343,7 @@ export default function OwnerCategoryRequestPage() {
               )}
 
               {/* Delete Button for Pending */}
-              {request.status === "PENDING" && (
+              {request.status === "PENDING" && canCreate && (
                 <button
                   onClick={() => setDeleteRequest(request)}
                   className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-medium text-sm transition-colors"
@@ -344,7 +359,7 @@ export default function OwnerCategoryRequestPage() {
 
       {/* New Request Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

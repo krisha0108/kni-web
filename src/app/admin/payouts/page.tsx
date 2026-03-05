@@ -244,7 +244,7 @@ export default function AdminPayoutsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Engineer Payouts</h1>
@@ -259,26 +259,26 @@ export default function AdminPayoutsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Total Earnings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatAmount(summary.totalAmount)}</p>
+            <p className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatAmount(summary.totalAmount)}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Paid Out
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-lg sm:text-2xl font-bold text-green-600 leading-tight break-all">
               {formatAmount(summary.paidAmount)}
             </p>
           </CardContent>
@@ -286,12 +286,12 @@ export default function AdminPayoutsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Pending Payment
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">
+            <p className="text-lg sm:text-2xl font-bold text-yellow-600 leading-tight break-all">
               {formatAmount(summary.pendingAmount)}
             </p>
           </CardContent>
@@ -299,12 +299,12 @@ export default function AdminPayoutsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Pending Count
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{summary.pendingCount}</p>
+            <p className="text-lg sm:text-2xl font-bold leading-tight">{summary.pendingCount}</p>
           </CardContent>
         </Card>
       </div>
@@ -353,91 +353,97 @@ export default function AdminPayoutsPage() {
               No payouts found
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Engineer</TableHead>
-                  <TableHead>Restaurant</TableHead>
-                  <TableHead>Booking Amount</TableHead>
-                  <TableHead>Commission</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Paid Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayouts.map((payout) => (
-                  <TableRow key={payout.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{payout.engineer.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {payout.engineer.email}
-                        </p>
-                        {payout.engineer.phone && (
-                          <p className="text-sm text-muted-foreground">
-                            {payout.engineer.phone}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {payout.assignment.booking.restaurant.name}
-                    </TableCell>
-                    <TableCell>
-                      {formatAmount(payout.assignment.booking.totalAmount)}
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      {formatAmount(payout.amount)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(payout.status)}</TableCell>
-                    <TableCell>
-                      {new Date(payout.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {payout.paidAt
-                        ? new Date(payout.paidAt).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {payout.status === "PENDING" && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPayout(payout);
-                            setIsMarkPaidDialogOpen(true);
-                          }}
-                        >
-                          Mark as Paid
-                        </Button>
-                      )}
-                      {payout.status === "PAID" && payout.paymentNote && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            toast({
-                              title: "Payment Note",
-                              description: payout.paymentNote,
-                            });
-                          }}
-                        >
-                          View Note
-                        </Button>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[900px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Engineer</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Restaurant</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Booking Amount</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Commission</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Status</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Created</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Paid Date</TableHead>
+                    <TableHead className="whitespace-nowrap px-2 sm:px-4">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayouts.map((payout) => (
+                    <TableRow key={payout.id}>
+                      <TableCell className="px-2 sm:px-4">
+                        <div>
+                          <p className="font-medium text-xs sm:text-sm">{payout.engineer.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {payout.engineer.email}
+                          </p>
+                          {payout.engineer.phone && (
+                            <p className="text-xs text-muted-foreground">
+                              {payout.engineer.phone}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
+                        {payout.assignment.booking.restaurant.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                        {formatAmount(payout.assignment.booking.totalAmount)}
+                      </TableCell>
+                      <TableCell className="font-semibold whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                        {formatAmount(payout.amount)}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4">
+                        {getStatusBadge(payout.status)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                        {new Date(payout.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                        {payout.paidAt
+                          ? new Date(payout.paidAt).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4">
+                        {payout.status === "PENDING" && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPayout(payout);
+                              setIsMarkPaidDialogOpen(true);
+                            }}
+                            className="text-xs sm:text-sm h-8"
+                          >
+                            Mark as Paid
+                          </Button>
+                        )}
+                        {payout.status === "PAID" && payout.paymentNote && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              toast({
+                                title: "Payment Note",
+                                description: payout.paymentNote,
+                              });
+                            }}
+                            className="text-xs sm:text-sm h-8"
+                          >
+                            View Note
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Mark as Paid Dialog */}
       <Dialog open={isMarkPaidDialogOpen} onOpenChange={setIsMarkPaidDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Mark Payout as Paid</DialogTitle>
             <DialogDescription>

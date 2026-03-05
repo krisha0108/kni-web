@@ -119,26 +119,31 @@ export default function AdminAMCBreakdownsPage() {
         <Card><CardContent className="py-12 text-center"><AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">No breakdown requests found</p></CardContent></Card>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Equipment</TableHead>
                 <TableHead>Restaurant</TableHead>
+                
                 <TableHead className="hidden md:table-cell">Owner</TableHead>
                 <TableHead>Urgency</TableHead>
                 <TableHead className="hidden md:table-cell">Covered</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
+                
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {breakdowns.map((b) => (
+                
                 <TableRow key={b.id}>
                   <TableCell>
                     <p className="font-medium">{b.equipmentName}</p>
                     <p className="text-xs text-muted-foreground line-clamp-1">{b.problemDesc}</p>
                   </TableCell>
+                  
                   <TableCell>{b.contract?.restaurant?.name}</TableCell>
                   <TableCell className="hidden md:table-cell">{b.owner?.name}</TableCell>
                   <TableCell><Badge variant={urgencyColors[b.urgency] || "default"}>{b.urgency}</Badge></TableCell>
@@ -148,6 +153,7 @@ export default function AdminAMCBreakdownsPage() {
                       : <Badge className="bg-red-100 text-red-800">Chargeable</Badge>
                     }
                   </TableCell>
+                  
                   <TableCell><Badge variant={statusColors[b.status] || "default"}>{b.status}</Badge></TableCell>
                   <TableCell className="text-sm">{formatDate(b.createdAt)}</TableCell>
                   <TableCell>
@@ -161,12 +167,18 @@ export default function AdminAMCBreakdownsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+                  
+                
+                
+                
+          
         </div>
       )}
 
       {/* Assign Dialog */}
       <Dialog open={!!selectedBreakdown} onOpenChange={(o) => !o && setSelectedBreakdown(null)}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Assign Engineer to Breakdown</DialogTitle></DialogHeader>
           {selectedBreakdown && (
             <div className="space-y-4">

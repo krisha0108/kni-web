@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useRestaurant } from "@/contexts/restaurant-context";
 import { Shield, Loader2, Calendar, Building2, ArrowRight } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 
@@ -21,14 +22,17 @@ export default function OwnerAMCContractsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
 
   useEffect(() => {
-    fetch("/api/owner/amc-contracts")
+    if (!selectedRestaurant) return;
+    setIsLoading(true);
+    fetch(`/api/owner/amc-contracts?restaurantId=${selectedRestaurant.restaurantId}`)
       .then((r) => r.json())
       .then((d) => d.ok && setContracts(d.data))
       .catch(() => toast({ title: "Error", description: "Failed to load contracts", variant: "destructive" }))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [selectedRestaurant]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;

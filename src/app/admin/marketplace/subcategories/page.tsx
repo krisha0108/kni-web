@@ -257,7 +257,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
               Add Subcategory
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Subcategory</DialogTitle>
               <DialogDescription>
@@ -357,17 +357,20 @@ export default function AdminMarketplaceSubCategoriesPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Subcategory</TableHead>
               <TableHead>Category</TableHead>
+              
               <TableHead>Products</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Sort Order</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -376,6 +379,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
                 </TableCell>
               </TableRow>
             ) : subCategories.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   <FolderOpen className="mx-auto h-8 w-8 mb-2 opacity-50" />
@@ -384,6 +388,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
               </TableRow>
             ) : (
               subCategories.map((subCategory) => (
+                
                 <TableRow key={subCategory.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -404,6 +409,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
                       </div>
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <Badge variant="outline">{subCategory.category.name}</Badge>
                   </TableCell>
@@ -413,11 +419,13 @@ export default function AdminMarketplaceSubCategoriesPage() {
                       <span>{subCategory._count.products}</span>
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <Badge variant={subCategory.isActive ? "success" : "secondary"}>
                       {subCategory.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell>{subCategory.sortOrder}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -445,6 +453,14 @@ export default function AdminMarketplaceSubCategoriesPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                
+              
+          
+              
+        
       </div>
 
       {/* Edit Dialog */}
@@ -455,7 +471,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Subcategory</DialogTitle>
             <DialogDescription>Update subcategory details</DialogDescription>

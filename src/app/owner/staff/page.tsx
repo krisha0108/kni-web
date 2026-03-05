@@ -387,6 +387,11 @@ export default function StaffManagementPage() {
     return matchesSearch;
   });
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
+  const canDelete = userRole === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -402,10 +407,10 @@ export default function StaffManagementPage() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Staff Management</h1>
           <p className="text-muted-foreground">Manage your restaurant staff</p>
         </div>
-        <Button onClick={openAddDialog}>
+        {canCreate && <Button onClick={openAddDialog}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add Staff Member
-        </Button>
+        </Button>}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -451,38 +456,45 @@ export default function StaffManagementPage() {
               </p>
             </div>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden md:table-cell">Designation</TableHead>
+                  
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead className="hidden md:table-cell">Salary/Wage</TableHead>
                   <TableHead className="hidden lg:table-cell">Joining Date</TableHead>
+                  
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredStaff.map((member) => (
+                  
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{member.designation}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant="outline">{staffTypeLabels[member.staffType]}</Badge>
                     </TableCell>
+                    
                     <TableCell>
                       <Badge variant={statusColors[member.status]}>
                         {staffStatusLabels[member.status]}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3 text-muted-foreground" />
                         {member.phone}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden md:table-cell">
                       {member.monthlySalary
                         ? formatPrice(member.monthlySalary) + "/month"
@@ -490,6 +502,7 @@ export default function StaffManagementPage() {
                         ? formatPrice(member.dailyWage) + "/day"
                         : "-"}
                     </TableCell>
+                    
                     <TableCell className="hidden lg:table-cell">{formatDate(member.joiningDate)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -501,13 +514,16 @@ export default function StaffManagementPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEdit(member)}>
+                          {canUpdate && <DropdownMenuItem onClick={() => handleEdit(member)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
-                          </DropdownMenuItem>
+                          </DropdownMenuItem>}
+                          {canUpdate && <>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                          {Object.entries(staffStatusLabels).map(([status, label]) => (
+                          {Object.entries(staffStatusLabels)
+                            .filter(([status]) => canDelete || status !== "TERMINATED")
+                            .map(([status, label]) => (
                             <DropdownMenuItem
                               key={status}
                               onClick={() => handleStatusChange(member, status)}
@@ -521,6 +537,8 @@ export default function StaffManagementPage() {
                               {member.status === status && " (Current)"}
                             </DropdownMenuItem>
                           ))}
+                          </>}
+                          {canDelete && <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDeleteClick(member)}
@@ -530,6 +548,7 @@ export default function StaffManagementPage() {
                             <Trash2 className="mr-2 h-4 w-4" />
                             Terminate
                           </DropdownMenuItem>
+                          </>}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -537,13 +556,21 @@ export default function StaffManagementPage() {
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+                    
+                    
+                  
+                  
+                  
+            
           )}
         </CardContent>
       </Card>
 
       {/* Add/Edit Staff Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Staff Member" : "Add Staff Member"}</DialogTitle>
             <DialogDescription>
@@ -554,7 +581,7 @@ export default function StaffManagementPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">
                     Name <span className="text-red-500">*</span>
@@ -581,7 +608,7 @@ export default function StaffManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="designation">
                     Designation <span className="text-red-500">*</span>
@@ -615,7 +642,7 @@ export default function StaffManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="joiningDate">
                     Joining Date <span className="text-red-500">*</span>
@@ -642,7 +669,7 @@ export default function StaffManagementPage() {
                         <SelectItem value="ACTIVE">Active</SelectItem>
                         <SelectItem value="ON_LEAVE">On Leave</SelectItem>
                         <SelectItem value="RESIGNED">Resigned</SelectItem>
-                        <SelectItem value="TERMINATED">Terminated</SelectItem>
+                        {canDelete && <SelectItem value="TERMINATED">Terminated</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>

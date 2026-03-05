@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireVendorMobile } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { RestaurantRole } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
@@ -71,9 +72,17 @@ export async function POST(
       }
     }
 
-    // Transaction: Create order + ledger + expense + update payment
+    // Transaction: Create order + ledger + expense + stock decrement + update payment
     const order = await db.$transaction(async (tx) => {
-      // 1. Create MarketplaceOrder
+      // 1. Decrement stock for each ordered item
+      for (const item of items) {
+        await tx.vendorProduct.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.qty } },
+        });
+      }
+
+      // 2. Create MarketplaceOrder
       const orderItems = items.map((item) => ({
         vendorProductId: item.productId,
         qty: item.qty,
@@ -147,12 +156,32 @@ export async function POST(
         },
       });
 
-      // 6. Update payment status
+      // 6. Clean up cart items
+      const cart = await tx.marketplaceCart.findUnique({
+        where: {
+          ownerId_restaurantId: {
+            ownerId: payment.ownerId,
+            restaurantId: payment.restaurantId,
+          },
+        },
+      });
+
+      if (cart) {
+        await tx.marketplaceCartItem.deleteMany({
+          where: {
+            cartId: cart.id,
+            product: {
+              vendorId: payment.vendorId,
+            },
+          },
+        });
+      }
+
+      // 7. Update payment status
       await tx.marketplacePayment.update({
         where: { id: payment.id },
         data: {
           status: "VERIFIED",
-          orderId: newOrder.id,
           verifiedAt: new Date(),
         },
       });
@@ -168,6 +197,17 @@ export async function POST(
       type: "PAYMENT",
       linkUrl: "/owner/marketplace/orders",
     }).catch(console.error);
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: payment.restaurantId,
+      excludeUserIds: [payment.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Marketplace Payment Verified",
+      message: `Payment has been verified. Order #${order.id.substring(0, 8)} has been placed.`,
+      type: "PAYMENT",
+      linkUrl: "/owner/marketplace/orders",
+    });
 
     return NextResponse.json({ ok: true, data: order });
   } catch (error) {

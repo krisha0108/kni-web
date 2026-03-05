@@ -116,11 +116,13 @@ export default function AdminAMCVisitsPage() {
         <Card><CardContent className="py-12 text-center"><Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">No visits found</p></CardContent></Card>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Visit #</TableHead>
                 <TableHead>Restaurant</TableHead>
+                
                 <TableHead className="hidden md:table-cell">Owner</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="hidden md:table-cell">Engineer</TableHead>
@@ -128,11 +130,13 @@ export default function AdminAMCVisitsPage() {
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
+            
             <TableBody>
               {visits.map((v) => (
                 <TableRow key={v.id}>
                   <TableCell>#{v.visitNumber}<span className="block text-xs text-muted-foreground">{v.visitType}</span></TableCell>
                   <TableCell className="font-medium">{v.contract.restaurant.name}</TableCell>
+                  
                   <TableCell className="hidden md:table-cell">{v.contract.owner.name}</TableCell>
                   <TableCell>{formatDate(v.scheduledDate)}</TableCell>
                   <TableCell className="hidden md:table-cell">{v.engineer?.name || <span className="text-muted-foreground">Unassigned</span>}</TableCell>
@@ -148,12 +152,16 @@ export default function AdminAMCVisitsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+            
+                
+          
         </div>
       )}
 
       {/* Assign Dialog */}
       <Dialog open={!!selectedVisit} onOpenChange={(o) => !o && setSelectedVisit(null)}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Assign Engineer to Visit</DialogTitle></DialogHeader>
           {selectedVisit && (
             <div className="space-y-4">

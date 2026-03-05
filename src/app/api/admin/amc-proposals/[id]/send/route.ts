@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * POST /api/admin/amc-proposals/[id]/send
@@ -52,6 +52,17 @@ export async function POST(
       userId: proposal.request.ownerId,
       title: "AMC Proposal Ready",
       message: `An AMC proposal is ready for "${proposal.request.restaurant.name}". Please review and accept/reject.`,
+      type: NotificationType.AMC,
+      linkUrl: `/owner/amc-requests/${proposal.requestId}`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: proposal.request.restaurantId,
+      excludeUserIds: [proposal.request.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "AMC Proposal Ready",
+      message: `An AMC proposal is ready for "${proposal.request.restaurant.name}". Please review.`,
       type: NotificationType.AMC,
       linkUrl: `/owner/amc-requests/${proposal.requestId}`,
     });

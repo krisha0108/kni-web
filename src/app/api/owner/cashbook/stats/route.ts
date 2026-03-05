@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/cashbook/stats - Get cashbook statistics
@@ -17,10 +18,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
+
     // Build where clause
     const where: any = {
       restaurantId,
-      ownerId: session.id,
     };
 
     if (startDate && endDate) {

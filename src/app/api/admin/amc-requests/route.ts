@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
-import { createNotification } from "@/server/notifications/service";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { RestaurantRole } from "@prisma/client";
 
 const createAMCRequestSchema = z.object({
   ownerId: z.string().min(1, "Owner is required"),
@@ -156,6 +157,17 @@ export async function POST(request: NextRequest) {
       linkUrl: "/owner/amc",
     }).catch((err) => {
       console.error("Failed to notify owner:", err);
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "AMC Request Created",
+      message: `An AMC request has been created for ${restaurant.name}`,
+      type: "AMC",
+      linkUrl: "/owner/amc",
     });
 
     return NextResponse.json({ ok: true, data: amcRequest }, { status: 201 });

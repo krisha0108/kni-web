@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 export async function GET(
   request: NextRequest,
@@ -10,11 +11,24 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    const booking = await db.serviceBooking.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Fetch booking by id (without ownerId filter) to get restaurantId
+    const booking = await db.serviceBooking.findUnique({
+      where: { id },
+      select: { restaurantId: true },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { ok: false, error: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    // RBAC check - verify user has access to read bookings for this restaurant
+    await requireRestaurantAccess(session, booking.restaurantId, "bookings:read");
+
+    const fullBooking = await db.serviceBooking.findUnique({
+      where: { id },
       include: {
         restaurant: {
           select: { id: true, name: true, address: true, city: true },
@@ -52,18 +66,11 @@ export async function GET(
       },
     });
 
-    if (!booking) {
-      return NextResponse.json(
-        { ok: false, error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, data: booking });
+    return NextResponse.json({ ok: true, data: fullBooking });
   } catch (error) {
     console.error("Get booking error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }

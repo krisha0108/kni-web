@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
 import { isValidImageUrl } from "@/lib/validations/url";
@@ -15,7 +16,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
     const body = await request.json();
     const { screenshotUrl } = body;
@@ -24,11 +25,12 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "A valid screenshot URL is required" }, { status: 400 });
     }
 
+    // Fetch payment with request to get restaurantId for RBAC
     const payment = await db.aMCPayment.findFirst({
-      where: { id, ownerId: session.id },
+      where: { id },
       include: {
         request: {
-          include: { restaurant: { select: { name: true } } },
+          include: { restaurant: { select: { id: true, name: true } } },
         },
       },
     });
@@ -36,6 +38,9 @@ export async function POST(
     if (!payment) {
       return NextResponse.json({ ok: false, error: "Payment not found" }, { status: 404 });
     }
+
+    // RBAC: verify user has amc:update access for this restaurant
+    await requireRestaurantAccess(session, payment.request.restaurantId, "amc:update");
 
     if (payment.status !== "PENDING" && payment.status !== "REJECTED") {
       return NextResponse.json({ ok: false, error: "Payment screenshot can only be uploaded when status is PENDING or REJECTED" }, { status: 400 });
@@ -70,7 +75,7 @@ export async function POST(
     console.error("Upload payment error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

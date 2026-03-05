@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 
 /**
  * GET /api/owner/amc-requests
- * List all AMC requests for the logged-in owner
+ * List all AMC requests for a restaurant
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    await requireRestaurantAccess(session, restaurantId, "amc:read");
 
     const requests = await db.aMCRequest.findMany({
       where: {
-        ownerId: session.id,
-        ...(restaurantId ? { restaurantId } : {}),
+        restaurantId,
       },
       include: {
         restaurant: { select: { id: true, name: true, city: true } },
@@ -26,7 +35,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message === "Unauthorized" ? 401 : 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
 
     const {
@@ -58,9 +67,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate restaurant belongs to owner
+    // Validate RBAC access
+    await requireRestaurantAccess(session, restaurantId, "amc:create");
+
+    // Validate restaurant is approved
     const restaurant = await db.restaurant.findFirst({
-      where: { id: restaurantId, ownerId: session.id, status: "APPROVED" },
+      where: { id: restaurantId, status: "APPROVED" },
     });
 
     if (!restaurant) {
@@ -86,11 +98,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(restaurantId);
+
     // Check for existing pending request or active contract for this restaurant
     const existingRequest = await db.aMCRequest.findFirst({
       where: {
         restaurantId,
-        ownerId: session.id,
         status: { in: ["REQUESTED", "SURVEY_SCHEDULED", "SURVEY_COMPLETED", "PROPOSAL_SENT", "PAYMENT_PENDING", "PAYMENT_UPLOADED", "CONTRACT_ACTIVE"] },
       },
     });
@@ -107,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     const amcRequest = await db.aMCRequest.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId,
         equipmentCategories: equipmentCategories,
         kitchenType,
@@ -126,7 +140,7 @@ export async function POST(request: NextRequest) {
     console.error("Create AMC request error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message === "Unauthorized" ? 401 : 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

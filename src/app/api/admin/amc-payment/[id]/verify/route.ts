@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * POST /api/admin/amc-payment/[id]/verify
@@ -137,6 +137,17 @@ export async function POST(
       userId: payment.ownerId,
       title: "Payment Verified - AMC Contract Active!",
       message: `Your payment for "${payment.request.restaurant.name}" has been verified. Contract ${contractNumber} is now active.`,
+      type: NotificationType.AMC,
+      linkUrl: `/owner/amc-contracts/${contract.id}`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: payment.request.restaurantId,
+      excludeUserIds: [payment.ownerId],
+      roles: [RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT],
+      title: "AMC Payment Verified",
+      message: `AMC payment for "${payment.request.restaurant.name}" has been verified. Contract ${contractNumber} is now active.`,
       type: NotificationType.AMC,
       linkUrl: `/owner/amc-contracts/${contract.id}`,
     });

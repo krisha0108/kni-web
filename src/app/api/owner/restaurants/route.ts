@@ -33,10 +33,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Get restaurants for owner:", session.id);
-
-    // Return all restaurants for this owner
-    const restaurants = await db.restaurant.findMany({
+    // Owned restaurants (all statuses)
+    const ownedRestaurants = await db.restaurant.findMany({
       where: { ownerId: session.id },
       orderBy: { createdAt: "desc" },
       include: {
@@ -46,7 +44,29 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log("Found restaurants:", restaurants.length);
+    // Managed restaurants (accepted memberships, APPROVED only)
+    const managedMemberships = await db.restaurantMember.findMany({
+      where: {
+        userId: session.id,
+        acceptedAt: { not: null },
+        restaurant: { status: "APPROVED" },
+      },
+      include: {
+        restaurant: {
+          include: {
+            categories: {
+              include: { category: { select: { id: true, name: true } } },
+            },
+          },
+        },
+      },
+    });
+
+    const restaurants = [
+      ...ownedRestaurants.map((r) => ({ ...r, userRole: "OWNER" as const })),
+      ...managedMemberships.map((m) => ({ ...m.restaurant, userRole: m.role })),
+    ];
+
     return NextResponse.json({ ok: true, data: restaurants });
   } catch (error) {
     console.error("Get restaurant error:", error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 // GET /api/owner/equipment/[id] - Get individual equipment details with service history
 export async function GET(
@@ -14,7 +15,6 @@ export async function GET(
     const equipment = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
       include: {
@@ -74,6 +74,9 @@ export async function GET(
       );
     }
 
+    // RBAC check - verify user has access to this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "equipment:read");
+
     // Calculate total spend from completed bookings
     const completedBookings = equipment.serviceBookings.filter(
       (b) => b.status === "COMPLETED"
@@ -107,11 +110,10 @@ export async function PATCH(
     const { id: equipmentId } = await params;
     const body = await request.json();
 
-    // Verify equipment belongs to this owner
+    // Verify equipment exists
     const existing = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
     });
@@ -122,6 +124,9 @@ export async function PATCH(
         { status: 404 }
       );
     }
+
+    // RBAC check - verify user has access to update this equipment
+    await requireRestaurantAccess(session, existing.restaurantId, "equipment:update");
 
     // Only allow updating these fields
     const allowedFields: Record<string, unknown> = {};
@@ -164,11 +169,10 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id: equipmentId } = await params;
 
-    // Verify equipment belongs to this owner
+    // Verify equipment exists
     const existing = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
     });
@@ -179,6 +183,9 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // RBAC check - verify user has access to delete this equipment
+    await requireRestaurantAccess(session, existing.restaurantId, "equipment:delete");
 
     // Soft delete
     await db.equipment.update({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -29,11 +30,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await requireRestaurantAccess(session, restaurantId, "staff:read");
+
     const where: any = {
       restaurantId,
-      staff: {
-        ownerId: session.id,
-      },
     };
 
     if (staffId) {
@@ -91,12 +91,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = markAttendanceSchema.parse(body);
 
-    // Verify staff belongs to owner's restaurant
+    await requireRestaurantAccess(session, validated.restaurantId, "staff:update");
+
+    // Verify staff belongs to restaurant
     const staff = await db.staff.findFirst({
       where: {
         id: validated.staffId,
         restaurantId: validated.restaurantId,
-        ownerId: session.id,
       },
     });
 

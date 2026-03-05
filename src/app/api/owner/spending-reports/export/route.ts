@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/server/auth/session";
 import { getMobileSession } from "@/server/auth/mobile-session";
 import { db } from "@/server/db";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,18 +31,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify restaurant access
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id: restaurantId,
-        ownerId: session.id,
-      },
+    // Check restaurant access with expenses:read permission
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
+
+    const restaurant = await db.restaurant.findUnique({
+      where: { id: restaurantId },
       select: { id: true, name: true },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
+        { ok: false, error: "Restaurant not found" },
         { status: 404 }
       );
     }

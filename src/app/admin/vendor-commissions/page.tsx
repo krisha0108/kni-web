@@ -276,17 +276,20 @@ export default function AdminVendorCommissionsPage() {
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Vendor Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
+                  
                   <TableHead>Commission Rate</TableHead>
                   <TableHead>Total Commission</TableHead>
                   <TableHead>Pending Commission</TableHead>
                   <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {isLoading ? (
                   <TableRow>
@@ -298,6 +301,7 @@ export default function AdminVendorCommissionsPage() {
                     </TableCell>
                   </TableRow>
                 ) : vendors.length === 0 ? (
+                  
                   <TableRow>
                     <TableCell
                       colSpan={6}
@@ -308,6 +312,7 @@ export default function AdminVendorCommissionsPage() {
                   </TableRow>
                 ) : (
                   vendors.map((vendor) => (
+                    
                     <TableRow key={vendor.vendor.id}>
                       <TableCell className="font-medium">
                         {vendor.vendor.name}
@@ -315,12 +320,14 @@ export default function AdminVendorCommissionsPage() {
                       <TableCell className="hidden sm:table-cell">
                         {vendor.vendor.email}
                       </TableCell>
+                      
                       <TableCell>
                         {vendor.commissionRate ?? 0}%
                       </TableCell>
                       <TableCell>
                         {formatPrice(vendor.totalCommission)}
                       </TableCell>
+                      
                       <TableCell>
                         <span
                           className={
@@ -332,6 +339,7 @@ export default function AdminVendorCommissionsPage() {
                           {formatPrice(vendor.pendingCommission)}
                         </span>
                       </TableCell>
+                      
                       <TableCell>
                         <Button
                           size="sm"
@@ -355,6 +363,14 @@ export default function AdminVendorCommissionsPage() {
                 )}
               </TableBody>
             </Table>
+                      
+                      
+                      
+                    
+                  
+              
+                  
+            
           </div>
         </CardContent>
       </Card>
@@ -369,16 +385,19 @@ export default function AdminVendorCommissionsPage() {
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Vendor Name</TableHead>
                   <TableHead>Amount</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead className="w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {isLoading ? (
                   <TableRow>
@@ -390,6 +409,7 @@ export default function AdminVendorCommissionsPage() {
                     </TableCell>
                   </TableRow>
                 ) : allCollections.length === 0 ? (
+                  
                   <TableRow>
                     <TableCell
                       colSpan={5}
@@ -400,11 +420,13 @@ export default function AdminVendorCommissionsPage() {
                   </TableRow>
                 ) : (
                   allCollections.map((collection) => (
+                    
                     <TableRow key={collection.id}>
                       <TableCell className="font-medium">
                         {collection.vendorName}
                       </TableCell>
                       <TableCell>{formatPrice(collection.totalAmount)}</TableCell>
+                      
                       <TableCell>
                         <Badge
                           variant={
@@ -415,6 +437,7 @@ export default function AdminVendorCommissionsPage() {
                           {collection.status.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell className="hidden sm:table-cell">
                         {formatDate(collection.createdAt)}
                       </TableCell>
@@ -484,6 +507,13 @@ export default function AdminVendorCommissionsPage() {
                 )}
               </TableBody>
             </Table>
+                      
+                      
+                    
+                  
+              
+                  
+            
           </div>
         </CardContent>
       </Card>
@@ -493,7 +523,7 @@ export default function AdminVendorCommissionsPage() {
         open={isScreenshotDialogOpen}
         onOpenChange={setIsScreenshotDialogOpen}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Payment Screenshot</DialogTitle>
             <DialogDescription>
@@ -527,7 +557,7 @@ export default function AdminVendorCommissionsPage() {
 
       {/* Reject Payment Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Payment</DialogTitle>
             <DialogDescription>

@@ -140,11 +140,13 @@ export default function WarehouseAlertsPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Severity</TableHead>
               <TableHead>Part Name</TableHead>
+              
               <TableHead>Category</TableHead>
               <TableHead>Current Stock</TableHead>
               <TableHead>Threshold</TableHead>
@@ -152,6 +154,7 @@ export default function WarehouseAlertsPage() {
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -160,6 +163,7 @@ export default function WarehouseAlertsPage() {
                 </TableCell>
               </TableRow>
             ) : alerts.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   {severityFilter === "all"
@@ -169,6 +173,7 @@ export default function WarehouseAlertsPage() {
               </TableRow>
             ) : (
               alerts.map((alert) => (
+                
                 <TableRow key={alert.id}>
                   <TableCell>{getSeverityBadge(alert.severity)}</TableCell>
                   <TableCell className="font-medium">{alert.partItem.name}</TableCell>
@@ -186,11 +191,13 @@ export default function WarehouseAlertsPage() {
                       {alert.currentStock}
                     </span>
                   </TableCell>
+                  
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
                       {alert.lowStockThreshold}
                     </span>
                   </TableCell>
+                  
                   <TableCell>{formatPrice(alert.partItem.price)}</TableCell>
                   <TableCell>
                     <Button
@@ -206,6 +213,13 @@ export default function WarehouseAlertsPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                
+              
+          
+              
+        
       </div>
     </div>
   );

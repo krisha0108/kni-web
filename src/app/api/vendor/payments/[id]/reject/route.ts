@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireVendorMobile } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { RestaurantRole } from "@prisma/client";
 import { z } from "zod";
 
 const rejectSchema = z.object({
@@ -72,6 +73,17 @@ export async function POST(
       type: "PAYMENT",
       linkUrl: "/owner/marketplace",
     }).catch(console.error);
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: payment.restaurantId,
+      excludeUserIds: [payment.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Marketplace Payment Rejected",
+      message: `Payment to ${payment.vendor.name} was rejected. Reason: ${reason}`,
+      type: "PAYMENT",
+      linkUrl: "/owner/marketplace",
+    });
 
     return NextResponse.json({ ok: true, data: updated });
   } catch (error) {

@@ -181,7 +181,7 @@ export default function NewBookingPage() {
         <p className="text-muted-foreground">Select your preferred date and time slot</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-1 md:grid-cols-3">
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit}>
             <Card>
@@ -201,7 +201,7 @@ export default function NewBookingPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="date">Preferred Date *</Label>
                     <div className="relative">

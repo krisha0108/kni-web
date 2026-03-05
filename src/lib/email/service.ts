@@ -1,13 +1,19 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
-
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@kni-super-app.com";
-const FROM_NAME = process.env.SENDGRID_FROM_NAME || "KNI Super App";
+const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "noreply@kni-super-app.com";
+const FROM_NAME = process.env.SMTP_FROM_NAME || "KNI Super App";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+// Create reusable SMTP transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 interface SendEmailInput {
   to: string;
@@ -17,21 +23,18 @@ interface SendEmailInput {
 }
 
 /**
- * Send email using SendGrid
+ * Send email using Nodemailer (Gmail SMTP)
  */
 export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   try {
-    if (!process.env.SENDGRID_API_KEY) {
-      console.warn("SendGrid API key not configured. Email not sent.");
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn("SMTP credentials not configured. Email not sent.");
       console.log("Email details:", { to: input.to, subject: input.subject });
       return false;
     }
 
-    await sgMail.send({
-      from: {
-        email: FROM_EMAIL,
-        name: FROM_NAME,
-      },
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       to: input.to,
       subject: input.subject,
       html: input.html,
@@ -42,9 +45,6 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
     return true;
   } catch (error: any) {
     console.error("Email send error:", error);
-    if (error.response) {
-      console.error("SendGrid error details:", error.response.body);
-    }
     return false;
   }
 }

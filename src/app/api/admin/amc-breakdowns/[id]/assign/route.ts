@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * PATCH /api/admin/amc-breakdowns/[id]/assign
@@ -73,6 +73,17 @@ export async function PATCH(
       userId: breakdown.ownerId,
       title: "Breakdown Engineer Assigned",
       message: `An engineer has been assigned for your breakdown request at "${breakdown.contract.restaurant.name}".`,
+      type: NotificationType.AMC,
+      linkUrl: `/owner/amc-contracts/${breakdown.contractId}`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: breakdown.contract.restaurantId,
+      excludeUserIds: [breakdown.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Breakdown Engineer Assigned",
+      message: `An engineer has been assigned for a breakdown request at "${breakdown.contract.restaurant.name}".`,
       type: NotificationType.AMC,
       linkUrl: `/owner/amc-contracts/${breakdown.contractId}`,
     });

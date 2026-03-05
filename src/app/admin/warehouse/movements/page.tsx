@@ -88,11 +88,13 @@ export default function StockMovementsPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date & Time</TableHead>
               <TableHead>Part Name</TableHead>
+              
               <TableHead>Movement Type</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Balance After</TableHead>
@@ -100,6 +102,7 @@ export default function StockMovementsPage() {
               <TableHead>Notes</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -108,6 +111,7 @@ export default function StockMovementsPage() {
                 </TableCell>
               </TableRow>
             ) : movements.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No stock movements found.
@@ -115,27 +119,32 @@ export default function StockMovementsPage() {
               </TableRow>
             ) : (
               movements.map((movement) => (
+                
                 <TableRow key={movement.id}>
                   <TableCell className="font-medium">
                     {formatDateTime(movement.createdAt)}
                   </TableCell>
                   <TableCell>{movement.inventory.partItem.name}</TableCell>
+                  
                   <TableCell>
                     <Badge variant={getMovementTypeColor(movement.movementType as any)}>
                       {getMovementTypeLabel(movement.movementType as any)}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell className="font-mono">
                     {movement.movementType.startsWith("INWARD") ? "+" : "-"}
                     {movement.quantity}
                   </TableCell>
                   <TableCell className="font-mono">{movement.balanceAfter}</TableCell>
+                  
                   <TableCell>
                     <div>
                       <p className="font-medium">{movement.creator?.name || "System"}</p>
                       <p className="text-xs text-muted-foreground">{movement.creator?.email || "-"}</p>
                     </div>
                   </TableCell>
+                  
                   <TableCell className="text-sm text-muted-foreground">
                     {movement.notes || "-"}
                   </TableCell>
@@ -144,6 +153,15 @@ export default function StockMovementsPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                  
+                
+              
+          
+              
+        
       </div>
     </div>
   );

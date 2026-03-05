@@ -102,6 +102,9 @@ export default function OwnerSupportPage() {
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+
   const [formData, setFormData] = useState({
     title: "",
     equipmentName: "",
@@ -360,13 +363,13 @@ export default function OwnerSupportPage() {
 
   if (!selectedRestaurant) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center py-10">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">No Restaurant Selected</h3>
-              <p className="text-muted-foreground text-sm mt-1">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-10">
+              <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold">No Restaurant Selected</h3>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1 text-center">
                 Please select a restaurant to view support tickets
               </p>
             </div>
@@ -377,54 +380,59 @@ export default function OwnerSupportPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Support Center</h1>
-          <p className="text-muted-foreground">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight">Support Center</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Get help with your equipment and services
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" asChild>
             <a href="tel:+919999999999">
-              <Phone className="h-4 w-4 mr-2" />
-              Call Support
+              <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+              <span className="hidden sm:inline">Call Support</span>
+              <span className="sm:hidden">Call</span>
             </a>
           </Button>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Ticket
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            {canCreate && (
+              <DialogTrigger asChild>
+                <Button size="sm" onClick={() => { resetForm(); setIsCreateOpen(true); }}>
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">New Ticket</span>
+                  <span className="sm:hidden">New</span>
+                </Button>
+              </DialogTrigger>
+            )}
+            <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create Support Ticket</DialogTitle>
+                <DialogTitle className="text-base sm:text-lg">Create Support Ticket</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-3 sm:gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title" className="text-xs sm:text-sm">Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Brief description of your issue"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category" className="text-xs sm:text-sm">Category</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORY_OPTIONS.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
+                        <SelectItem key={cat} value={cat} className="text-xs sm:text-sm">
                           {cat}
                         </SelectItem>
                       ))}
@@ -432,26 +440,28 @@ export default function OwnerSupportPage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="equipmentName">Equipment Name (Optional)</Label>
+                  <Label htmlFor="equipmentName" className="text-xs sm:text-sm">Equipment Name (Optional)</Label>
                   <Input
                     id="equipmentName"
                     value={formData.equipmentName}
                     onChange={(e) => setFormData({ ...formData, equipmentName: e.target.value })}
                     placeholder="If related to specific equipment"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <Label htmlFor="description" className="text-xs sm:text-sm">Description *</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Describe your issue in detail..."
                     rows={4}
+                    className="text-xs sm:text-sm"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Attachment (Optional)</Label>
+                  <Label className="text-xs sm:text-sm">Attachment (Optional)</Label>
                   <input
                     type="file"
                     ref={ticketFileInputRef}
@@ -468,12 +478,12 @@ export default function OwnerSupportPage() {
                       <img
                         src={ticketImageUrl}
                         alt="Attachment preview"
-                        className="h-24 w-auto rounded-lg border"
+                        className="h-20 w-auto sm:h-24 rounded-lg border"
                       />
                       <Button
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
+                        className="absolute -top-2 -right-2 h-5 w-5 sm:h-6 sm:w-6"
                         onClick={() => setTicketImageUrl("")}
                       >
                         <X className="h-3 w-3" />
@@ -483,24 +493,26 @@ export default function OwnerSupportPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
                       onClick={() => ticketFileInputRef.current?.click()}
                       disabled={isUploadingTicketImage}
+                      className="text-xs sm:text-sm"
                     >
                       {isUploadingTicketImage ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
                       ) : (
-                        <Upload className="h-4 w-4 mr-2" />
+                        <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                       )}
                       Upload Image
                     </Button>
                   )}
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <DialogFooter className="flex gap-2 flex-row-reverse">
+                <Button onClick={handleCreate} size="sm">Create Ticket</Button>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)} size="sm">
                   Cancel
                 </Button>
-                <Button onClick={handleCreate}>Create Ticket</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -508,20 +520,20 @@ export default function OwnerSupportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
         {STATUS_OPTIONS.slice(1).map((status) => {
           const config = getStatusConfig(status.value);
           const Icon = config.icon;
           return (
             <Card key={status.value} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(status.value)}>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-3">
+              <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+                <div className="flex flex-col items-center gap-2">
                   <div className={`p-2 rounded-lg ${status.value === statusFilter ? 'bg-primary/10' : 'bg-muted'}`}>
-                    <Icon className={`h-5 w-5 ${status.value === statusFilter ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${status.value === statusFilter ? 'text-primary' : 'text-muted-foreground'}`} />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold">{statusCounts[status.value] || 0}</p>
-                    <p className="text-xs text-muted-foreground">{status.label}</p>
+                  <div className="text-center min-w-0">
+                    <p className="text-lg sm:text-2xl font-bold leading-tight">{statusCounts[status.value] || 0}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{status.label}</p>
                   </div>
                 </div>
               </CardContent>
@@ -531,20 +543,20 @@ export default function OwnerSupportPage() {
       </div>
 
       {/* Search and Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-4">
-          <div className="flex flex-col md:flex-row gap-4">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
-                placeholder="Search tickets by title, ID, or description..."
+                placeholder="Search tickets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -576,11 +588,13 @@ export default function OwnerSupportPage() {
               </p>
             </div>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden md:table-cell">Ticket ID</TableHead>
                   <TableHead>Title</TableHead>
+                  
                   <TableHead className="hidden sm:table-cell">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden lg:table-cell">Replies</TableHead>
@@ -588,11 +602,13 @@ export default function OwnerSupportPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {filteredTickets.map((ticket) => {
                   const statusConfig = getStatusConfig(ticket.status);
                   const StatusIcon = statusConfig.icon;
                   return (
+                    
                     <TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openTicketDetail(ticket)}>
                       <TableCell className="hidden md:table-cell font-mono text-sm">
                         #{ticket.id.slice(0, 8)}
@@ -605,6 +621,7 @@ export default function OwnerSupportPage() {
                           )}
                         </div>
                       </TableCell>
+                      
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline">{ticket.category}</Badge>
                       </TableCell>
@@ -614,12 +631,14 @@ export default function OwnerSupportPage() {
                           {statusConfig.label}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           {ticket._count.threads}
                         </div>
                       </TableCell>
+                      
                       <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                         {formatDate(ticket.createdAt)}
                       </TableCell>
@@ -628,7 +647,7 @@ export default function OwnerSupportPage() {
                           <Button variant="ghost" size="icon" onClick={() => openTicketDetail(ticket)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {ticket.status === "PENDING" && (
+                          {ticket.status === "PENDING" && canCreate && (
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteTicket(ticket.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -640,18 +659,25 @@ export default function OwnerSupportPage() {
                 })}
               </TableBody>
             </Table>
+                      
+                      
+                      
+                    
+              
+                  
+            
           )}
         </CardContent>
       </Card>
 
       {/* Ticket Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <span>Ticket #{selectedTicket?.id.slice(0, 8)}</span>
+            <DialogTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+              <span className="text-base sm:text-lg">Ticket #{selectedTicket?.id.slice(0, 8)}</span>
               {selectedTicket && (
-                <Badge variant={getStatusConfig(selectedTicket.status).color}>
+                <Badge variant={getStatusConfig(selectedTicket.status).color} className="text-xs sm:text-sm w-fit">
                   {getStatusConfig(selectedTicket.status).label}
                 </Badge>
               )}
@@ -661,15 +687,15 @@ export default function OwnerSupportPage() {
             <>
               <div className="space-y-4 flex-1 overflow-y-auto">
                 {/* Ticket Info */}
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <h3 className="font-semibold">{selectedTicket.title}</h3>
-                  <div className="flex gap-4 text-sm text-muted-foreground">
-                    <span>Category: {selectedTicket.category}</span>
+                <div className="p-3 sm:p-4 bg-muted rounded-lg space-y-2">
+                  <h3 className="font-semibold text-sm sm:text-base">{selectedTicket.title}</h3>
+                  <div className="flex flex-col sm:flex-row sm:gap-4 gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <span className="line-clamp-1">Category: {selectedTicket.category}</span>
                     {selectedTicket.equipmentName && (
-                      <span>Equipment: {selectedTicket.equipmentName}</span>
+                      <span className="line-clamp-1">Equipment: {selectedTicket.equipmentName}</span>
                     )}
                   </div>
-                  <p className="text-sm">{selectedTicket.description}</p>
+                  <p className="text-xs sm:text-sm">{selectedTicket.description}</p>
                   {selectedTicket.photoUrl && (
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
@@ -699,26 +725,26 @@ export default function OwnerSupportPage() {
                     threads.map((thread) => (
                       <div
                         key={thread.id}
-                        className={`p-3 rounded-lg ${
+                        className={`p-2 sm:p-3 rounded-lg ${
                           thread.isAdmin
-                            ? "bg-primary/10 ml-8"
-                            : "bg-muted mr-8"
+                            ? "bg-primary/10 ml-2 sm:ml-8"
+                            : "bg-muted mr-2 sm:mr-8"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1 sm:gap-0">
+                          <span className="text-xs sm:text-sm font-medium">
                             {thread.user.name}
                             {thread.isAdmin && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
+                              <Badge variant="secondary" className="ml-2 text-[10px] sm:text-xs">
                                 Support
                               </Badge>
                             )}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">
                             {formatDate(thread.createdAt)}
                           </span>
                         </div>
-                        <p className="text-sm">{thread.message}</p>
+                        <p className="text-xs sm:text-sm">{thread.message}</p>
                         {thread.imageUrl && (
                           <img
                             src={thread.imageUrl}
@@ -735,14 +761,14 @@ export default function OwnerSupportPage() {
 
               {/* Reply Section */}
               {selectedTicket.status !== "COMPLETED" && selectedTicket.status !== "REJECTED" && (
-                <div className="pt-4 border-t space-y-2">
+                <div className="pt-3 sm:pt-4 border-t space-y-2">
                   {/* Image Preview */}
                   {replyImageUrl && (
                     <div className="relative inline-block">
                       <img
                         src={replyImageUrl}
                         alt="Upload preview"
-                        className="h-16 w-auto rounded-lg border"
+                        className="h-14 sm:h-16 w-auto rounded-lg border"
                       />
                       <Button
                         variant="destructive"
@@ -754,7 +780,7 @@ export default function OwnerSupportPage() {
                       </Button>
                     </div>
                   )}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     <input
                       type="file"
                       ref={replyFileInputRef}
@@ -776,22 +802,23 @@ export default function OwnerSupportPage() {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1"
+                      className="flex-1 h-9 sm:h-10 text-xs sm:text-sm"
                     />
                     <Button
                       variant="outline"
                       size="icon"
+                      className="h-9 sm:h-10 w-9 sm:w-10"
                       onClick={() => replyFileInputRef.current?.click()}
                       disabled={isUploadingReplyImage}
                     >
                       {isUploadingReplyImage ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       ) : (
-                        <ImageIcon className="h-4 w-4" />
+                        <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       )}
                     </Button>
-                    <Button onClick={handleSendMessage} disabled={isSending || (!newMessage.trim() && !replyImageUrl)}>
-                      <Send className="h-4 w-4" />
+                    <Button onClick={handleSendMessage} disabled={isSending || (!newMessage.trim() && !replyImageUrl)} className="h-9 sm:h-10 px-2 sm:px-4">
+                      <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>

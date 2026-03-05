@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { createVendorRating } from "@/server/ratings/service";
 import { z } from "zod";
@@ -23,11 +24,10 @@ export async function POST(
     const session = await requireOwnerMobile(request);
     const { id: orderId } = await params;
 
-    // Verify order belongs to owner and is delivered
+    // Verify order exists and is delivered
     const order = await db.marketplaceOrder.findUnique({
       where: { id: orderId },
       include: {
-        restaurant: { select: { ownerId: true } },
         vendor: { select: { id: true } },
       },
     });
@@ -42,15 +42,8 @@ export async function POST(
       );
     }
 
-    if (order.restaurant.ownerId !== session.id) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized - not your order",
-        },
-        { status: 403 }
-      );
-    }
+    // RBAC check using restaurantId from the order
+    await requireRestaurantAccess(session, order.restaurantId, "marketplace:create");
 
     if (order.status !== "DELIVERED") {
       return NextResponse.json(
@@ -76,10 +69,13 @@ export async function POST(
       );
     }
 
+    // Get the actual restaurant owner ID for the FK
+    const ownerId = await getRestaurantOwnerId(order.restaurantId);
+
     const rating = await createVendorRating({
       orderId,
       vendorId: order.vendorId,
-      ownerId: session.id,
+      ownerId,
       restaurantId: order.restaurantId,
       ...validation.data,
     });
@@ -110,12 +106,9 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id: orderId } = await params;
 
-    // Verify order belongs to owner
+    // Verify order exists
     const order = await db.marketplaceOrder.findUnique({
       where: { id: orderId },
-      include: {
-        restaurant: { select: { ownerId: true } },
-      },
     });
 
     if (!order) {
@@ -128,15 +121,8 @@ export async function GET(
       );
     }
 
-    if (order.restaurant.ownerId !== session.id) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized",
-        },
-        { status: 403 }
-      );
-    }
+    // RBAC check using restaurantId from the order
+    await requireRestaurantAccess(session, order.restaurantId, "marketplace:read");
 
     const rating = await db.vendorRating.findUnique({
       where: { orderId },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -22,11 +23,8 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    const staff = await db.staff.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    const staff = await db.staff.findUnique({
+      where: { id },
       include: {
         attendance: {
           orderBy: {
@@ -51,6 +49,9 @@ export async function GET(
       );
     }
 
+    // Validate RBAC access
+    await requireRestaurantAccess(session, staff.restaurantId, "staff:read");
+
     return NextResponse.json({
       ok: true,
       data: staff,
@@ -58,7 +59,7 @@ export async function GET(
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to fetch staff member" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }
@@ -74,19 +75,23 @@ export async function PATCH(
     const body = await request.json();
     const validated = updateStaffSchema.parse(body);
 
-    // Check ownership
-    const existing = await db.staff.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Fetch record and check RBAC
+    const existing = await db.staff.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Staff member not found or access denied" },
+        { ok: false, error: "Staff member not found" },
         { status: 404 }
       );
+    }
+
+    await requireRestaurantAccess(session, existing.restaurantId, "staff:update");
+
+    // Changing status to TERMINATED requires staff:delete permission
+    if (validated.status === "TERMINATED") {
+      await requireRestaurantAccess(session, existing.restaurantId, "staff:delete");
     }
 
     const updateData: any = {};
@@ -127,7 +132,7 @@ export async function PATCH(
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to update staff member" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }
@@ -141,20 +146,19 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Check ownership
-    const existing = await db.staff.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Fetch record and check RBAC
+    const existing = await db.staff.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Staff member not found or access denied" },
+        { ok: false, error: "Staff member not found" },
         { status: 404 }
       );
     }
+
+    await requireRestaurantAccess(session, existing.restaurantId, "staff:delete");
 
     // Instead of hard delete, mark as terminated
     await db.staff.update({
@@ -175,7 +179,7 @@ export async function DELETE(
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to delete staff member" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }

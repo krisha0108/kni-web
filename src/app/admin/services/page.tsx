@@ -227,7 +227,7 @@ export default function AdminServicesPage() {
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" />Add Service</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Service</DialogTitle>
               <DialogDescription>Add a new service to the catalog</DialogDescription>
@@ -294,52 +294,81 @@ export default function AdminServicesPage() {
         </ClientOnly>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[80px] sm:w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
-            ) : services.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No services found</TableCell></TableRow>
-            ) : (
-              services.map((service) => (
-                <TableRow key={service.id}>
-                  <TableCell>
-                    <div className="font-medium">{service.name}</div>
-                    {service.description && <div className="text-sm text-muted-foreground">{service.description}</div>}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <div>{service.category.name}</div>
-                    {service.subCategory && <div className="text-sm text-muted-foreground">{service.subCategory.name}</div>}
-                  </TableCell>
-                  <TableCell>{formatCurrency(service.price)}</TableCell>
-                  <TableCell>
-                    <Badge variant={service.isActive ? "success" : "secondary"}>{service.isActive ? "Active" : "Inactive"}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(service)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedService(service); setIsDeleteOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </TableCell>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-2 sm:px-4">Name</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Category</TableHead>
+                <TableHead className="px-2 sm:px-4">Price</TableHead>
+                <TableHead className="px-2 sm:px-4">Status</TableHead>
+                <TableHead className="px-2 sm:px-4 w-[80px] sm:w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">Loading...</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : services.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No services found</TableCell>
+                </TableRow>
+              ) : (
+                services.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="font-medium text-xs sm:text-sm">{service.name}</div>
+                      {service.description && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">{service.description}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell px-2 sm:px-4">
+                      <div className="text-xs sm:text-sm">{service.category.name}</div>
+                      {service.subCategory && (
+                        <div className="text-xs text-muted-foreground">{service.subCategory.name}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
+                      {formatCurrency(service.price)}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant={service.isActive ? "success" : "secondary"} className="text-xs whitespace-nowrap">
+                        {service.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openEditDialog(service)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => { setSelectedService(service); setIsDeleteOpen(true); }}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Service</DialogTitle>
           </DialogHeader>

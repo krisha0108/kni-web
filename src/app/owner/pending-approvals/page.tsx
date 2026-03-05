@@ -130,76 +130,76 @@ export default function PendingApprovalsPage() {
   const pendingCount = items.filter((i) => i.status === "PENDING").length;
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Clock className="h-6 w-6" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Clock className="h-5 w-5 sm:h-6 sm:w-6" />
             Pending Approvals
             {pendingCount > 0 && (
               <Badge variant="warning">{pendingCount}</Badge>
             )}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Track status of your pending requests and approvals
           </p>
         </div>
-        <Button variant="outline" onClick={fetchPendingItems}>
+        <Button variant="outline" onClick={fetchPendingItems} size="sm" className="sm:size-default">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-100">
-                <Clock className="h-5 w-5 text-yellow-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-100">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{items.filter(i => i.status === "PENDING").length}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold leading-tight break-all">{items.filter(i => i.status === "PENDING").length}</p>
+                <p className="text-xs text-muted-foreground truncate">Pending</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-100">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{items.filter(i => i.status === "APPROVED").length}</p>
-                <p className="text-xs text-muted-foreground">Approved</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <XCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{items.filter(i => i.status === "REJECTED").length}</p>
-                <p className="text-xs text-muted-foreground">Rejected</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold leading-tight break-all">{items.filter(i => i.status === "APPROVED").length}</p>
+                <p className="text-xs text-muted-foreground truncate">Approved</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <FileText className="h-5 w-5 text-blue-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100">
+                <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{items.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold leading-tight break-all">{items.filter(i => i.status === "REJECTED").length}</p>
+                <p className="text-xs text-muted-foreground truncate">Rejected</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold leading-tight break-all">{items.length}</p>
+                <p className="text-xs text-muted-foreground truncate">Total</p>
               </div>
             </div>
           </CardContent>
@@ -208,13 +208,17 @@ export default function PendingApprovalsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="pending">Pending Only</TabsTrigger>
-          <TabsTrigger value="RESTAURANT">Restaurants</TabsTrigger>
-          <TabsTrigger value="TEAM_INVITE">Team</TabsTrigger>
-          <TabsTrigger value="BOOKING">Bookings</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 mb-4 scrollbar-hide">
+          <div className="px-4 sm:px-0 min-w-min">
+            <TabsList className="inline-flex w-auto">
+              <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">All</TabsTrigger>
+              <TabsTrigger value="pending" className="text-xs sm:text-sm whitespace-nowrap">Pending Only</TabsTrigger>
+              <TabsTrigger value="RESTAURANT" className="text-xs sm:text-sm whitespace-nowrap">Restaurants</TabsTrigger>
+              <TabsTrigger value="TEAM_INVITE" className="text-xs sm:text-sm whitespace-nowrap">Team</TabsTrigger>
+              <TabsTrigger value="BOOKING" className="text-xs sm:text-sm whitespace-nowrap">Bookings</TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         <TabsContent value={activeTab}>
           <Card>
@@ -244,30 +248,32 @@ export default function PendingApprovalsPage() {
                     return (
                       <div
                         key={item.id}
-                        className="flex items-start gap-4 p-4 rounded-lg border"
+                        className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border"
                       >
-                        <div className={`p-2 rounded-lg ${typeConfig.color}`}>
-                          <TypeIcon className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{item.title}</p>
-                            <Badge variant="outline">{typeConfig.label}</Badge>
+                        <div className="flex items-start gap-3 sm:gap-4 w-full sm:flex-1">
+                          <div className={`p-2 rounded-lg ${typeConfig.color} shrink-0`}>
+                            <TypeIcon className="h-5 w-5" />
                           </div>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <Badge variant={statusConfig.variant} className="gap-1">
-                              <StatusIcon className="h-3 w-3" />
-                              {statusConfig.label}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(item.createdAt)}
-                            </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <p className="font-medium text-sm sm:text-base">{item.title}</p>
+                              <Badge variant="outline" className="text-xs">{typeConfig.label}</Badge>
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground">{item.description}</p>
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
+                              <Badge variant={statusConfig.variant} className="gap-1 text-xs">
+                                <StatusIcon className="h-3 w-3" />
+                                {statusConfig.label}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(item.createdAt)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                           {item.type === "RESTAURANT" && item.status === "PENDING" && (
-                            <Button variant="outline" size="sm" asChild>
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial" asChild>
                               <Link href="/owner/restaurant/status">
                                 <Eye className="h-4 w-4 mr-1" />
                                 View Status
@@ -275,7 +281,7 @@ export default function PendingApprovalsPage() {
                             </Button>
                           )}
                           {item.type === "TEAM_INVITE" && item.status === "PENDING" && (
-                            <Button variant="outline" size="sm" asChild>
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial" asChild>
                               <Link href="/owner/team">
                                 <Eye className="h-4 w-4 mr-1" />
                                 View Team
@@ -295,18 +301,18 @@ export default function PendingApprovalsPage() {
 
       {/* Help Card */}
       <Card className="mt-6">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
+        <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100 shrink-0">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </div>
-            <div>
-              <h3 className="font-semibold">Need Help?</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-sm sm:text-base">Need Help?</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Approvals are typically processed within 24-48 hours. If your request has been pending
                 for longer, please contact our support team.
               </p>
-              <Button variant="link" className="px-0 mt-2" asChild>
+              <Button variant="link" className="px-0 mt-2 text-xs sm:text-sm h-auto" asChild>
                 <Link href="/owner/support">Contact Support</Link>
               </Button>
             </div>

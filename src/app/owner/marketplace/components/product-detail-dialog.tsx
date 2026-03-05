@@ -19,6 +19,7 @@ interface ProductDetailDialogProps {
   cartQuantity: number;
   onAddToCart: (product: Product) => void;
   onUpdateQuantity: (productId: string, delta: number) => void;
+  canCreate?: boolean;
 }
 
 export function ProductDetailDialog({
@@ -28,12 +29,13 @@ export function ProductDetailDialog({
   cartQuantity,
   onAddToCart,
   onUpdateQuantity,
+  canCreate = true,
 }: ProductDetailDialogProps) {
   if (!product) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-auto w-[95vw] sm:w-full overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
@@ -89,7 +91,7 @@ export function ProductDetailDialog({
           {/* Price & Cart Controls */}
           <div className="flex items-center justify-between pt-2 border-t">
             <span className="text-2xl font-bold">{formatPrice(product.price)}</span>
-            {cartQuantity > 0 ? (
+            {canCreate && (cartQuantity > 0 ? (
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -117,7 +119,7 @@ export function ProductDetailDialog({
               >
                 Add to Cart
               </Button>
-            )}
+            ))}
           </div>
         </div>
       </DialogContent>

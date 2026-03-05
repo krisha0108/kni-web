@@ -222,7 +222,7 @@ export default function AdminMarketplaceCategoriesPage() {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Category</DialogTitle>
               <DialogDescription>
@@ -294,11 +294,13 @@ export default function AdminMarketplaceCategoriesPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Category</TableHead>
               <TableHead>Subcategories</TableHead>
+              
               <TableHead>Products</TableHead>
               <TableHead>Vendors</TableHead>
               <TableHead>Status</TableHead>
@@ -306,6 +308,7 @@ export default function AdminMarketplaceCategoriesPage() {
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -314,6 +317,7 @@ export default function AdminMarketplaceCategoriesPage() {
                 </TableCell>
               </TableRow>
             ) : categories.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <FolderOpen className="mx-auto h-8 w-8 mb-2 opacity-50" />
@@ -322,6 +326,7 @@ export default function AdminMarketplaceCategoriesPage() {
               </TableRow>
             ) : (
               categories.map((category) => (
+                
                 <TableRow key={category.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -342,6 +347,7 @@ export default function AdminMarketplaceCategoriesPage() {
                       </div>
                     </div>
                   </TableCell>
+                  
                   <TableCell>{category._count.subCategories}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -349,12 +355,14 @@ export default function AdminMarketplaceCategoriesPage() {
                       <span>{category._count.products}</span>
                     </div>
                   </TableCell>
+                  
                   <TableCell>{category._count.vendorCategories}</TableCell>
                   <TableCell>
                     <Badge variant={category.isActive ? "success" : "secondary"}>
                       {category.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell>{category.sortOrder}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -382,6 +390,14 @@ export default function AdminMarketplaceCategoriesPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                
+              
+          
+              
+        
       </div>
 
       {/* Edit Dialog */}
@@ -392,7 +408,7 @@ export default function AdminMarketplaceCategoriesPage() {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>Update category details</DialogDescription>

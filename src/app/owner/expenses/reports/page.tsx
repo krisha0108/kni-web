@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { getAllExpenseCategories, getExpenseCategoryLabel, getExpenseCategoryColor } from "@/lib/expense";
 import { formatPrice } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface MonthlyReport {
   year: number;
@@ -34,17 +35,19 @@ export default function ExpenseReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
 
   useEffect(() => {
+    if (!selectedRestaurant) return;
     fetchMonthlyReport();
     fetchTrendData();
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, selectedRestaurant]);
 
   const fetchMonthlyReport = async () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `/api/owner/expenses/reports/monthly?year=${selectedYear}&month=${selectedMonth}`
+        `/api/owner/expenses/reports/monthly?restaurantId=${selectedRestaurant?.restaurantId}&year=${selectedYear}&month=${selectedMonth}`
       );
       const data = await response.json();
       if (data.ok) {
@@ -63,7 +66,7 @@ export default function ExpenseReportsPage() {
 
   const fetchTrendData = async () => {
     try {
-      const response = await fetch("/api/owner/expenses");
+      const response = await fetch(`/api/owner/expenses?restaurantId=${selectedRestaurant?.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         const expenses = data.data.expenses || [];
@@ -117,6 +120,14 @@ export default function ExpenseReportsPage() {
   const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString("default", {
     month: "long",
   });
+
+  if (!selectedRestaurant) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Please select a restaurant first.</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 
@@ -239,8 +239,10 @@ export async function POST(request: NextRequest) {
     const tipAmount = tip || 0;
     const finalAmount = totalAmount + gstAmount + tipAmount;
 
+    const ownerId = await getRestaurantOwnerId(restaurantId);
+
     console.log("Creating booking with data:", {
-      ownerId: session.id,
+      ownerId,
       restaurantId,
       equipmentId: equipmentId || null,
       totalAmount: Math.round(finalAmount),
@@ -254,7 +256,7 @@ export async function POST(request: NextRequest) {
 
     const booking = await db.serviceBooking.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId,
         equipmentId: equipmentId || null,
         slotStartDateTime: new Date(slotStartDateTime),
@@ -283,7 +285,7 @@ export async function POST(request: NextRequest) {
       await db.paymentProof.create({
         data: {
           bookingId: booking.id,
-          ownerId: session.id,
+          ownerId,
           screenshotUrl: paymentScreenshotUrl,
           status: "UPLOADED",
         },

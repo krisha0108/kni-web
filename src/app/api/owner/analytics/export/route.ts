@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/server/auth/session";
-import { getMobileSession } from "@/server/auth/mobile-session";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 
 export async function GET(request: NextRequest) {
   try {
-    // Try cookie-based session first, then mobile bearer token
-    let session = await getSession();
-    if (!session) {
-      session = await getMobileSession(request);
-    }
-
-    if (!session) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const session = await requireOwnerMobile(request);
 
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
     const period = request.nextUrl.searchParams.get("period") || "30";
@@ -28,18 +17,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify restaurant access and get restaurant name
+    // Verify restaurant access with RBAC
+    await requireRestaurantAccess(session, restaurantId, "analytics:read");
+
     const restaurant = await db.restaurant.findFirst({
       where: {
         id: restaurantId,
-        ownerId: session.id,
       },
       select: { id: true, name: true },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
+        { ok: false, error: "Restaurant not found" },
         { status: 404 }
       );
     }
@@ -158,8 +148,6 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Return JSON data for now (PDF generation can be done client-side)
-    // Mobile app can use this data to generate PDF locally
     return NextResponse.json({
       ok: true,
       data: analyticsData,
@@ -171,7 +159,7 @@ export async function GET(request: NextRequest) {
         ok: false,
         error: error instanceof Error ? error.message : "Internal server error",
       },
-      { status: 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

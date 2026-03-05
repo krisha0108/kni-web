@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
+import { clearCart } from "@/lib/marketplace-cart";
 import type { VendorPaymentInfo } from "../types";
 
 interface CheckoutItem {
@@ -162,10 +163,16 @@ export default function MarketplacePaymentPage() {
 
       const data = await response.json();
       if (data.ok) {
-        // Save paid vendor ID so cart/marketplace can remove items (matching mobile pattern)
-        localStorage.setItem("marketplace_paid_vendor", session.vendorId);
         // Clean up checkout session
         localStorage.removeItem("marketplace_checkout_session");
+
+        // Clear paid vendor's items from server-side cart
+        try {
+          await clearCart(session.restaurantId, { vendorId: session.vendorId });
+        } catch {
+          // Cart clear failed silently — not critical
+        }
+
         setPaymentSubmitted(true);
         setPaymentId(data.data.id);
         setPaymentStatus("PENDING");

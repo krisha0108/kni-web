@@ -281,6 +281,11 @@ export default function StaffSalaryPage() {
 
   const summary = calculateSummary();
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
+  const canDelete = userRole === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -333,7 +338,7 @@ export default function StaffSalaryPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
+            {canCreate && <div className="flex items-end">
               <Button
                 onClick={handleGenerateSalary}
                 disabled={isGenerating || salaryRecords.length > 0}
@@ -342,7 +347,7 @@ export default function StaffSalaryPage() {
                 <Plus className="mr-2 h-4 w-4" />
                 {isGenerating ? "Generating..." : "Generate Salary"}
               </Button>
-            </div>
+            </div>}
           </div>
           {salaryRecords.length > 0 && (
             <p className="text-sm text-muted-foreground mt-2">
@@ -418,16 +423,19 @@ export default function StaffSalaryPage() {
               </p>
             </div>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Staff Name</TableHead>
                   <TableHead>Designation</TableHead>
+                  
                   <TableHead>Basic Salary</TableHead>
                   <TableHead>Allowances</TableHead>
                   <TableHead>Deductions</TableHead>
                   <TableHead>Total Payable</TableHead>
                   <TableHead>Total Paid</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -436,6 +444,7 @@ export default function StaffSalaryPage() {
                 {salaryRecords.map((record) => {
                   const remaining = record.totalPayable - record.totalPaid;
                   return (
+                    
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{record.staff.name}</TableCell>
                       <TableCell>{record.staff.designation}</TableCell>
@@ -443,12 +452,14 @@ export default function StaffSalaryPage() {
                       <TableCell>
                         {record.allowances > 0 ? formatPrice(record.allowances ) : "-"}
                       </TableCell>
+                      
                       <TableCell>
                         {record.deductions > 0 ? formatPrice(record.deductions ) : "-"}
                       </TableCell>
                       <TableCell className="font-semibold">
                         {formatPrice(record.totalPayable )}
                       </TableCell>
+                      
                       <TableCell>
                         {record.totalPaid > 0 ? formatPrice(record.totalPaid ) : "-"}
                       </TableCell>
@@ -457,9 +468,10 @@ export default function StaffSalaryPage() {
                           {statusLabels[record.status]}
                         </Badge>
                       </TableCell>
+                      
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {record.status !== "PAID" && (
+                          {canUpdate && record.status !== "PAID" && (
                             <Button
                               size="sm"
                               onClick={() => openPaymentDialog(record)}
@@ -467,7 +479,7 @@ export default function StaffSalaryPage() {
                               Pay {formatPrice(remaining )}
                             </Button>
                           )}
-                          {record.totalPaid === 0 && (
+                          {canDelete && record.totalPaid === 0 && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -483,13 +495,20 @@ export default function StaffSalaryPage() {
                 })}
               </TableBody>
             </Table>
+                      
+                      
+                      
+                    
+                  
+                  
+            
           )}
         </CardContent>
       </Card>
 
       {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
             <DialogDescription>

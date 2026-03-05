@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +10,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const restaurantId = searchParams.get("restaurantId");
     const period = searchParams.get("period") || "30d";
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with expenses:read permission
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
 
     // Calculate date range based on period
     const now = new Date();
@@ -40,13 +51,10 @@ export async function GET(request: NextRequest) {
     try {
       // Build where clause
       const whereClause: any = {
+        restaurantId,
         createdAt: { gte: startDate },
         status: { in: ["COMPLETED", "PAID"] },
       };
-
-      if (restaurantId) {
-        whereClause.restaurantId = restaurantId;
-      }
 
       // Fetch bookings data
       const bookings = await db.serviceBooking.findMany({
@@ -114,6 +122,9 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     if (error.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (error.message?.includes("Access denied")) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 403 });
     }
     console.error("Error fetching spending reports:", error);
     return NextResponse.json({ ok: false, error: "Failed to fetch spending reports" }, { status: 500 });

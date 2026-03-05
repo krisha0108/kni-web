@@ -284,12 +284,14 @@ export default function AdminVendorSubscriptionsPage() {
                 <TableRow>
                   <TableHead>Vendor</TableHead>
                   <TableHead>Duration</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {filteredRequests.map((req) => (
                   <TableRow key={req.id}>
@@ -299,6 +301,7 @@ export default function AdminVendorSubscriptionsPage() {
                         <p className="text-sm text-muted-foreground">{req.vendor.email}</p>
                       </div>
                     </TableCell>
+                    
                     <TableCell>{req.durationMonths} month(s)</TableCell>
                     <TableCell>{getStatusBadge(req.status)}</TableCell>
                     <TableCell>{req.price ? formatPrice(req.price) : "—"}</TableCell>
@@ -372,12 +375,15 @@ export default function AdminVendorSubscriptionsPage() {
                 ))}
               </TableBody>
             </Table>
+                    
+              
+                  
           </div>
         )}
 
         {/* Set Price Dialog */}
         <Dialog open={isPriceDialogOpen} onOpenChange={setIsPriceDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Set Subscription Price</DialogTitle>
               <DialogDescription>
@@ -435,7 +441,7 @@ export default function AdminVendorSubscriptionsPage() {
 
         {/* Screenshot Dialog */}
         <Dialog open={isScreenshotDialogOpen} onOpenChange={setIsScreenshotDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Payment Screenshot</DialogTitle>
             </DialogHeader>
@@ -453,7 +459,7 @@ export default function AdminVendorSubscriptionsPage() {
 
         {/* Reject Dialog */}
         <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Reject Payment</DialogTitle>
               <DialogDescription>

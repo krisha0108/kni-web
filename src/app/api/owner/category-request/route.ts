@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotificationForRole } from "@/server/notifications/service";
 import { Role, NotificationType } from "@prisma/client";
 
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     const session = await requireOwnerMobile(request);
 
     const body = await request.json();
-    const { categoryName, description, reason } = body;
+    const { categoryName, description, reason, restaurantId } = body;
 
     if (!categoryName || !categoryName.trim()) {
       return NextResponse.json(
@@ -18,19 +19,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get owner's restaurant
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        ownerId: session.id,
-        status: "APPROVED",
-      },
-    });
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with category:create permission
+    await requireRestaurantAccess(session, restaurantId, "category:create");
+
+    // Get the actual restaurant owner ID for the FK
+    const ownerId = await getRestaurantOwnerId(restaurantId);
 
     // Create category request
     const categoryRequest = await db.categoryRequest.create({
       data: {
-        ownerId: session.id,
-        restaurantId: restaurant?.id || null,
+        ownerId,
+        restaurantId,
         requestedName: categoryName.trim(),
         description: description?.trim() || null,
         reason: reason?.trim() || null,
@@ -61,9 +67,22 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
 
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with category:read permission
+    await requireRestaurantAccess(session, restaurantId, "category:read");
+
     const categoryRequests = await db.categoryRequest.findMany({
       where: {
-        ownerId: session.id,
+        restaurantId,
       },
       orderBy: {
         createdAt: "desc",
@@ -74,8 +93,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Get category requests error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Access denied") ? 403 : 500 }
     );
   }
 }

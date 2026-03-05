@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { expenseSchema } from "@/server/validators/expense";
 
 export async function GET(request: NextRequest) {
@@ -107,9 +107,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create expense
+    const ownerId = await getRestaurantOwnerId(validation.data.restaurantId);
     const expense = await db.expense.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: validation.data.restaurantId,
         category: validation.data.category as any,
         amount: validation.data.amount,

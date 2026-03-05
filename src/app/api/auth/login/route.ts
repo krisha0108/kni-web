@@ -28,6 +28,13 @@ export async function POST(request: NextRequest) {
           where: { status: "APPROVED" },
           take: 1,
         },
+        restaurantMemberships: {
+          where: {
+            acceptedAt: { not: null },
+            restaurant: { status: "APPROVED" },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
       isActive: user.isActive,
       vendorApprovalStatus: user.vendorProfile?.approvalStatus ?? null,
       vendorSubscriptionStatus: user.vendorProfile?.subscriptionStatus ?? null,
-      hasApprovedRestaurant: user.restaurants.length > 0,
+      hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
     };
 
     const redirectUrl = getRoleDashboardUrl(user.role, sessionData);

@@ -194,7 +194,7 @@ export default function AdminSubCategoriesPage() {
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Add Subcategory</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Subcategory</DialogTitle>
                 <DialogDescription>Add a new subcategory</DialogDescription>
@@ -248,64 +248,91 @@ export default function AdminSubCategoriesPage() {
         </ClientOnly>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
-            ) : subCategories.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No subcategories found</TableCell></TableRow>
-            ) : (
-              subCategories.map((subCategory) => (
-                <TableRow key={subCategory.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      {subCategory.imageUrl ? (
-                        <Image
-                          src={subCategory.imageUrl}
-                          alt={subCategory.name}
-                          width={40}
-                          height={40}
-                          className="rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-                          <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span>{subCategory.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{subCategory.category.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={subCategory.isActive ? "success" : "secondary"}>{subCategory.isActive ? "Active" : "Inactive"}</Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(subCategory.createdAt)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(subCategory)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => { setSelectedSubCategory(subCategory); setIsDeleteOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </TableCell>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-2 sm:px-4">Name</TableHead>
+                <TableHead className="px-2 sm:px-4">Category</TableHead>
+                <TableHead className="px-2 sm:px-4">Status</TableHead>
+                <TableHead className="px-2 sm:px-4">Created</TableHead>
+                <TableHead className="px-2 sm:px-4 w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">Loading...</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : subCategories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No subcategories found</TableCell>
+                </TableRow>
+              ) : (
+                subCategories.map((subCategory) => (
+                  <TableRow key={subCategory.id}>
+                    <TableCell className="font-medium px-2 sm:px-4">
+                      <div className="flex items-center gap-2">
+                        {subCategory.imageUrl ? (
+                          <Image
+                            src={subCategory.imageUrl}
+                            alt={subCategory.name}
+                            width={32}
+                            height={32}
+                            className="rounded-md object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="text-xs sm:text-sm">{subCategory.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
+                      {subCategory.category.name}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant={subCategory.isActive ? "success" : "secondary"} className="text-xs whitespace-nowrap">
+                        {subCategory.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
+                      {formatDate(subCategory.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openEditDialog(subCategory)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => { setSelectedSubCategory(subCategory); setIsDeleteOpen(true); }}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <ClientOnly>
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Subcategory</DialogTitle>
             </DialogHeader>

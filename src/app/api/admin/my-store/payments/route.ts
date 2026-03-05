@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
       include: {
         owner: { select: { id: true, name: true, phone: true, email: true } },
         restaurant: { select: { id: true, name: true, city: true, address: true } },
-        order: { select: { id: true, status: true } },
       },
       orderBy: { createdAt: "desc" },
     });

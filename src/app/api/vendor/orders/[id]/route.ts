@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireVendor, requireApprovedVendor } from "@/server/auth/rbac";
 import { z } from "zod";
-import { createNotification } from "@/server/notifications/service";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { RestaurantRole } from "@prisma/client";
 
 const updateOrderSchema = z.object({
   status: z.enum(["PLACED", "CANCELLED"]),
@@ -134,6 +135,16 @@ export async function PATCH(
 
     await createNotification({
       userId: order.ownerId,
+      title: "Order Status Updated",
+      message: `${statusMessages[validation.data.status]} for ${order.restaurant.name}`,
+      linkUrl: `/owner/marketplace/orders`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: order.restaurantId,
+      excludeUserIds: [order.ownerId],
+      roles: [RestaurantRole.MANAGER],
       title: "Order Status Updated",
       message: `${statusMessages[validation.data.status]} for ${order.restaurant.name}`,
       linkUrl: `/owner/marketplace/orders`,

@@ -289,7 +289,7 @@ export default function MyStoreProductsPage() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Product to Store</DialogTitle>
               <DialogDescription>
@@ -485,63 +485,72 @@ export default function MyStoreProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Delivery</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[800px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Product</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Category</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Price</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Stock</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Delivery</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4">Status</TableHead>
+                  <TableHead className="whitespace-nowrap px-2 sm:px-4 w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              
+              <TableBody>
+                {products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="flex items-center gap-2">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="h-10 w-10 rounded object-cover"
+                          className="h-8 w-8 rounded object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground" />
+                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <Package className="h-4 w-4 text-muted-foreground" />
                         </div>
                       )}
-                      <div>
-                        <div className="font-medium">{product.name}</div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs sm:text-sm">{product.name}</div>
                         <div className="text-xs text-muted-foreground">
                           per {product.unit}
                         </div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{product.category?.name || "-"}</div>
+                  <TableCell className="px-2 sm:px-4">
+                    <div className="text-xs sm:text-sm">{product.category?.name || "-"}</div>
                     {product.subCategory && (
                       <div className="text-xs text-muted-foreground">{product.subCategory.name}</div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{formatPrice(product.price)}</TableCell>
-                  <TableCell>{product.stockQuantity}</TableCell>
-                  <TableCell>{product.deliveryTime || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={product.isActive ? "success" : "secondary"}>
+                  <TableCell className="font-medium whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                    {formatPrice(product.price)}
+                  </TableCell>
+                  <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
+                    {product.stockQuantity}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                    {product.deliveryTime || "-"}
+                  </TableCell>
+                  <TableCell className="px-2 sm:px-4">
+                    <Badge variant={product.isActive ? "success" : "secondary"} className="text-xs whitespace-nowrap">
                       {product.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="px-2 sm:px-4">
+                    <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(product)}
+                                              className="h-8 w-8"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -552,15 +561,17 @@ export default function MyStoreProductsPage() {
                           setSelectedProduct(product);
                           setIsDeleteOpen(true);
                         }}
+                                              className="h-8 w-8"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
@@ -572,7 +583,7 @@ export default function MyStoreProductsPage() {
           resetForm();
         }
       }}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Update price and stock for this product</DialogDescription>

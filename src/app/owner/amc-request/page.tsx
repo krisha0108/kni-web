@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Shield, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Shield, Loader2, CheckCircle2, ShieldAlert } from "lucide-react";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 // Equipment categories fetched from database (admin manages these)
 
@@ -65,15 +66,19 @@ export default function AMCRequestPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
+
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/owner/restaurants").then((r) => r.json()),
+      fetch("/api/owner/restaurants/accessible").then((r) => r.json()),
       fetch("/api/app/categories").then((r) => r.json()),
     ])
       .then(([restData, catData]) => {
         if (restData.ok) {
-          const approved = (restData.data || []).filter((r: any) => r.status === "APPROVED");
+          const approved = (restData.data || []).map((item: any) => item.restaurant);
           setRestaurants(approved);
         }
         if (catData.ok) {
@@ -126,6 +131,16 @@ export default function AMCRequestPage() {
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  if (!canCreate) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg text-muted-foreground">You don't have permission to create AMC requests</p>
+        <Button variant="outline" onClick={() => router.back()}>Go Back</Button>
+      </div>
+    );
   }
 
   return (

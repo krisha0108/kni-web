@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
 const createOrderSchema = z.object({
@@ -125,6 +125,9 @@ export async function POST(request: NextRequest) {
     const orderItems = items.map((item) => {
       const product = productMap.get(item.productId);
       if (!product) throw new Error("Product not found: " + item.productId);
+      if (product.stockQuantity < item.qty) {
+        throw new Error(`Insufficient stock for "${product.name || "product"}". Available: ${product.stockQuantity}, Requested: ${item.qty}`);
+      }
       totalAmount += product.price * item.qty;
       return {
         vendorProductId: item.productId,
@@ -134,11 +137,20 @@ export async function POST(request: NextRequest) {
     });
 
     // Use transaction to create order and vendor ledger entry atomically
+    const ownerId = await getRestaurantOwnerId(restaurantId);
     const order = await db.$transaction(async (tx) => {
+      // Decrement stock for each ordered item
+      for (const item of items) {
+        await tx.vendorProduct.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.qty } },
+        });
+      }
+
       // Create the order
       const newOrder = await tx.marketplaceOrder.create({
         data: {
-          ownerId: session.id,
+          ownerId,
           vendorId,
           restaurantId,
           status: "PLACED",
@@ -167,7 +179,6 @@ export async function POST(request: NextRequest) {
       const previousEntries = await tx.vendorLedger.findMany({
         where: {
           restaurantId,
-          ownerId: session.id,
           vendorName: vendor?.name || "Unknown Vendor",
         },
         orderBy: {
@@ -182,7 +193,7 @@ export async function POST(request: NextRequest) {
       // AUTO-SYNC: Create vendor ledger entry (PURCHASE increases balance owed to vendor)
       await tx.vendorLedger.create({
         data: {
-          ownerId: session.id,
+          ownerId,
           restaurantId,
           vendorName: vendor?.name || "Unknown Vendor",
           vendorPhone: vendor?.phone || null,
@@ -200,7 +211,7 @@ export async function POST(request: NextRequest) {
       // AUTO-SYNC: Create Expense entry
       await tx.expense.create({
         data: {
-          ownerId: session.id,
+          ownerId,
           restaurantId,
           category: "SUPPLIES",
           amount: totalAmount,

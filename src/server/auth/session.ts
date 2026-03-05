@@ -62,6 +62,13 @@ export async function getSession(): Promise<SessionUser | null> {
             where: { status: "APPROVED" },
             take: 1,
           },
+          restaurantMemberships: {
+            where: {
+              acceptedAt: { not: null },
+              restaurant: { status: "APPROVED" },
+            },
+            take: 1,
+          },
           vendorLocationRequests: {
             where: { status: "APPROVED" },
             take: 1,
@@ -92,7 +99,7 @@ export async function getSession(): Promise<SessionUser | null> {
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
     vendorTrialEndsAt: session.user.vendorProfile?.trialEndsAt ?? null,
     vendorActiveUntil: session.user.vendorProfile?.activeUntil ?? null,
-    hasApprovedRestaurant: session.user.restaurants.length > 0,
+    hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
     hasApprovedLocation: session.user.vendorLocationRequests.length > 0,
   };
 }

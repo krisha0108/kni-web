@@ -761,7 +761,7 @@ export default function AdminBookingDetailPage() {
 
       {/* Assign Engineer Dialog */}
       <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Assign Engineer</DialogTitle>
             <DialogDescription>
@@ -844,7 +844,7 @@ export default function AdminBookingDetailPage() {
 
       {/* Payment Rejection Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Payment Proof</DialogTitle>
             <DialogDescription>

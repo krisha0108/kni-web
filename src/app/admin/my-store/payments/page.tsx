@@ -230,7 +230,7 @@ export default function AdminStorePaymentsPage() {
 
       {/* View Payment Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-auto w-[95vw] sm:w-full overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Payment Details</DialogTitle>
             <DialogDescription>
@@ -320,7 +320,7 @@ export default function AdminStorePaymentsPage() {
 
       {/* Reject Dialog */}
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Payment</DialogTitle>
             <DialogDescription>Please provide a reason for rejecting this payment</DialogDescription>

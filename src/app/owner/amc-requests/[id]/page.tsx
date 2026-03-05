@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { ArrowLeft, Shield, Loader2, Trash2, Calendar, MapPin, Wrench, ClipboardCheck, FileText, CheckCircle, XCircle, ExternalLink, IndianRupee, QrCode, Upload, AlertCircle } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface AMCRequestDetail {
   id: string;
@@ -149,6 +150,12 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
 
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
+
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
+  const canCancel = userRole === "OWNER";
 
   const fetchRequest = () => {
     fetch(`/api/owner/amc-requests/${id}`)
@@ -301,7 +308,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
             {request.restaurant.name} - {formatDate(request.createdAt)}
           </p>
         </div>
-        {request.status === "REQUESTED" && (
+        {request.status === "REQUESTED" && canCancel && (
           <Button variant="destructive" size="sm" onClick={() => setShowCancel(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Cancel Request
@@ -576,7 +583,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
             )}
 
             {/* Accept / Reject Buttons */}
-            {request.proposal.status === "SENT" && (
+            {request.proposal.status === "SENT" && canCreate && (
               <div className="flex gap-3 pt-4 border-t">
                 <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleAcceptProposal} disabled={isAccepting}>
                   {isAccepting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
@@ -650,7 +657,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
             )}
 
             {/* QR Code and Payment Details */}
-            {(request.payment.status === "PENDING" || request.payment.status === "REJECTED") && paymentSettings && (
+            {(request.payment.status === "PENDING" || request.payment.status === "REJECTED") && paymentSettings && canUpdate && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* QR Code */}
@@ -746,7 +753,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
 
       {/* Reject Proposal Dialog */}
       <Dialog open={showReject} onOpenChange={setShowReject}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Proposal</DialogTitle>
           </DialogHeader>

@@ -289,7 +289,7 @@ export default function VendorProductsPage() {
               Add Pricing
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Product Pricing</DialogTitle>
               <DialogDescription>
@@ -488,17 +488,20 @@ export default function VendorProductsPage() {
         </div>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead>Your Price</TableHead>
+                
                 <TableHead>Stock</TableHead>
                 <TableHead>Delivery</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
+            
             <TableBody>
               {products.map((product) => (
                 <TableRow key={product.id}>
@@ -523,6 +526,7 @@ export default function VendorProductsPage() {
                       </div>
                     </div>
                   </TableCell>
+                  
                   <TableCell className="font-medium">{formatPrice(product.price)}</TableCell>
                   <TableCell>{product.stockQuantity}</TableCell>
                   <TableCell>{product.deliveryTime || "-"}</TableCell>
@@ -531,6 +535,7 @@ export default function VendorProductsPage() {
                       {product.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button
@@ -556,6 +561,11 @@ export default function VendorProductsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+                  
+            
+                
+          
         </div>
       )}
 
@@ -567,7 +577,7 @@ export default function VendorProductsPage() {
           resetForm();
         }
       }}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Pricing</DialogTitle>
             <DialogDescription>Update your price and stock for this product</DialogDescription>

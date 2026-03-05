@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
 
 /**
  * POST /api/owner/amc-proposals/[id]/accept
- * Owner accepts the proposal → creates AMCPayment (PENDING) → status becomes PAYMENT_PENDING
+ * Owner accepts the proposal -> creates AMCPayment (PENDING) -> status becomes PAYMENT_PENDING
  * Contract is NOT created until admin verifies payment
  */
 export async function POST(
@@ -14,7 +15,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
 
     const proposal = await db.aMCProposal.findUnique({
@@ -29,9 +30,12 @@ export async function POST(
       },
     });
 
-    if (!proposal || proposal.request.ownerId !== session.id) {
+    if (!proposal) {
       return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
     }
+
+    // RBAC: verify user has amc:create access for this restaurant
+    await requireRestaurantAccess(session, proposal.request.restaurantId, "amc:create");
 
     if (proposal.status !== "SENT") {
       return NextResponse.json({ ok: false, error: "Proposal cannot be accepted in current state" }, { status: 400 });
@@ -48,6 +52,9 @@ export async function POST(
     // Determine payment type
     const isRenewal = !!proposal.request.renewalOfContractId;
     const paymentType = isRenewal ? "RENEWAL" : "PROPOSAL";
+
+    // Get actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(proposal.request.restaurantId);
 
     // Update proposal status, request status, and create payment record
     await db.$transaction([
@@ -66,7 +73,7 @@ export async function POST(
             db.aMCPayment.create({
               data: {
                 requestId: proposal.requestId,
-                ownerId: session.id,
+                ownerId,
                 paymentType,
                 amount: paymentAmount,
               },
@@ -91,7 +98,7 @@ export async function POST(
     console.error("Accept proposal error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

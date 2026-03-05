@@ -399,7 +399,7 @@ export default function VendorOrdersPage() {
                     )}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Filter Orders</DialogTitle>
                     <DialogDescription>
@@ -671,7 +671,7 @@ export default function VendorOrdersPage() {
         )}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Order Details</DialogTitle>
             </DialogHeader>
@@ -878,7 +878,7 @@ export default function VendorOrdersPage() {
 
         {/* Status Update Dialog */}
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Update Order Status</DialogTitle>
               <DialogDescription>

@@ -168,14 +168,14 @@ export default function MyStoreAnalyticsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight break-all">
               {formatPrice(analytics.summary.orders.revenue)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -190,7 +190,7 @@ export default function MyStoreAnalyticsPage() {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPrice(avgOrderValue)}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(avgOrderValue)}</div>
             <p className="text-xs text-muted-foreground">Per order average</p>
           </CardContent>
         </Card>
@@ -201,7 +201,7 @@ export default function MyStoreAnalyticsPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight">
               {analytics.summary.products.activeCount}
             </div>
             <p className="text-xs text-muted-foreground">Listed products</p>
@@ -214,7 +214,7 @@ export default function MyStoreAnalyticsPage() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight">
               {analytics.summary.ratings.average
                 ? analytics.summary.ratings.average.toFixed(1)
                 : "N/A"}

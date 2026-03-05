@@ -584,7 +584,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                       Create AMC
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
                     <DialogHeader>
                       <DialogTitle>Create AMC Subscription</DialogTitle>
                       <DialogDescription>
@@ -813,7 +813,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
       {/* Image Preview Dialog */}
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Image Preview</DialogTitle>
               <DialogDescription>
@@ -827,7 +827,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Service Booking Dialog */}
       <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Request Service for {equipment.name}</DialogTitle>
             <DialogDescription>

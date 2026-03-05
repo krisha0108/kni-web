@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { getExpenseCategoryLabel } from "@/lib/expense";
 
 export async function GET(request: NextRequest) {
@@ -12,10 +13,19 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with expenses:read permission
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
+
     const where: any = {
-      ownerId: session.id,
+      restaurantId,
       deletedAt: null,
-      ...(restaurantId ? { restaurantId } : {}),
     };
 
     // Add date range filter

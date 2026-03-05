@@ -323,7 +323,7 @@ export default function AdminMarketplaceProductsPage() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Product</DialogTitle>
               <DialogDescription>
@@ -469,11 +469,13 @@ export default function AdminMarketplaceProductsPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
+              
               <TableHead>Unit</TableHead>
               <TableHead>Vendors</TableHead>
               <TableHead>Status</TableHead>
@@ -481,6 +483,7 @@ export default function AdminMarketplaceProductsPage() {
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -489,6 +492,7 @@ export default function AdminMarketplaceProductsPage() {
                 </TableCell>
               </TableRow>
             ) : products.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
@@ -497,6 +501,7 @@ export default function AdminMarketplaceProductsPage() {
               </TableRow>
             ) : (
               products.map((product) => (
+                
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -521,6 +526,7 @@ export default function AdminMarketplaceProductsPage() {
                       </div>
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <div>
                       <div className="font-medium text-sm">
@@ -533,6 +539,7 @@ export default function AdminMarketplaceProductsPage() {
                       )}
                     </div>
                   </TableCell>
+                  
                   <TableCell>{product.unit}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -540,11 +547,13 @@ export default function AdminMarketplaceProductsPage() {
                       <span>{product._count.vendorProducts}</span>
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <Badge variant={product.isActive ? "success" : "secondary"}>
                       {product.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell>{formatDate(product.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -572,6 +581,15 @@ export default function AdminMarketplaceProductsPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                  
+                
+              
+          
+              
+        
       </div>
 
       {/* Edit Dialog */}
@@ -582,7 +600,7 @@ export default function AdminMarketplaceProductsPage() {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Update product details</DialogDescription>

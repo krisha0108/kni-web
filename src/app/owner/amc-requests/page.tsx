@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Plus, Eye, Trash2, Loader2, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface AMCRequest {
   id: string;
@@ -95,11 +96,17 @@ export default function OwnerAMCRequestsPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
+
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canCancel = userRole === "OWNER";
 
   const fetchRequests = async () => {
+    if (!selectedRestaurant) return;
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/amc-requests");
+      const response = await fetch(`/api/owner/amc-requests?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         setRequests(data.data);
@@ -115,7 +122,7 @@ export default function OwnerAMCRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [selectedRestaurant]);
 
   const handleCancel = async () => {
     if (!cancelId) return;
@@ -149,10 +156,12 @@ export default function OwnerAMCRequestsPage() {
           </h1>
           <p className="text-muted-foreground">View and manage your Annual Maintenance Contract requests</p>
         </div>
-        <Button onClick={() => router.push("/owner/amc-request")}>
-          <Plus className="mr-2 h-4 w-4" />
-          New AMC Request
-        </Button>
+        {canCreate && (
+          <Button onClick={() => router.push("/owner/amc-request")}>
+            <Plus className="mr-2 h-4 w-4" />
+            New AMC Request
+          </Button>
+        )}
       </div>
 
       {/* Filter */}
@@ -196,41 +205,47 @@ export default function OwnerAMCRequestsPage() {
             <p className="text-lg text-muted-foreground">
               {requests.length === 0 ? "No AMC requests yet" : "No requests match the filter"}
             </p>
-            {requests.length === 0 && (
-              <Button className="mt-4" onClick={() => router.push("/owner/amc-request")}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First AMC Request
-              </Button>
+            {requests.length === 0 && canCreate && (
+                <Button className="mt-4" onClick={() => router.push("/owner/amc-request")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Your First AMC Request
+                </Button>
             )}
           </CardContent>
         </Card>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Restaurant</TableHead>
                 <TableHead className="hidden md:table-cell">Plan</TableHead>
+                
                 <TableHead className="hidden lg:table-cell">Frequency</TableHead>
                 <TableHead className="hidden sm:table-cell">Categories</TableHead>
                 <TableHead className="hidden md:table-cell">Start Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Requested</TableHead>
+                
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((req) => (
+                
                 <TableRow key={req.id}>
                   <TableCell className="font-medium">
                     {req.restaurant.name}
                     <span className="block text-xs text-muted-foreground">{req.restaurant.city}</span>
                   </TableCell>
+                  
                   <TableCell className="hidden md:table-cell">
                     <Badge className={planColors[req.planType] || ""}>
                       {planLabels[req.planType] || req.planType}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell className="hidden lg:table-cell">
                     {frequencyLabels[req.visitFrequency] || req.visitFrequency}
                   </TableCell>
@@ -240,6 +255,7 @@ export default function OwnerAMCRequestsPage() {
                       : 0}{" "}
                     types
                   </TableCell>
+                  
                   <TableCell className="hidden md:table-cell">
                     {formatDate(req.preferredStartDate)}
                   </TableCell>
@@ -248,6 +264,7 @@ export default function OwnerAMCRequestsPage() {
                       {statusLabels[req.status] || req.status}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                     {formatDate(req.createdAt)}
                   </TableCell>
@@ -260,7 +277,7 @@ export default function OwnerAMCRequestsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {req.status === "REQUESTED" && (
+                      {req.status === "REQUESTED" && canCancel && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -275,6 +292,14 @@ export default function OwnerAMCRequestsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+                  
+                  
+                  
+                
+                
+                
+          
         </div>
       )}
 

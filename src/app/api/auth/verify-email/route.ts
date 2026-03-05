@@ -47,6 +47,13 @@ export async function POST(request: NextRequest) {
           where: { status: "APPROVED" },
           take: 1,
         },
+        restaurantMemberships: {
+          where: {
+            acceptedAt: { not: null },
+            restaurant: { status: "APPROVED" },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -59,7 +66,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
-      hasApprovedRestaurant: user.restaurants.length > 0,
+      hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
     };
 
     const redirectUrl = getRoleDashboardUrl(user.role, sessionData);
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
         },
         token,
         restaurants: user.restaurants,
-        hasApprovedRestaurant: user.restaurants.length > 0,
+        hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
         redirectUrl,
       },
     });

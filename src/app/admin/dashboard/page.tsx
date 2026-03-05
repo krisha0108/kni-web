@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Key Stats */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {stats.statCards.map((stat: any) => {
           const iconMap: Record<string, any> = {
             DollarSign,
@@ -68,14 +68,14 @@ export default function AdminDashboardPage() {
 
           return (
             <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium leading-snug">
                   {stat.title}
                 </CardTitle>
                 {IconComponent && <IconComponent className="h-4 w-4 text-muted-foreground" />}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-lg sm:text-2xl font-bold leading-tight break-all">{stat.value}</div>
                 <p className="text-xs text-muted-foreground">
                   {stat.description}
                 </p>

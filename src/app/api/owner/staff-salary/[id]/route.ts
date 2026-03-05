@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -24,22 +25,20 @@ export async function PATCH(
     const body = await request.json();
     const action = request.nextUrl.searchParams.get("action"); // "payment" or "update"
 
-    // Check ownership
-    const existing = await db.staffSalary.findFirst({
-      where: {
-        id,
-        staff: {
-          ownerId: session.id,
-        },
-      },
+    // Fetch salary record by ID
+    const existing = await db.staffSalary.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Salary record not found or access denied" },
+        { ok: false, error: "Salary record not found" },
         { status: 404 }
       );
     }
+
+    // Verify restaurant access via RBAC
+    await requireRestaurantAccess(session, existing.restaurantId, "staff:update");
 
     if (action === "payment") {
       const validated = recordPaymentSchema.parse(body);
@@ -154,22 +153,20 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Check ownership
-    const existing = await db.staffSalary.findFirst({
-      where: {
-        id,
-        staff: {
-          ownerId: session.id,
-        },
-      },
+    // Fetch salary record by ID
+    const existing = await db.staffSalary.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Salary record not found or access denied" },
+        { ok: false, error: "Salary record not found" },
         { status: 404 }
       );
     }
+
+    // Verify restaurant access via RBAC
+    await requireRestaurantAccess(session, existing.restaurantId, "staff:delete");
 
     // Only allow deletion if no payment has been made
     if (existing.totalPaid > 0) {

@@ -243,8 +243,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, message: "Vendor blocked successfully" });
     }
 
+    if (action === "unblock") {
+      await db.vendorProfile.update({
+        where: { userId: vendorId },
+        data: {
+          subscriptionStatus: "ACTIVE",
+        },
+      });
+
+      await db.user.update({
+        where: { id: vendorId },
+        data: { isActive: true },
+      });
+
+      await db.notification.create({
+        data: {
+          userId: vendorId,
+          title: "Account Unblocked",
+          message: "Your vendor account has been unblocked. You can now access your dashboard.",
+          linkUrl: "/vendor/dashboard",
+        },
+      });
+
+      return NextResponse.json({ ok: true, message: "Vendor unblocked successfully" });
+    }
+
     return NextResponse.json(
-      { ok: false, error: "Invalid action. Use 'approve', 'reject', 'activate', or 'block'" },
+      { ok: false, error: "Invalid action. Use 'approve', 'reject', 'activate', 'block', or 'unblock'" },
       { status: 400 }
     );
   } catch (error) {

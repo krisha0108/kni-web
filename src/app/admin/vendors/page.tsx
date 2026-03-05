@@ -242,6 +242,25 @@ export default function AdminVendorsPage() {
     }
   };
 
+  const handleUnblock = async (vendorId: string) => {
+    try {
+      const response = await fetch("/api/admin/vendors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId, action: "unblock" }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Vendor unblocked" });
+        fetchVendors();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to unblock vendor", variant: "destructive" });
+    }
+  };
+
   const openEditModelDialog = (vendor: Vendor) => {
     setEditVendorId(vendor.id);
     setEditRevenueModel(vendor.vendorProfile?.revenueModel || "SUBSCRIPTION");
@@ -353,152 +372,171 @@ export default function AdminVendorsPage() {
         </ClientOnly>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Email</TableHead>
-              <TableHead className="hidden md:table-cell">Location</TableHead>
-              <TableHead className="hidden lg:table-cell">Categories</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Subscription</TableHead>
-              <TableHead className="hidden lg:table-cell">Revenue Model</TableHead>
-              <TableHead className="hidden lg:table-cell">Registered</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  Loading...
-                </TableCell>
+                <TableHead className="px-2 sm:px-4">Name</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Email</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden md:table-cell">Location</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden lg:table-cell">Categories</TableHead>
+                <TableHead className="px-2 sm:px-4">Status</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden md:table-cell">Subscription</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden lg:table-cell">Revenue Model</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden lg:table-cell">Registered</TableHead>
+                <TableHead className="px-2 sm:px-4 w-[120px]">Actions</TableHead>
               </TableRow>
-            ) : vendors.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  No vendors found
-                </TableCell>
-              </TableRow>
-            ) : (
-              vendors.map((vendor) => (
-                <TableRow key={vendor.id}>
-                  <TableCell className="font-medium">{vendor.name}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{vendor.email}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {vendor.vendorProfile?.city && vendor.vendorProfile?.state ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        <span>{vendor.vendorProfile.city}, {vendor.vendorProfile.state}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Not set</span>
-                    )}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8">
+                    Loading...
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {vendor.categories && vendor.categories.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {vendor.categories.slice(0, 2).map((cat) => (
-                          <Badge key={cat.id} variant="outline" className="text-xs">
-                            {cat.name}
-                          </Badge>
-                        ))}
-                        {vendor.categories.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{vendor.categories.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">None</span>
-                    )}
+                </TableRow>
+              ) : vendors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No vendors found
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={statusColors[vendor.vendorProfile?.approvalStatus || "PENDING"] || "default"}>
-                      {vendor.vendorProfile?.approvalStatus || "PENDING"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <Badge variant={isSubscriptionExpired(vendor) ? "destructive" : subscriptionColors[vendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"}>
-                      {getSubscriptionLabel(vendor)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <Badge variant={vendor.vendorProfile?.revenueModel === "COMMISSION" ? "success" : "secondary"}>
-                      {vendor.vendorProfile?.revenueModel === "COMMISSION"
-                        ? `Commission ${vendor.vendorProfile?.commissionRate || 0}%`
-                        : "Subscription"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">{formatDate(vendor.createdAt)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => openDetailDialog(vendor)}
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {vendor.vendorProfile?.approvalStatus !== "APPROVED" ? (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => openApproveDialog(vendor.id)}
-                            title="Approve"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => openRejectDialog(vendor.id)}
-                            title="Reject"
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </>
+                </TableRow>
+              ) : (
+                vendors.map((vendor) => (
+                  <TableRow key={vendor.id}>
+                    <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm break-words">
+                      {vendor.name}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell px-2 sm:px-4 text-xs sm:text-sm break-all">
+                      {vendor.email}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-2 sm:px-4">
+                      {vendor.vendorProfile?.city && vendor.vendorProfile?.state ? (
+                        <div className="flex items-center gap-1 text-xs sm:text-sm">
+                          <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span>{vendor.vendorProfile.city}, {vendor.vendorProfile.state}</span>
+                        </div>
                       ) : (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => openEditModelDialog(vendor)}
-                            title="Edit Revenue Model"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {vendor.vendorProfile?.subscriptionStatus !== "BLOCKED" && (
+                        <span className="text-muted-foreground text-xs sm:text-sm">Not set</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell px-2 sm:px-4">
+                      {vendor.categories && vendor.categories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {vendor.categories.slice(0, 2).map((cat) => (
+                            <Badge key={cat.id} variant="outline" className="text-xs whitespace-nowrap">
+                              {cat.name}
+                            </Badge>
+                          ))}
+                          {vendor.categories.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{vendor.categories.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs sm:text-sm">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant={statusColors[vendor.vendorProfile?.approvalStatus || "PENDING"] || "default"} className="text-xs whitespace-nowrap">
+                        {vendor.vendorProfile?.approvalStatus || "PENDING"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-2 sm:px-4">
+                      <Badge variant={isSubscriptionExpired(vendor) ? "destructive" : subscriptionColors[vendor.vendorProfile?.subscriptionStatus || "INACTIVE"] || "default"} className="text-xs whitespace-nowrap">
+                        {getSubscriptionLabel(vendor)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell px-2 sm:px-4">
+                      <Badge variant={vendor.vendorProfile?.revenueModel === "COMMISSION" ? "success" : "secondary"} className="text-xs whitespace-nowrap">
+                        {vendor.vendorProfile?.revenueModel === "COMMISSION"
+                          ? `Commission ${vendor.vendorProfile?.commissionRate || 0}%`
+                          : "Subscription"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell px-2 sm:px-4 text-xs sm:text-sm">
+                      {formatDate(vendor.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openDetailDialog(vendor)}
+                          title="View Details"
+                          className="h-8 w-8"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {vendor.vendorProfile?.approvalStatus !== "APPROVED" ? (
+                          <>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleBlock(vendor.id)}
-                              title="Block Vendor"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50 h-8 w-8"
+                              onClick={() => openApproveDialog(vendor.id)}
+                              title="Approve"
                             >
-                              <ShieldBan className="h-4 w-4" />
+                              <CheckCircle className="h-4 w-4" />
                             </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                              onClick={() => openRejectDialog(vendor.id)}
+                              title="Reject"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8"
+                              onClick={() => openEditModelDialog(vendor)}
+                              title="Edit Revenue Model"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            {vendor.vendorProfile?.subscriptionStatus !== "BLOCKED" ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                                onClick={() => handleBlock(vendor.id)}
+                                title="Block Vendor"
+                              >
+                                <ShieldBan className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 h-8 w-8"
+                                onClick={() => handleUnblock(vendor.id)}
+                                title="Unblock Vendor"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+              </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Vendor Details Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Vendor Details</DialogTitle>
             <DialogDescription>
@@ -674,7 +712,7 @@ export default function AdminVendorsPage() {
 
       {/* Vendor Approve Dialog - Choose Revenue Model */}
       <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Approve Vendor</DialogTitle>
             <DialogDescription>
@@ -759,7 +797,7 @@ export default function AdminVendorsPage() {
 
       {/* Edit Revenue Model Dialog */}
       <Dialog open={isEditModelDialogOpen} onOpenChange={setIsEditModelDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Revenue Model</DialogTitle>
             <DialogDescription>
@@ -838,7 +876,7 @@ export default function AdminVendorsPage() {
 
       {/* Vendor Rejection Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Vendor Application</DialogTitle>
             <DialogDescription>

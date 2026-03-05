@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { notifyAdminsNewPaymentUploaded } from "@/server/notifications/service";
 import { isValidImageUrl } from "@/lib/validations/url";
 
@@ -22,16 +23,20 @@ export async function POST(
       );
     }
 
+    // Fetch booking by id (without ownerId filter)
     const booking = await db.serviceBooking.findUnique({
       where: { id },
     });
 
-    if (!booking || booking.ownerId !== session.id) {
+    if (!booking) {
       return NextResponse.json(
         { ok: false, error: "Booking not found" },
         { status: 404 }
       );
     }
+
+    // RBAC check - verify user has access to update bookings for this restaurant
+    await requireRestaurantAccess(session, booking.restaurantId, "bookings:update");
 
     if (booking.status !== "SLOT_SELECTED") {
       return NextResponse.json(
@@ -40,10 +45,13 @@ export async function POST(
       );
     }
 
+    // Use actual restaurant owner ID for the payment proof record FK
+    const actualOwnerId = await getRestaurantOwnerId(booking.restaurantId);
+
     await db.paymentProof.create({
       data: {
         bookingId: id,
-        ownerId: session.id,
+        ownerId: actualOwnerId,
         screenshotUrl,
         status: "UPLOADED",
       },

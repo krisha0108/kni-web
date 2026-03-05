@@ -198,7 +198,7 @@ export default function WarehouseInventoryPage() {
                 Initialize Inventory
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Initialize Inventory</DialogTitle>
             </DialogHeader>
@@ -284,28 +284,33 @@ export default function WarehouseInventoryPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Part Name</TableHead>
               <TableHead>Category</TableHead>
+              
               <TableHead>Current Stock</TableHead>
               <TableHead>Threshold</TableHead>
               <TableHead>Unit Price</TableHead>
               <TableHead>Total Value</TableHead>
               <TableHead>Status</TableHead>
+              
               <TableHead>Last Restocked</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : inventories.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No inventory items found. Initialize inventory for parts to get started.
@@ -320,27 +325,32 @@ export default function WarehouseInventoryPage() {
                 const totalValue = inventory.currentStock * inventory.partItem.price;
 
                 return (
+                  
                   <TableRow key={inventory.id}>
                     <TableCell className="font-medium">{inventory.partItem.name}</TableCell>
                     <TableCell>{inventory.partItem.category.name}</TableCell>
                     <TableCell>
                       <span className="font-mono">{inventory.currentStock}</span>
                     </TableCell>
+                    
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
                         {inventory.lowStockThreshold}
                       </span>
                     </TableCell>
+                    
                     <TableCell>{formatPrice(inventory.partItem.price)}</TableCell>
                     <TableCell className="font-medium">{formatPrice(totalValue)}</TableCell>
                     <TableCell>
                       <Badge variant={stockStatus.color}>{stockStatus.label}</Badge>
                     </TableCell>
+                    
                     <TableCell>
                       {inventory.lastRestockedAt
                         ? formatDate(inventory.lastRestockedAt)
                         : "Never"}
                     </TableCell>
+                    
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -358,6 +368,16 @@ export default function WarehouseInventoryPage() {
             )}
           </TableBody>
         </Table>
+                    
+                    
+                    
+                    
+                  
+              
+              
+              
+              
+        
       </div>
     </div>
   );

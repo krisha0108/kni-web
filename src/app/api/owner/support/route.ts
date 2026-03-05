@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
 const createTicketSchema = z.object({
@@ -22,13 +23,18 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-    const where: any = {
-      ownerId: session.id,
-    };
-
-    if (restaurantId) {
-      where.restaurantId = restaurantId;
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
     }
+
+    await requireRestaurantAccess(session, restaurantId, "support:read");
+
+    const where: any = {
+      restaurantId,
+    };
 
     if (status && status !== "all") {
       where.status = status.toUpperCase();
@@ -89,26 +95,19 @@ export async function POST(request: NextRequest) {
 
     const { restaurantId, title, equipmentName, category, description, photoUrl } = validation.data;
 
-    // If restaurantId provided, verify ownership
+    // If restaurantId provided, verify access
     if (restaurantId) {
-      const restaurant = await db.restaurant.findFirst({
-        where: {
-          id: restaurantId,
-          ownerId: session.id,
-        },
-      });
-
-      if (!restaurant) {
-        return NextResponse.json(
-          { ok: false, error: "Restaurant not found" },
-          { status: 404 }
-        );
-      }
+      await requireRestaurantAccess(session, restaurantId, "support:create");
     }
+
+    // Get actual owner ID for FK
+    const ownerId = restaurantId
+      ? await getRestaurantOwnerId(restaurantId)
+      : session.id;
 
     const ticket = await db.supportTicket.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: restaurantId || null,
         title,
         equipmentName: equipmentName || null,
@@ -135,8 +134,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create support ticket error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

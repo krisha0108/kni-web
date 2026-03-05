@@ -141,10 +141,10 @@ const TimelineStep = ({
   isCurrent: boolean;
   isLast: boolean;
 }) => (
-  <div className="flex gap-4">
+  <div className="flex gap-3 sm:gap-4">
     <div className="flex flex-col items-center">
       <div
-        className={`w-4 h-4 rounded-full border-2 ${
+        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 ${
           isCompleted
             ? "bg-green-500 border-green-500"
             : isCurrent
@@ -154,18 +154,18 @@ const TimelineStep = ({
       />
       {!isLast && (
         <div
-          className={`w-0.5 flex-1 min-h-[50px] ${
+          className={`w-0.5 flex-1 min-h-[40px] sm:min-h-[50px] ${
             isCompleted ? "bg-green-500" : "bg-muted"
           }`}
         />
       )}
     </div>
-    <div className="pb-8">
-      <p className={`font-medium ${isCompleted || isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
+    <div className="pb-6 sm:pb-8 min-w-0 flex-1">
+      <p className={`font-medium text-xs sm:text-sm ${isCompleted || isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
         {title}
       </p>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
-      {date && <p className="text-xs text-muted-foreground mt-1">{formatDate(date)}</p>}
+      {description && <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>}
+      {date && <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{formatDate(date)}</p>}
     </div>
   </div>
 );
@@ -274,13 +274,13 @@ export default function OrderTrackingPage() {
 
   if (!selectedRestaurant) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center py-10">
-              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">No Restaurant Selected</h3>
-              <p className="text-muted-foreground text-sm mt-1">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-10">
+              <Building2 className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold">No Restaurant Selected</h3>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1 text-center">
                 Please select a restaurant to track orders
               </p>
             </div>
@@ -291,47 +291,51 @@ export default function OrderTrackingPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Order Tracking</h1>
-          <p className="text-muted-foreground">Track your service bookings and marketplace orders</p>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">Order Tracking</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track your service bookings and marketplace orders</p>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="services" className="gap-2">
-            <Wrench className="h-4 w-4" />
-            Service Bookings
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="gap-2">
-            <ShoppingBag className="h-4 w-4" />
-            Marketplace Orders
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 scrollbar-hide">
+          <div className="px-4 sm:px-0 min-w-min">
+            <TabsList className="grid w-full max-w-md grid-cols-2 inline-flex">
+              <TabsTrigger value="services" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+                <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Service Bookings
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+                <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Marketplace Orders
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         {/* Service Bookings Tab */}
-        <TabsContent value="services" className="space-y-4">
+        <TabsContent value="services" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex flex-col md:flex-row gap-4">
+            <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by ID or equipment..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm"
                   />
                 </div>
                 <Select value={serviceStatusFilter} onValueChange={setServiceStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Filter status" />
                   </SelectTrigger>
                   <SelectContent>
                     {SERVICE_STATUSES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      <SelectItem key={s.value} value={s.value} className="text-xs sm:text-sm">{s.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -341,24 +345,24 @@ export default function OrderTrackingPage() {
 
           {isLoading ? (
             <Card>
-              <CardContent className="py-10">
+              <CardContent className="py-8 sm:py-10">
                 <div className="flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
           ) : filteredServices.length === 0 ? (
             <Card>
-              <CardContent className="py-10">
+              <CardContent className="py-8 sm:py-10">
                 <div className="flex flex-col items-center justify-center">
-                  <Wrench className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold">No Service Bookings</h3>
-                  <p className="text-muted-foreground text-sm">No bookings match your criteria</p>
+                  <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold">No Service Bookings</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm">No bookings match your criteria</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredServices.map((booking) => {
                 const statusConfig = getServiceStatusConfig(booking.status);
                 const StatusIcon = statusConfig.icon;
@@ -368,26 +372,26 @@ export default function OrderTrackingPage() {
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => setSelectedService(booking)}
                   >
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={statusConfig.color} className="gap-1">
+                    <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <Badge variant={statusConfig.color} className="gap-1 text-xs shrink-0">
                               <StatusIcon className="h-3 w-3" />
                               {statusConfig.label}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">#{booking.id.slice(0, 8)}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{booking.id.slice(0, 8)}</span>
                           </div>
-                          <h3 className="font-semibold">{booking.equipment?.name || "General Service"}</h3>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                          <h3 className="font-semibold text-sm sm:text-base">{booking.equipment?.name || "General Service"}</h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              {booking.slotStartDateTime ? formatDate(booking.slotStartDateTime) : "Not scheduled"}
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                              <span className="truncate">{booking.slotStartDateTime ? formatDate(booking.slotStartDateTime) : "Not scheduled"}</span>
                             </div>
                             <div className="font-medium text-foreground">{formatPrice(booking.totalAmount)}</div>
                           </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
                       </div>
                     </CardContent>
                   </Card>
@@ -398,26 +402,26 @@ export default function OrderTrackingPage() {
         </TabsContent>
 
         {/* Marketplace Orders Tab */}
-        <TabsContent value="orders" className="space-y-4">
+        <TabsContent value="orders" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex flex-col md:flex-row gap-4">
+            <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by order ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm"
                   />
                 </div>
                 <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Filter status" />
                   </SelectTrigger>
                   <SelectContent>
                     {ORDER_STATUSES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      <SelectItem key={s.value} value={s.value} className="text-xs sm:text-sm">{s.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -427,24 +431,24 @@ export default function OrderTrackingPage() {
 
           {isLoading ? (
             <Card>
-              <CardContent className="py-10">
+              <CardContent className="py-8 sm:py-10">
                 <div className="flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
           ) : filteredOrders.length === 0 ? (
             <Card>
-              <CardContent className="py-10">
+              <CardContent className="py-8 sm:py-10">
                 <div className="flex flex-col items-center justify-center">
-                  <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold">No Marketplace Orders</h3>
-                  <p className="text-muted-foreground text-sm">No orders match your criteria</p>
+                  <ShoppingBag className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold">No Marketplace Orders</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm">No orders match your criteria</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredOrders.map((order) => {
                 const statusConfig = getOrderStatusConfig(order.status);
                 const StatusIcon = statusConfig.icon;
@@ -454,28 +458,28 @@ export default function OrderTrackingPage() {
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={statusConfig.color} className="gap-1">
+                    <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <Badge variant={statusConfig.color} className="gap-1 text-xs shrink-0">
                               <StatusIcon className="h-3 w-3" />
                               {statusConfig.label}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">#{order.id.slice(0, 8)}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{order.id.slice(0, 8)}</span>
                           </div>
-                          <h3 className="font-semibold">
+                          <h3 className="font-semibold text-sm sm:text-base">
                             {order.items?.length || 0} item(s)
                           </h3>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              {formatDate(order.createdAt)}
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                              <span className="truncate">{formatDate(order.createdAt)}</span>
                             </div>
                             <div className="font-medium text-foreground">{formatPrice(order.totalAmount)}</div>
                           </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
                       </div>
                     </CardContent>
                   </Card>
@@ -488,31 +492,31 @@ export default function OrderTrackingPage() {
 
       {/* Service Detail Dialog */}
       <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Service Booking #{selectedService?.id.slice(0, 8)}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Service Booking #{selectedService?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
           {selectedService && (
-            <div className="space-y-6">
-              <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold">{selectedService.equipment?.name || "General Service"}</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold text-sm sm:text-base">{selectedService.equipment?.name || "General Service"}</h3>
                 {selectedService.problemDescription && (
-                  <p className="text-sm text-muted-foreground mt-1">{selectedService.problemDescription}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{selectedService.problemDescription}</p>
                 )}
-                <p className="text-lg font-bold mt-2">{formatPrice(selectedService.totalAmount)}</p>
+                <p className="text-base sm:text-lg font-bold mt-2 leading-tight break-all">{formatPrice(selectedService.totalAmount)}</p>
               </div>
 
               {selectedService.engineerAssignments?.[0] && (
-                <div className="p-4 border rounded-lg">
+                <div className="p-3 sm:p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-5 w-5 text-primary" />
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-medium">{selectedService.engineerAssignments[0].engineer.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {selectedService.engineerAssignments[0].engineer.phone}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate">{selectedService.engineerAssignments[0].engineer.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{selectedService.engineerAssignments[0].engineer.phone}</span>
                       </p>
                     </div>
                   </div>
@@ -520,7 +524,7 @@ export default function OrderTrackingPage() {
               )}
 
               <div>
-                <h4 className="font-medium mb-4">Tracking Timeline</h4>
+                <h4 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">Tracking Timeline</h4>
                 <div className="ml-2">
                   {getServiceTimeline(selectedService).map((step, index) => (
                     <TimelineStep key={index} {...step} />
@@ -534,30 +538,30 @@ export default function OrderTrackingPage() {
 
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-6">
-              <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold">{selectedOrder.items?.length || 0} Item(s)</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold text-sm sm:text-base">{selectedOrder.items?.length || 0} Item(s)</h3>
                 {selectedOrder.items?.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm mt-2">
-                    <span>{item.product?.name} x {item.quantity}</span>
-                    <span>{formatPrice(item.price * item.quantity)}</span>
+                  <div key={index} className="flex justify-between text-xs sm:text-sm mt-2">
+                    <span className="truncate mr-2">{item.product?.name} x {item.quantity}</span>
+                    <span className="shrink-0">{formatPrice(item.price * item.quantity)}</span>
                   </div>
                 ))}
                 <div className="border-t mt-2 pt-2">
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-bold text-sm sm:text-base">
                     <span>Total</span>
-                    <span>{formatPrice(selectedOrder.totalAmount)}</span>
+                    <span className="break-all leading-tight">{formatPrice(selectedOrder.totalAmount)}</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-medium mb-4">Delivery Timeline</h4>
+                <h4 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">Delivery Timeline</h4>
                 <div className="ml-2">
                   {getOrderTimeline(selectedOrder).map((step, index) => (
                     <TimelineStep key={index} {...step} />

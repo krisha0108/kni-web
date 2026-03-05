@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * POST /api/admin/amc-requests/[id]/schedule-survey
@@ -81,6 +81,17 @@ export async function POST(
       message: `You have been assigned an AMC site survey at "${amcRequest.restaurant.name}" on ${new Date(scheduledDate).toLocaleDateString()}.`,
       type: NotificationType.AMC,
       linkUrl: `/engineer/amc-surveys`,
+    });
+
+    // Notify team members (non-blocking)
+    notifyRestaurantTeam({
+      restaurantId: amcRequest.restaurantId,
+      excludeUserIds: [amcRequest.ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "AMC Survey Scheduled",
+      message: `A site survey has been scheduled for "${amcRequest.restaurant.name}" on ${new Date(scheduledDate).toLocaleDateString()}.`,
+      type: NotificationType.AMC,
+      linkUrl: `/owner/amc-requests/${id}`,
     });
 
     return NextResponse.json({ ok: true, data: survey }, { status: 201 });

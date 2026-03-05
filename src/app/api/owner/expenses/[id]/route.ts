@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { expenseUpdateSchema } from "@/server/validators/expense";
 
 export async function GET(
@@ -14,7 +15,6 @@ export async function GET(
     const expense = await db.expense.findFirst({
       where: {
         id,
-        ownerId: session.id,
         deletedAt: null,
       },
       include: {
@@ -35,6 +35,9 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Check restaurant access with expenses:read permission
+    await requireRestaurantAccess(session, expense.restaurantId, "expenses:read");
 
     return NextResponse.json({
       ok: true,
@@ -67,11 +70,10 @@ export async function PATCH(
       );
     }
 
-    // Check if expense exists and belongs to owner
+    // Check if expense exists
     const existingExpense = await db.expense.findFirst({
       where: {
         id,
-        ownerId: session.id,
         deletedAt: null,
       },
     });
@@ -82,6 +84,9 @@ export async function PATCH(
         { status: 404 }
       );
     }
+
+    // Check restaurant access with expenses:update permission
+    await requireRestaurantAccess(session, existingExpense.restaurantId, "expenses:update");
 
     const updateData: any = {};
     if (validation.data.category !== undefined) updateData.category = validation.data.category;
@@ -125,11 +130,10 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Check if expense exists and belongs to owner
+    // Check if expense exists
     const existingExpense = await db.expense.findFirst({
       where: {
         id,
-        ownerId: session.id,
         deletedAt: null,
       },
     });
@@ -140,6 +144,9 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Check restaurant access with expenses:delete permission
+    await requireRestaurantAccess(session, existingExpense.restaurantId, "expenses:delete");
 
     // Soft delete
     await db.expense.update({

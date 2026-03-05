@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -24,20 +25,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = bulkAttendanceSchema.parse(body);
 
-    // Verify restaurant ownership
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id: validated.restaurantId,
-        ownerId: session.id,
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
-        { status: 404 }
-      );
-    }
+    await requireRestaurantAccess(session, validated.restaurantId, "staff:update");
 
     // Parse date explicitly to avoid timezone issues
     const [year, month, day] = validated.attendanceDate.split('-').map(Number);
@@ -51,7 +39,6 @@ export async function POST(request: NextRequest) {
       where: {
         id: { in: staffIds },
         restaurantId: validated.restaurantId,
-        ownerId: session.id,
       },
     });
 

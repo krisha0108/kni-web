@@ -251,92 +251,106 @@ export default function AdminOwnersPage() {
       </div>
 
       {/* Owners Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Restaurants</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Name</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Email</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Phone</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Restaurants</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Status</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Joined</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4 w-[120px]">Actions</TableHead>
               </TableRow>
-            ) : owners.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No owners found
-                </TableCell>
-              </TableRow>
-            ) : (
-              owners.map((owner) => (
-                <TableRow key={owner.id}>
-                  <TableCell className="font-medium">{owner.name}</TableCell>
-                  <TableCell>{owner.email}</TableCell>
-                  <TableCell>{owner.phone || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {owner.restaurantCount} restaurant{owner.restaurantCount !== 1 ? "s" : ""}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={owner.isActive ? "success" : "destructive"}>
-                      {owner.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(owner.createdAt)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openDetailDialog(owner.id)}
-                        title="View details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {owner.isActive ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggleStatus(owner.id, false)}
-                          title="Deactivate owner"
-                          disabled={isTogglingStatus}
-                        >
-                          <UserX className="h-4 w-4 text-red-600" />
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggleStatus(owner.id, true)}
-                          title="Activate owner"
-                          disabled={isTogglingStatus}
-                        >
-                          <UserCheck className="h-4 w-4 text-green-600" />
-                        </Button>
-                      )}
-                    </div>
+            </TableHeader>
+            
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : owners.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No owners found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                owners.map((owner) => (
+                  <TableRow key={owner.id}>
+                    <TableCell className="font-medium whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                      {owner.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                      {owner.email}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                      {owner.phone || "-"}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                        {owner.restaurantCount} {owner.restaurantCount !== 1 ? "restaurants" : "restaurant"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant={owner.isActive ? "success" : "destructive"} className="text-xs whitespace-nowrap">
+                        {owner.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
+                      {formatDate(owner.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openDetailDialog(owner.id)}
+                          title="View details"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {owner.isActive ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleStatus(owner.id, false)}
+                            title="Deactivate owner"
+                            disabled={isTogglingStatus}
+                            className="h-8 w-8 p-0"
+                          >
+                            <UserX className="h-4 w-4 text-red-600" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleStatus(owner.id, true)}
+                            title="Activate owner"
+                            disabled={isTogglingStatus}
+                            className="h-8 w-8 p-0"
+                          >
+                            <UserCheck className="h-4 w-4 text-green-600" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Owner Details Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Owner Details</DialogTitle>
             <DialogDescription>

@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { Role, NotificationType } from "@prisma/client";
+import { Role, NotificationType, RestaurantRole } from "@prisma/client";
 import {
   sendPaymentVerifiedEmail,
   sendPaymentRejectedEmail,
@@ -7,7 +7,7 @@ import {
   sendEngineerJobAssignmentEmail,
   sendWorkCompletedEmail,
 } from "@/lib/email";
-import { sendPushNotification } from "./fcm-service";
+import { sendPushNotification, sendPushNotificationToMultipleUsers } from "./fcm-service";
 import { sendSMS, sendSMSFromTemplate } from "@/server/sms/service";
 import { autoSyncBooking } from "@/server/khatabook/service";
 
@@ -112,6 +112,61 @@ export async function markNotificationsAsRead(
     data: { isRead: true },
   });
   return result.count;
+}
+
+// Team member notification
+interface NotifyTeamInput {
+  restaurantId: string;
+  excludeUserIds?: string[];
+  roles: RestaurantRole[];
+  title: string;
+  message: string;
+  type?: NotificationType;
+  linkUrl?: string;
+}
+
+export async function notifyRestaurantTeam(input: NotifyTeamInput) {
+  try {
+    const members = await db.restaurantMember.findMany({
+      where: {
+        restaurantId: input.restaurantId,
+        acceptedAt: { not: null },
+        role: { in: input.roles },
+        ...(input.excludeUserIds?.length
+          ? { userId: { notIn: input.excludeUserIds } }
+          : {}),
+      },
+      select: { userId: true },
+    });
+
+    if (members.length === 0) return;
+
+    const type = input.type || NotificationType.SYSTEM;
+    const userIds = members.map((m) => m.userId);
+
+    await db.notification.createMany({
+      data: userIds.map((userId) => ({
+        userId,
+        title: input.title,
+        message: input.message,
+        type,
+        linkUrl: input.linkUrl || null,
+      })),
+    });
+
+    // Push notifications (non-blocking)
+    sendPushNotificationToMultipleUsers(
+      userIds,
+      input.title,
+      input.message,
+      undefined,
+      input.linkUrl
+    ).catch((err) =>
+      console.error("Failed to send team push notifications:", err)
+    );
+  } catch (error) {
+    console.error("Failed to notify restaurant team:", error);
+  }
 }
 
 // Helper functions for common notification scenarios
@@ -219,6 +274,19 @@ export async function notifyOwnerPaymentVerified(
     });
   }
 
+  // Notify team members (non-blocking)
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT],
+      title: "Payment Verified",
+      message: "Booking payment has been verified. An engineer will be assigned soon.",
+      type: NotificationType.PAYMENT,
+      linkUrl: "/owner/bookings/" + bookingId,
+    });
+  }
+
   return notification;
 }
 
@@ -257,6 +325,19 @@ export async function notifyOwnerPaymentRejected(
       reason
     ).catch((error) => {
       console.error("Failed to send payment rejected email:", error);
+    });
+  }
+
+  // Notify team members (non-blocking)
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER, RestaurantRole.ACCOUNTANT],
+      title: "Payment Rejected",
+      message: "Booking payment was rejected. Reason: " + reason,
+      type: NotificationType.PAYMENT,
+      linkUrl: "/owner/bookings/" + bookingId,
     });
   }
 
@@ -325,6 +406,19 @@ export async function notifyOwnerEngineerAssigned(
     }
   }
 
+  // Notify team members (non-blocking)
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Engineer Assigned",
+      message: engineerName + " has been assigned to a booking.",
+      type: NotificationType.BOOKING,
+      linkUrl: "/owner/bookings/" + bookingId,
+    });
+  }
+
   return notification;
 }
 
@@ -332,13 +426,32 @@ export async function notifyOwnerJobCompleted(
   ownerId: string,
   bookingId: string
 ) {
-  return createNotification({
+  const notification = await createNotification({
     userId: ownerId,
     title: "Job Completed",
     message: "Your service booking has been completed.",
     type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Notify team members (non-blocking)
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    select: { restaurantId: true },
+  });
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Job Completed",
+      message: "A service booking has been completed.",
+      type: NotificationType.BOOKING,
+      linkUrl: "/owner/bookings/" + bookingId,
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyEngineerNewJob(
@@ -482,13 +595,32 @@ export async function notifyOwnerEngineerStarted(
   bookingId: string,
   engineerName: string
 ) {
-  return createNotification({
+  const notification = await createNotification({
     userId: ownerId,
     title: "Work Started",
     message: `${engineerName} has started working on your service booking.`,
     type: NotificationType.BOOKING,
     linkUrl: "/owner/bookings/" + bookingId,
   });
+
+  // Notify team members (non-blocking)
+  const booking = await db.serviceBooking.findUnique({
+    where: { id: bookingId },
+    select: { restaurantId: true },
+  });
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Work Started",
+      message: `${engineerName} has started working on a service booking.`,
+      type: NotificationType.BOOKING,
+      linkUrl: "/owner/bookings/" + bookingId,
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerServiceCompleted(
@@ -541,6 +673,19 @@ export async function notifyOwnerServiceCompleted(
         console.error("Failed to send work completed email:", error);
       });
     }
+  }
+
+  // Notify team members (non-blocking)
+  if (booking) {
+    notifyRestaurantTeam({
+      restaurantId: booking.restaurantId,
+      excludeUserIds: [ownerId],
+      roles: [RestaurantRole.MANAGER],
+      title: "Service Completed",
+      message: "A service booking has been completed successfully.",
+      type: NotificationType.BOOKING,
+      linkUrl: "/owner/bookings/" + bookingId,
+    });
   }
 
   return notification;

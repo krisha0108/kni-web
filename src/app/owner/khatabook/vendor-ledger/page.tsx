@@ -299,6 +299,8 @@ export default function VendorLedgerPage() {
     setIsDialogOpen(true);
   };
 
+  const canCreate = selectedRestaurant?.role === "OWNER" || selectedRestaurant?.role === "MANAGER" || selectedRestaurant?.role === "ACCOUNTANT";
+
   if (!selectedRestaurant) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -314,20 +316,22 @@ export default function VendorLedgerPage() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Vendor Ledger</h1>
           <p className="text-muted-foreground">Manage vendor purchases and payments</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => openAddEntryDialog("PURCHASE")}>
-            <ArrowDownCircle className="mr-2 h-4 w-4 text-red-600" />
-            Add Purchase
-          </Button>
-          <Button onClick={() => openAddEntryDialog("PAYMENT")}>
-            <ArrowUpCircle className="mr-2 h-4 w-4 text-green-600" />
-            Add Payment
-          </Button>
-        </div>
+        {canCreate && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => openAddEntryDialog("PURCHASE")}>
+              <ArrowDownCircle className="mr-2 h-4 w-4 text-red-600" />
+              Add Purchase
+            </Button>
+            <Button onClick={() => openAddEntryDialog("PAYMENT")}>
+              <ArrowUpCircle className="mr-2 h-4 w-4 text-green-600" />
+              Add Payment
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
@@ -390,11 +394,13 @@ export default function VendorLedgerPage() {
                   <p className="text-muted-foreground">No vendor transactions yet</p>
                 </div>
               ) : (
+                
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Vendor Name</TableHead>
                       <TableHead>Contact</TableHead>
+                      
                       <TableHead>Total Purchases</TableHead>
                       <TableHead>Total Payments</TableHead>
                       <TableHead>Balance</TableHead>
@@ -402,6 +408,7 @@ export default function VendorLedgerPage() {
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
+                  
                   <TableBody>
                     {vendors.map((vendor) => (
                       <TableRow key={vendor.vendorName}>
@@ -413,6 +420,7 @@ export default function VendorLedgerPage() {
                             )}
                           </div>
                         </TableCell>
+                        
                         <TableCell>{vendor.vendorPhone || "-"}</TableCell>
                         <TableCell>{formatPrice(vendor.totalPurchases)}</TableCell>
                         <TableCell>{formatPrice(vendor.totalPayments)}</TableCell>
@@ -421,6 +429,7 @@ export default function VendorLedgerPage() {
                             {formatPrice(vendor.balance)}
                           </span>
                         </TableCell>
+                        
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(vendor.lastTransactionDate.toString())}
                         </TableCell>
@@ -441,6 +450,11 @@ export default function VendorLedgerPage() {
                     ))}
                   </TableBody>
                 </Table>
+                        
+                        
+                  
+                      
+                
               )}
             </CardContent>
           </Card>
@@ -515,11 +529,13 @@ export default function VendorLedgerPage() {
                   <p className="text-muted-foreground">No transactions found</p>
                 </div>
               ) : (
+                
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Vendor</TableHead>
+                      
                       <TableHead>Type</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Bill No.</TableHead>
@@ -527,12 +543,14 @@ export default function VendorLedgerPage() {
                       <TableHead>Balance After</TableHead>
                     </TableRow>
                   </TableHeader>
+                  
                   <TableBody>
                     {entries.map((entry) => (
                       <TableRow key={entry.id}>
                         <TableCell className="text-sm">
                           {formatDate(entry.entryDate)}
                         </TableCell>
+                        
                         <TableCell className="font-medium">
                           {entry.vendorName}
                         </TableCell>
@@ -541,12 +559,14 @@ export default function VendorLedgerPage() {
                             {entryTypeLabels[entry.entryType]}
                           </Badge>
                         </TableCell>
+                        
                         <TableCell className="max-w-xs truncate">
                           {entry.description}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {entry.billNumber || "-"}
                         </TableCell>
+                        
                         <TableCell>
                           <span className={
                             entry.entryType === "PURCHASE" || entry.entryType === "DEBIT_NOTE"
@@ -557,6 +577,7 @@ export default function VendorLedgerPage() {
                             {formatPrice(entry.amount)}
                           </span>
                         </TableCell>
+                        
                         <TableCell className="font-semibold">
                           <span className={entry.balanceAfter > 0 ? "text-red-600" : entry.balanceAfter < 0 ? "text-green-600" : ""}>
                             {formatPrice(entry.balanceAfter)}
@@ -566,6 +587,13 @@ export default function VendorLedgerPage() {
                     ))}
                   </TableBody>
                 </Table>
+                        
+                        
+                        
+                        
+                  
+                      
+                
               )}
             </CardContent>
           </Card>
@@ -574,7 +602,7 @@ export default function VendorLedgerPage() {
 
       {/* Add Entry Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>
               Add {form.entryType === "PURCHASE" ? "Purchase" : "Payment"} Entry
@@ -585,7 +613,7 @@ export default function VendorLedgerPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="vendorName">
                     Vendor Name <span className="text-red-500">*</span>
@@ -628,7 +656,7 @@ export default function VendorLedgerPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="entryType">
                     Entry Type <span className="text-red-500">*</span>
@@ -700,7 +728,7 @@ export default function VendorLedgerPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="billNumber">Bill Number</Label>
                   <Input

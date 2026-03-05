@@ -176,11 +176,13 @@ export default function AdminLocationRequestsPage() {
         </div>
 
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Area</TableHead>
+                
                 <TableHead>City</TableHead>
                 <TableHead>State</TableHead>
                 <TableHead>Status</TableHead>
@@ -188,12 +190,14 @@ export default function AdminLocationRequestsPage() {
                 <TableHead className="w-[140px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
+            
             <TableBody>
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                 </TableRow>
               ) : requests.length === 0 ? (
+                
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
@@ -202,6 +206,7 @@ export default function AdminLocationRequestsPage() {
                 </TableRow>
               ) : (
                 requests.map((req) => (
+                  
                   <TableRow key={req.id}>
                     <TableCell>
                       <div>
@@ -209,6 +214,7 @@ export default function AdminLocationRequestsPage() {
                         <div className="text-xs text-muted-foreground">{req.vendor.email}</div>
                       </div>
                     </TableCell>
+                    
                     <TableCell>{req.area.name}</TableCell>
                     <TableCell>{req.area.city.name}</TableCell>
                     <TableCell>{req.area.city.state.name}</TableCell>
@@ -216,6 +222,7 @@ export default function AdminLocationRequestsPage() {
                     <TableCell className="text-sm">
                       {new Date(req.createdAt).toLocaleDateString()}
                     </TableCell>
+                    
                     <TableCell>
                       {req.status === "PENDING" ? (
                         <div className="flex items-center gap-2">
@@ -249,6 +256,13 @@ export default function AdminLocationRequestsPage() {
               )}
             </TableBody>
           </Table>
+                    
+                    
+                  
+                
+            
+                
+          
         </div>
 
         {/* Action Dialog */}
@@ -256,7 +270,7 @@ export default function AdminLocationRequestsPage() {
           setIsActionOpen(open);
           if (!open) { setSelectedRequest(null); setAdminNote(""); }
         }}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {actionType === "APPROVED" ? "Approve" : "Reject"} Location Request

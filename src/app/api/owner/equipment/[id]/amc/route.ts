@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { amcSubscriptionSchema } from "@/server/validators/amc";
 import { calculateAMCEndDate } from "@/lib/amc";
 
@@ -13,11 +14,10 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id: equipmentId } = await params;
 
-    // Verify equipment ownership
+    // Verify equipment exists
     const equipment = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
     });
@@ -28,6 +28,9 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // RBAC check - verify user has access to read AMC for this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:read");
 
     // Get all AMC subscriptions for this equipment
     const subscriptions = await db.aMCSubscription.findMany({
@@ -79,11 +82,10 @@ export async function POST(
       );
     }
 
-    // Verify equipment ownership
+    // Verify equipment exists
     const equipment = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         deletedAt: null,
       },
       include: {
@@ -102,6 +104,9 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // RBAC check - verify user has access to create AMC for this equipment's restaurant
+    await requireRestaurantAccess(session, equipment.restaurantId, "amc:create");
 
     if (equipment.restaurant.status !== "APPROVED") {
       return NextResponse.json(
@@ -168,11 +173,14 @@ export async function POST(
       planData.planDescription = validation.data.planDescription || null;
     }
 
+    // Use actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(equipment.restaurantId);
+
     // Create AMC subscription
     const subscription = await db.aMCSubscription.create({
       data: {
         equipmentId,
-        ownerId: session.id,
+        ownerId,
         restaurantId: equipment.restaurantId,
         ...planData,
         startDate,

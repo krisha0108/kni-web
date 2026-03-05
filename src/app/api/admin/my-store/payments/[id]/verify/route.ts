@@ -71,8 +71,16 @@ export async function POST(
       }
     }
 
-    // Transaction: Create order + ledger + expense + update payment
+    // Transaction: Update order status + ledger + expense + cleanup cart + stock decrement + update payment
     const order = await db.$transaction(async (tx) => {
+      // Decrement stock for each ordered item
+      for (const item of items) {
+        await tx.vendorProduct.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.qty } },
+        });
+      }
+
       const orderItems = items.map((item) => ({
         vendorProductId: item.productId,
         qty: item.qty,
@@ -142,11 +150,31 @@ export async function POST(
         },
       });
 
+      // Clean up cart items for this vendor
+      const cart = await tx.marketplaceCart.findUnique({
+        where: {
+          ownerId_restaurantId: {
+            ownerId: payment.ownerId,
+            restaurantId: payment.restaurantId,
+          },
+        },
+      });
+
+      if (cart) {
+        await tx.marketplaceCartItem.deleteMany({
+          where: {
+            cartId: cart.id,
+            product: {
+              vendorId: payment.vendorId,
+            },
+          },
+        });
+      }
+
       await tx.marketplacePayment.update({
         where: { id: payment.id },
         data: {
           status: "VERIFIED",
-          orderId: newOrder.id,
           verifiedAt: new Date(),
         },
       });
@@ -166,6 +194,7 @@ export async function POST(
     return NextResponse.json({ ok: true, data: order });
   } catch (error) {
     console.error("Admin verify marketplace payment error:", error);
+    console.error("Error details:", error instanceof Error ? error.message : JSON.stringify(error));
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }

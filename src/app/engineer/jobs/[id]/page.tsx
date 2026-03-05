@@ -837,7 +837,7 @@ export default function EngineerJobDetailPage() {
 
       {/* Parts Selection Dialog */}
       <Dialog open={isPartsOpen} onOpenChange={setIsPartsOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -940,7 +940,7 @@ export default function EngineerJobDetailPage() {
 
       {/* Service PIN Modal */}
       <Dialog open={isPinModalOpen} onOpenChange={setIsPinModalOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-amber-500" />
@@ -998,7 +998,7 @@ export default function EngineerJobDetailPage() {
 
       {/* Complete Job Dialog */}
       <Dialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />

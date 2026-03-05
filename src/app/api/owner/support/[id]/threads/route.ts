@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
 const createThreadSchema = z.object({
   message: z.string().min(1, "Message is required"),
   imageUrl: z.string().optional(),
 });
+
+/**
+ * Validate ticket access for the current user.
+ * Uses RBAC if ticket has restaurantId, otherwise falls back to ownerId check.
+ */
+async function validateTicketAccess(
+  session: { id: string },
+  ticket: { restaurantId: string | null; ownerId: string }
+): Promise<boolean> {
+  if (ticket.restaurantId) {
+    await requireRestaurantAccess(session as any, ticket.restaurantId, "support:read");
+    return true;
+  }
+  return ticket.ownerId === session.id;
+}
 
 export async function GET(
   request: NextRequest,
@@ -16,18 +32,23 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Verify ticket ownership
-    const ticket = await db.supportTicket.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Verify ticket access
+    const ticket = await db.supportTicket.findUnique({
+      where: { id },
     });
 
     if (!ticket) {
       return NextResponse.json(
         { ok: false, error: "Ticket not found" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await validateTicketAccess(session, ticket);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { ok: false, error: "Access denied" },
+        { status: 403 }
       );
     }
 
@@ -73,18 +94,23 @@ export async function POST(
       );
     }
 
-    // Verify ticket ownership
-    const ticket = await db.supportTicket.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Verify ticket access
+    const ticket = await db.supportTicket.findUnique({
+      where: { id },
     });
 
     if (!ticket) {
       return NextResponse.json(
         { ok: false, error: "Ticket not found" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await validateTicketAccess(session, ticket);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { ok: false, error: "Access denied" },
+        { status: 403 }
       );
     }
 
@@ -125,8 +151,8 @@ export async function POST(
   } catch (error: any) {
     console.error("Create thread error:", error);
     return NextResponse.json(
-      { ok: false, error: error?.message || "Internal server error", stack: error?.stack },
-      { status: 500 }
+      { ok: false, error: error?.message || "Internal server error" },
+      { status: error?.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

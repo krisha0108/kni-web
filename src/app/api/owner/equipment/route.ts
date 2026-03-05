@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { equipmentSchema } from "@/server/validators/equipment";
 
 export async function GET(request: NextRequest) {
@@ -135,9 +135,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Use actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(validation.data.restaurantId);
+
     const equipment = await db.equipment.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: validation.data.restaurantId,
         name: validation.data.name,
         categoryId: validation.data.categoryId,

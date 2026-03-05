@@ -10,6 +10,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { EngineerRatingDialog } from "@/components/ratings/engineer-rating-dialog";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Booking {
   id: string;
@@ -89,6 +90,9 @@ export default function BookingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const bookingId = params.id as string;
+  const { selectedRestaurant } = useRestaurant();
+  const userRole = selectedRestaurant?.role;
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
 
   const fetchBooking = async () => {
     try {
@@ -486,7 +490,7 @@ export default function BookingDetailPage() {
                       </div>
                     </>
                   )}
-                  {assignment.status === "COMPLETED" && (
+                  {canUpdate && assignment.status === "COMPLETED" && (
                     <>
                       <Separator />
                       <Button
@@ -569,7 +573,7 @@ export default function BookingDetailPage() {
               ) : (
                 <>
                   <p className="text-muted-foreground">No payment uploaded yet</p>
-                  {booking.status === "PENDING_PAYMENT" && (
+                  {canUpdate && booking.status === "PENDING_PAYMENT" && (
                     <Button
                       className="w-full"
                       onClick={() => router.push("/owner/bookings/" + booking.id + "/payment")}

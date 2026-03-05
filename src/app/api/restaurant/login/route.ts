@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = validation.data;
 
-    // Find user with restaurant data
+    // Find user with restaurant data (owned + team member)
     const user = await db.user.findUnique({
       where: { email },
       include: {
@@ -35,6 +35,26 @@ export async function POST(request: NextRequest) {
             restaurantImageUrl: true,
             fssaiNumber: true,
             status: true,
+          },
+        },
+        restaurantMemberships: {
+          where: {
+            acceptedAt: { not: null },
+            restaurant: { status: "APPROVED" },
+          },
+          include: {
+            restaurant: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                city: true,
+                pincode: true,
+                restaurantImageUrl: true,
+                fssaiNumber: true,
+                status: true,
+              },
+            },
           },
         },
       },
@@ -84,6 +104,10 @@ export async function POST(request: NextRequest) {
     // Create session and get token for mobile
     const token = await createSession(user.id);
 
+    // Combine owned + team member restaurants
+    const teamRestaurants = user.restaurantMemberships.map((m) => m.restaurant);
+    const allRestaurants = [...user.restaurants, ...teamRestaurants];
+
     return NextResponse.json({
       ok: true,
       data: {
@@ -94,8 +118,8 @@ export async function POST(request: NextRequest) {
           phone: user.phone,
           role: user.role,
         },
-        restaurants: user.restaurants,
-        hasApprovedRestaurant: user.restaurants.length > 0,
+        restaurants: allRestaurants,
+        hasApprovedRestaurant: allRestaurants.length > 0,
         token, // Token for mobile apps
       },
     });

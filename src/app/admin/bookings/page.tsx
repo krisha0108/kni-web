@@ -170,28 +170,33 @@ export default function AdminBookingsPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="hidden md:table-cell">ID</TableHead>
               <TableHead>Restaurant</TableHead>
+              
               <TableHead className="hidden lg:table-cell">Categories</TableHead>
               <TableHead className="hidden sm:table-cell">Owner</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
+              
               <TableHead className="hidden md:table-cell">Engineer</TableHead>
               <TableHead className="w-[60px] sm:w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : bookings.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No bookings found
@@ -208,11 +213,13 @@ export default function AdminBookingsPage() {
                 const categoryList = Array.from(categories);
 
                 return (
+                  
                   <TableRow key={booking.id}>
                     <TableCell className="hidden md:table-cell font-mono text-xs">
                       {booking.id.slice(0, 8)}...
                     </TableCell>
                     <TableCell className="max-w-[120px] sm:max-w-none truncate">{booking.restaurant.name}</TableCell>
+                    
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
                         {categoryList.length > 0 ? (
@@ -226,6 +233,7 @@ export default function AdminBookingsPage() {
                         )}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden sm:table-cell">{booking.owner.name}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(booking.preferredDate)}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatPrice(booking.totalAmount)}</TableCell>
@@ -234,11 +242,13 @@ export default function AdminBookingsPage() {
                         {getStatusLabel(booking.status)}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell className="hidden md:table-cell">
                       {booking.engineerAssignments && booking.engineerAssignments.length > 0
                         ? booking.engineerAssignments[0]?.engineer?.name || "-"
                         : "-"}
                     </TableCell>
+                    
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -254,6 +264,16 @@ export default function AdminBookingsPage() {
             )}
           </TableBody>
         </Table>
+                    
+                    
+                    
+                    
+                  
+              
+              
+              
+              
+        
       </div>
     </div>
   );

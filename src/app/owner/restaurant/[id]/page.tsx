@@ -34,6 +34,7 @@ interface Restaurant {
   status: "PENDING" | "APPROVED" | "REJECTED";
   rejectionReason: string | null;
   createdAt: string;
+  userRole?: "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
 }
 
 export default function RestaurantDetailPage({
@@ -130,8 +131,9 @@ export default function RestaurantDetailPage({
   const config = statusConfig[restaurant.status];
   const StatusIcon = config.icon;
 
-  // Can only delete restaurants that are PENDING or REJECTED (not active with bookings)
-  const canDelete = restaurant.status === "PENDING" || restaurant.status === "REJECTED";
+  const isOwner = !restaurant.userRole || restaurant.userRole === "OWNER";
+  // Can only delete owned restaurants that are PENDING or REJECTED
+  const canDelete = isOwner && (restaurant.status === "PENDING" || restaurant.status === "REJECTED");
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -143,12 +145,14 @@ export default function RestaurantDetailPage({
           </Link>
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/owner/restaurant/${id}/edit`}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
+          {isOwner && (
+            <Button variant="outline" asChild>
+              <Link href={`/owner/restaurant/${id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
+            </Button>
+          )}
           {canDelete && (
             <Button
               variant="destructive"

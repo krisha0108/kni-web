@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/vendor-ledger/summary - Get vendor-wise summary
@@ -15,11 +16,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check restaurant access with vendor-ledger:read permission
+    await requireRestaurantAccess(session, restaurantId, "vendor-ledger:read");
+
     // Get all vendors with their latest balance
     const entries = await db.vendorLedger.findMany({
       where: {
         restaurantId,
-        ownerId: session.id,
       },
       orderBy: {
         entryDate: "desc",

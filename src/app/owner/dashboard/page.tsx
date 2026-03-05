@@ -152,14 +152,14 @@ export default function OwnerDashboardPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Service Bookings</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.bookings.count}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.bookings.count}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Revenue: {formatPrice(analyticsData.summary.bookings.revenue)}
             </p>
@@ -175,7 +175,7 @@ export default function OwnerDashboardPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.expenses.count}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.expenses.count}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Total: {formatPrice(analyticsData.summary.expenses.total)}
             </p>
@@ -191,7 +191,7 @@ export default function OwnerDashboardPage() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.equipment.count}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.equipment.count}</div>
             <p className="text-xs text-muted-foreground mt-1">Total items tracked</p>
             <Button size="sm" variant="outline" asChild className="mt-2">
               <Link href="/owner/equipment">Manage</Link>
@@ -209,7 +209,7 @@ export default function OwnerDashboardPage() {
             )}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${isProfit ? "text-green-600" : "text-red-600"}`}>
+            <div className={`text-lg sm:text-2xl font-bold leading-tight break-all ${isProfit ? "text-green-600" : "text-red-600"}`}>
               {formatPrice(Math.abs(netRevenue))}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -227,7 +227,7 @@ export default function OwnerDashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.marketplaceOrders.count}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.marketplaceOrders.count}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Total: {formatPrice(analyticsData.summary.marketplaceOrders.total)}
             </p>

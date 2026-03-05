@@ -65,17 +65,20 @@ export default function EngineerCompletedPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Restaurant</TableHead>
               <TableHead>Location</TableHead>
+              
               <TableHead>Service Date</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Completed On</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -84,6 +87,7 @@ export default function EngineerCompletedPage() {
                 </TableCell>
               </TableRow>
             ) : jobs.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No completed jobs found
@@ -91,6 +95,7 @@ export default function EngineerCompletedPage() {
               </TableRow>
             ) : (
               jobs.map((job) => (
+                
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
                     {job.booking.restaurant.name}
@@ -98,6 +103,7 @@ export default function EngineerCompletedPage() {
                   <TableCell className="max-w-xs truncate">
                     {job.booking.restaurant.address}
                   </TableCell>
+                  
                   <TableCell>{formatDate(job.booking.preferredDate)}</TableCell>
                   <TableCell>{formatPrice(job.booking.totalAmount)}</TableCell>
                   <TableCell>{formatDate(job.completedAt)}</TableCell>
@@ -115,6 +121,12 @@ export default function EngineerCompletedPage() {
             )}
           </TableBody>
         </Table>
+                  
+                
+              
+          
+              
+        
       </div>
 
       {!isLoading && jobs.length === 0 && (

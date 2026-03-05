@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -24,20 +25,19 @@ export async function PATCH(
     const body = await request.json();
     const validated = updateEntrySchema.parse(body);
 
-    // Check ownership
-    const existing = await db.cashbookEntry.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Fetch record and check RBAC
+    const existing = await db.cashbookEntry.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Entry not found or access denied" },
+        { ok: false, error: "Entry not found" },
         { status: 404 }
       );
     }
+
+    await requireRestaurantAccess(session, existing.restaurantId, "expenses:update");
 
     const updateData: any = {};
 
@@ -73,7 +73,7 @@ export async function PATCH(
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to update entry" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }
@@ -87,20 +87,19 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Check ownership
-    const existing = await db.cashbookEntry.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Fetch record and check RBAC
+    const existing = await db.cashbookEntry.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { ok: false, error: "Entry not found or access denied" },
+        { ok: false, error: "Entry not found" },
         { status: 404 }
       );
     }
+
+    await requireRestaurantAccess(session, existing.restaurantId, "expenses:delete");
 
     await db.cashbookEntry.delete({
       where: { id },
@@ -119,7 +118,7 @@ export async function DELETE(
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to delete entry" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }

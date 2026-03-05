@@ -155,14 +155,14 @@ export default function RequestNowPage() {
   const fetchRestaurants = async () => {
     try {
       setLoadingRestaurants(true);
-      const response = await fetch("/api/owner/restaurants");
+      const response = await fetch("/api/owner/restaurants/accessible");
       const data = await response.json();
       if (data.ok) {
-        setRestaurants(data.data || []);
-        // Auto-select first approved restaurant
-        const approved = data.data?.find((r: Restaurant) => r.status === "APPROVED");
-        if (approved) {
-          setSelectedRestaurant(approved.id);
+        const restaurants = (data.data || []).map((item: any) => item.restaurant);
+        setRestaurants(restaurants);
+        // Auto-select first restaurant
+        if (restaurants.length > 0) {
+          setSelectedRestaurant(restaurants[0].id);
         }
       }
     } catch (error) {

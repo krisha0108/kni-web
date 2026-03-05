@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,22 +9,21 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const restaurantId = searchParams.get("restaurantId");
 
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with service:read permission
+    await requireRestaurantAccess(session, restaurantId, "service:read");
+
     try {
-      const whereClause: any = {
-        restaurant: {
-          OR: [
-            { ownerId: session.id },
-            { members: { some: { userId: session.id } } },
-          ],
-        },
-      };
-
-      if (restaurantId) {
-        whereClause.restaurantId = restaurantId;
-      }
-
       const bookings = await db.serviceBooking.findMany({
-        where: whereClause,
+        where: {
+          restaurantId,
+        },
         orderBy: { createdAt: "desc" },
         take: 50,
         include: {
@@ -42,6 +41,9 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     if (error.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (error.message?.includes("Access denied")) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 403 });
     }
     console.error("Error fetching service requests:", error);
     return NextResponse.json({ ok: false, error: "Failed to fetch service requests" }, { status: 500 });
@@ -78,7 +80,10 @@ export async function POST(request: NextRequest) {
 
     try {
       // Verify restaurant access
-      await requireRestaurantAccess(session, restaurantId, "bookings:create");
+      await requireRestaurantAccess(session, restaurantId, "service:create");
+
+      // Get the actual restaurant owner ID for the FK
+      const ownerId = await getRestaurantOwnerId(restaurantId);
 
       // Get estimated price from service template if provided
       let estimatedPrice = 0;
@@ -91,10 +96,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the booking/service request
-      // Note: Need ownerId for ServiceBooking
       const booking = await db.serviceBooking.create({
         data: {
-          ownerId: session.id,
+          ownerId,
           restaurantId,
           equipmentId: equipmentId || null,
           slotStartDateTime: new Date(slotStartDateTime),

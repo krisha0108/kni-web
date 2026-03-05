@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
 
@@ -13,7 +14,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const { id } = await params;
     const body = await request.json();
     const { reason } = body;
@@ -22,14 +23,17 @@ export async function POST(
       where: { id },
       include: {
         request: {
-          include: { restaurant: { select: { name: true } } },
+          include: { restaurant: { select: { id: true, name: true } } },
         },
       },
     });
 
-    if (!proposal || proposal.request.ownerId !== session.id) {
+    if (!proposal) {
       return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
     }
+
+    // RBAC: verify user has amc:update access for this restaurant
+    await requireRestaurantAccess(session, proposal.request.restaurantId, "amc:update");
 
     if (proposal.status !== "SENT") {
       return NextResponse.json({ ok: false, error: "Proposal cannot be rejected in current state" }, { status: 400 });
@@ -63,7 +67,7 @@ export async function POST(
     console.error("Reject proposal error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

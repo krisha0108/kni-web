@@ -316,6 +316,11 @@ export default function CashbookPage() {
     return ENTRY_TYPES.find((t) => t.value === type) || ENTRY_TYPES[0];
   };
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER" || userRole === "ACCOUNTANT";
+  const canUpdate = userRole === "OWNER" || userRole === "ACCOUNTANT";
+  const canDelete = userRole === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -336,10 +341,12 @@ export default function CashbookPage() {
             Track cash and bank transactions for {selectedRestaurant.restaurant.name}
           </p>
         </div>
-        <Button onClick={() => openCreateDialog()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Entry
-        </Button>
+        {canCreate && (
+          <Button onClick={() => openCreateDialog()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Entry
+          </Button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -401,32 +408,34 @@ export default function CashbookPage() {
       )}
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Add common transactions quickly</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
-            {ENTRY_TYPES.map((type) => {
-              const Icon = type.icon;
-              return (
-                <Button
-                  key={type.value}
-                  variant="outline"
-                  className="h-auto py-4 flex-col"
-                  onClick={() =>
-                    openCreateDialog(type.value as "CASH_IN" | "CASH_OUT" | "BANK_IN" | "BANK_OUT")
-                  }
-                >
-                  <Icon className={`h-5 w-5 mb-2 ${type.color}`} />
-                  <span className="font-medium">{type.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {canCreate && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Add common transactions quickly</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-4">
+              {ENTRY_TYPES.map((type) => {
+                const Icon = type.icon;
+                return (
+                  <Button
+                    key={type.value}
+                    variant="outline"
+                    className="h-auto py-4 flex-col"
+                    onClick={() =>
+                      openCreateDialog(type.value as "CASH_IN" | "CASH_OUT" | "BANK_IN" | "BANK_OUT")
+                    }
+                  >
+                    <Icon className={`h-5 w-5 mb-2 ${type.color}`} />
+                    <span className="font-medium">{type.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex gap-4 items-center">
@@ -457,10 +466,12 @@ export default function CashbookPage() {
           <CardContent className="py-12 text-center">
             <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">No entries found</p>
-            <Button onClick={() => openCreateDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add First Entry
-            </Button>
+            {canCreate && (
+              <Button onClick={() => openCreateDialog()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add First Entry
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -506,22 +517,28 @@ export default function CashbookPage() {
                         {entry.entryType.includes("IN") ? "+" : "-"}
                         {formatPrice(entry.amount)}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(entry)}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openDeleteDialog(entry)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      {(canUpdate || canDelete) && (
+                        <div className="flex gap-2">
+                          {canUpdate && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEditDialog(entry)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openDeleteDialog(entry)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -533,7 +550,7 @@ export default function CashbookPage() {
 
       {/* Add/Edit Entry Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingEntry ? "Edit Entry" : "Add New Entry"}
@@ -544,7 +561,7 @@ export default function CashbookPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="entryType">
                   Entry Type <span className="text-destructive">*</span>
@@ -585,7 +602,7 @@ export default function CashbookPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="paymentMode">Payment Mode</Label>
                 <Select
@@ -639,7 +656,7 @@ export default function CashbookPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="referenceNo">Reference Number</Label>
                 <Input

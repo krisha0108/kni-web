@@ -1,23 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
+    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
     try {
-      const subscriptions = await db.aMCSubscription.findMany({
-        where: {
-          equipment: {
-            restaurant: {
-              OR: [
-                { ownerId: session.id },
-                { members: { some: { userId: session.id } } },
-              ],
+      // Build query based on whether restaurantId is provided
+      const where: any = restaurantId
+        ? { equipment: { restaurantId } }
+        : {
+            equipment: {
+              restaurant: {
+                OR: [
+                  { ownerId: session.id },
+                  { members: { some: { userId: session.id, acceptedAt: { not: null } } } },
+                ],
+              },
             },
-          },
-        },
+          };
+
+      // If restaurantId provided, validate RBAC
+      if (restaurantId) {
+        await requireRestaurantAccess(session, restaurantId, "amc:read");
+      }
+
+      const subscriptions = await db.aMCSubscription.findMany({
+        where,
         include: {
           equipment: {
             select: {
@@ -122,6 +134,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate RBAC access
+      await requireRestaurantAccess(session, equipment.restaurantId, "amc:create");
+
+      // Use actual restaurant owner ID for FK
+      const ownerId = await getRestaurantOwnerId(equipment.restaurantId);
+
       // Calculate end date based on duration
       const start = new Date(startDate);
       let end = new Date(start);
@@ -143,7 +161,7 @@ export async function POST(request: NextRequest) {
       const subscription = await db.aMCSubscription.create({
         data: {
           equipmentId,
-          ownerId: session.id,
+          ownerId,
           restaurantId: equipment.restaurantId,
           planName,
           planDescription: planDescription || null,

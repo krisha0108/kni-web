@@ -477,7 +477,7 @@ export default function PartsRequestPage() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm">
             <div>
               <p className="text-muted-foreground">Quantity</p>
               <p className="font-medium">{request.quantity}</p>
@@ -568,7 +568,7 @@ export default function PartsRequestPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
@@ -686,7 +686,7 @@ export default function PartsRequestPage() {
 
       {/* New Request Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Request Part</DialogTitle>
             <DialogDescription>
@@ -742,7 +742,7 @@ export default function PartsRequestPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">
                     Quantity <span className="text-red-500">*</span>

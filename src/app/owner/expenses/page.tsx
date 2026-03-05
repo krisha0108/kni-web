@@ -277,6 +277,11 @@ export default function OwnerExpensesPage() {
 
   const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER" || userRole === "ACCOUNTANT";
+  const canUpdate = userRole === "OWNER" || userRole === "ACCOUNTANT";
+  const canDelete = userRole === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -301,14 +306,14 @@ export default function OwnerExpensesPage() {
             <BarChart3 className="mr-2 h-4 w-4" />
             View Reports
           </Button>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          {canCreate && <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Expense
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>Add Expense</DialogTitle>
               </DialogHeader>
@@ -393,7 +398,7 @@ export default function OwnerExpensesPage() {
                 <Button onClick={handleCreate}>Add Expense</Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
         </div>
       </div>
 
@@ -456,17 +461,20 @@ export default function OwnerExpensesPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead className="hidden sm:table-cell">Restaurant</TableHead>
+              
               <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="hidden lg:table-cell">Description</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead className="w-[100px] sm:w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -475,6 +483,7 @@ export default function OwnerExpensesPage() {
                 </TableCell>
               </TableRow>
             ) : expenses.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No expenses found. Add your first expense to get started.
@@ -482,6 +491,7 @@ export default function OwnerExpensesPage() {
               </TableRow>
             ) : (
               expenses.map((expense) => (
+                
                 <TableRow key={expense.id}>
                   <TableCell>{formatDate(expense.expenseDate)}</TableCell>
                   <TableCell className="hidden sm:table-cell">{expense.restaurant.name}</TableCell>
@@ -490,6 +500,7 @@ export default function OwnerExpensesPage() {
                       {getExpenseCategoryLabel(expense.category as any)}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell className="hidden lg:table-cell max-w-xs truncate">{expense.description}</TableCell>
                   <TableCell className="font-medium">{formatPrice(expense.amount)}</TableCell>
                   <TableCell>
@@ -502,22 +513,22 @@ export default function OwnerExpensesPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
+                      {canUpdate && <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(expense)}
                         title="Edit"
                       >
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      </Button>}
+                      {canDelete && <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(expense.id)}
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button>}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -525,11 +536,17 @@ export default function OwnerExpensesPage() {
             )}
           </TableBody>
         </Table>
+                  
+                
+              
+          
+              
+        
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
           </DialogHeader>
@@ -604,7 +621,7 @@ export default function OwnerExpensesPage() {
 
       {/* View Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Expense Details</DialogTitle>
           </DialogHeader>
@@ -657,7 +674,7 @@ export default function OwnerExpensesPage() {
             <Button variant="outline" onClick={() => setIsViewOpen(false)}>
               Close
             </Button>
-            <Button
+            {canUpdate && <Button
               onClick={() => {
                 setIsViewOpen(false);
                 if (viewingExpense) openEditDialog(viewingExpense);
@@ -665,7 +682,7 @@ export default function OwnerExpensesPage() {
             >
               <Pencil className="mr-2 h-4 w-4" />
               Edit
-            </Button>
+            </Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -181,78 +181,78 @@ export default function OwnerNotificationsPage() {
   };
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="h-6 w-6" />
-            Notifications
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold flex flex-col sm:flex-row sm:items-center gap-2">
+            <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
+            <span>Notifications</span>
             {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
+              <Badge variant="destructive" className="w-fit">{unreadCount}</Badge>
             )}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Stay updated with your bookings, payments, and system alerts
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead}>
-            <CheckCheck className="h-4 w-4 mr-2" />
-            Mark All Read
+          <Button variant="outline" onClick={markAllAsRead} size="sm" className="w-fit">
+            <CheckCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+            <span className="text-xs sm:text-sm">Mark All Read</span>
           </Button>
         )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Bell className="h-5 w-5 text-blue-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{notifications.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+              <div className="text-center min-w-0">
+                <p className="text-lg sm:text-2xl font-bold leading-tight">{notifications.length}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <AlertCircle className="h-5 w-5 text-red-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100">
+                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{unreadCount}</p>
-                <p className="text-xs text-muted-foreground">Unread</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Building2 className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{bookingCount}</p>
-                <p className="text-xs text-muted-foreground">Bookings</p>
+              <div className="text-center min-w-0">
+                <p className="text-lg sm:text-2xl font-bold leading-tight">{unreadCount}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Unread</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CreditCard className="h-5 w-5 text-green-600" />
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100">
+                <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{paymentCount}</p>
-                <p className="text-xs text-muted-foreground">Payments</p>
+              <div className="text-center min-w-0">
+                <p className="text-lg sm:text-2xl font-bold leading-tight">{bookingCount}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Bookings</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-100">
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+              </div>
+              <div className="text-center min-w-0">
+                <p className="text-lg sm:text-2xl font-bold leading-tight">{paymentCount}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Payments</p>
               </div>
             </div>
           </CardContent>
@@ -261,19 +261,19 @@ export default function OwnerNotificationsPage() {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
-                placeholder="Search notifications..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
             <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px] h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
@@ -290,17 +290,17 @@ export default function OwnerNotificationsPage() {
 
       {/* Notifications List */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Notifications ({filteredNotifications.length})</CardTitle>
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">All Notifications ({filteredNotifications.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <BellOff className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">No Notifications</h3>
-              <p className="text-muted-foreground text-sm mt-1">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <BellOff className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold">No Notifications</h3>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                 {filter !== "all" ? "Try changing the filter" : "You're all caught up!"}
               </p>
             </div>
@@ -313,40 +313,40 @@ export default function OwnerNotificationsPage() {
                 return (
                   <div
                     key={notification.id}
-                    className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
+                    className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
                       !notification.isRead ? "bg-primary/5 border-primary/20" : ""
                     }`}
                     onClick={() => openNotification(notification)}
                   >
-                    <div className={`p-2 rounded-lg ${config.color}`}>
-                      <Icon className="h-5 w-5" />
+                    <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${config.color}`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className={`font-medium ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p className={`text-xs sm:text-sm font-medium line-clamp-1 ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`}>
                           {notification.title}
                         </p>
                         {!notification.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-primary" />
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                         {notification.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant={config.badge}>{config.label}</Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 mt-2">
+                        <Badge variant={config.badge} className="text-[10px] sm:text-xs w-fit">{config.label}</Badge>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {getTimeAgo(notification.createdAt)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" onClick={() => openNotification(notification)}>
-                        <Eye className="h-4 w-4" />
+                    <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => openNotification(notification)}>
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteNotification(notification.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => deleteNotification(notification.id)}>
+                        <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
                       </Button>
                     </div>
                   </div>
@@ -359,41 +359,41 @@ export default function OwnerNotificationsPage() {
 
       {/* Notification Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-base sm:text-lg">
               {selectedNotification && (
                 <>
                   {(() => {
                     const config = TYPE_CONFIG[selectedNotification.type] || TYPE_CONFIG.SYSTEM;
                     const Icon = config.icon;
                     return (
-                      <div className={`p-2 rounded-lg ${config.color}`}>
-                        <Icon className="h-5 w-5" />
+                      <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${config.color}`}>
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
                     );
                   })()}
-                  {selectedNotification.title}
+                  <span className="line-clamp-2">{selectedNotification.title}</span>
                 </>
               )}
             </DialogTitle>
           </DialogHeader>
           {selectedNotification && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm">{selectedNotification.message}</p>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <p className="text-xs sm:text-sm leading-relaxed">{selectedNotification.message}</p>
               </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <Badge variant={TYPE_CONFIG[selectedNotification.type]?.badge || "default"}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-muted-foreground">
+                <Badge variant={TYPE_CONFIG[selectedNotification.type]?.badge || "default"} className="w-fit">
                   {TYPE_CONFIG[selectedNotification.type]?.label || selectedNotification.type}
                 </Badge>
                 <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {formatDate(selectedNotification.createdAt)}
                 </span>
               </div>
               {selectedNotification.linkUrl && (
-                <Button className="w-full" asChild>
+                <Button className="w-full h-9 sm:h-10 text-xs sm:text-sm" asChild>
                   <a href={selectedNotification.linkUrl}>View Details</a>
                 </Button>
               )}

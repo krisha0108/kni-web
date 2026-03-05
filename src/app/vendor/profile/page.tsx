@@ -242,32 +242,32 @@ export default function VendorProfilePage() {
   const ApprovalIcon = APPROVAL_STATUS_CONFIG[approvalStatus]?.icon || Clock;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Profile & Settings</h1>
-        <p className="text-muted-foreground">Manage your vendor account settings and preferences</p>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-lg sm:text-2xl font-bold">Profile & Settings</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Manage your vendor account settings and preferences</p>
       </div>
 
       <div className="space-y-6">
         {/* Profile Overview Card */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-6">
-              <div className="relative">
-                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
+          <CardContent className="p-4 sm:pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6">
+              <div className="relative flex-shrink-0">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-primary/10 flex items-center justify-center text-lg sm:text-xl lg:text-3xl font-bold text-primary">
                   {formData.name?.charAt(0)?.toUpperCase() || "V"}
                 </div>
                 <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-xl font-semibold">{profile?.name}</h2>
-                  <Badge variant="secondary">Vendor</Badge>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h2 className="text-base sm:text-xl font-semibold truncate">{profile?.name}</h2>
+                  <Badge variant="secondary" className="text-xs sm:text-sm">Vendor</Badge>
                 </div>
-                <p className="text-muted-foreground mb-3">{profile?.email}</p>
-                <div className="flex flex-wrap gap-3">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 break-all">{profile?.email}</p>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <Badge className={APPROVAL_STATUS_CONFIG[approvalStatus]?.color}>
                     <ApprovalIcon className="h-3 w-3 mr-1" />
                     {APPROVAL_STATUS_CONFIG[approvalStatus]?.label}
@@ -286,25 +286,25 @@ export default function VendorProfilePage() {
             {profile?.stats && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-2xl font-bold">
-                    <Package className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex items-center justify-center gap-1 text-lg sm:text-2xl font-bold">
+                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     {profile.stats.totalProducts}
                   </div>
-                  <p className="text-sm text-muted-foreground">Products</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Products</p>
                 </div>
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-2xl font-bold">
-                    <Store className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex items-center justify-center gap-1 text-lg sm:text-2xl font-bold">
+                    <Store className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                     {profile.stats.totalOrders}
                   </div>
-                  <p className="text-sm text-muted-foreground">Orders</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Orders</p>
                 </div>
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-2xl font-bold">
-                    <Star className="h-5 w-5 text-yellow-500" />
+                  <div className="flex items-center justify-center gap-1 text-lg sm:text-2xl font-bold">
+                    <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
                     {profile.stats.avgRating?.toFixed(1) || "N/A"}
                   </div>
-                  <p className="text-sm text-muted-foreground">Rating</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Rating</p>
                 </div>
               </div>
             )}
@@ -315,14 +315,14 @@ export default function VendorProfilePage() {
         {profile?.vendorProfile && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
                 Subscription
               </CardTitle>
-              <CardDescription>Your subscription status and details</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Your subscription status and details</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
                 <div className="p-4 border rounded-lg">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <p className="font-medium capitalize">
@@ -368,41 +368,44 @@ export default function VendorProfilePage() {
             <CardDescription>Update your personal details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Business Name</Label>
+                <Label htmlFor="name" className="text-xs sm:text-sm">Business Name</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter your business name"
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-xs sm:text-sm">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Enter your email"
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs sm:text-sm">Phone Number</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="Enter your phone"
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Member Since</Label>
+                <Label className="text-xs sm:text-sm">Member Since</Label>
                 <Input
                   value={profile?.createdAt ? formatDate(profile.createdAt) : ""}
                   disabled
-                  className="bg-muted"
+                  className="h-9 sm:h-10 bg-muted text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -410,22 +413,22 @@ export default function VendorProfilePage() {
             <Separator />
 
             {/* Service Locations Info */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-sm sm:text-base font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Service Locations
               </h3>
               {profile?.vendorLocationRequests && profile.vendorLocationRequests.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {profile.vendorLocationRequests.map((lr, idx) => (
-                    <Badge key={idx} variant="secondary" className="bg-green-50 text-green-700">
+                    <Badge key={idx} variant="secondary" className="bg-green-50 text-green-700 text-xs sm:text-sm">
                       <MapPin className="h-3 w-3 mr-1" />
-                      {lr.area.name}, {lr.area.city.name}
+                      <span className="truncate">{lr.area.name}, {lr.area.city.name}</span>
                     </Badge>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   No approved locations yet.
                 </p>
               )}
@@ -433,18 +436,19 @@ export default function VendorProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => router.push("/vendor/locations")}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               >
-                <MapPin className="h-4 w-4 mr-2" />
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Manage Locations
               </Button>
             </div>
 
-            <div className="flex justify-end">
-              <Button onClick={handleSaveProfile} disabled={isSaving}>
+            <div className="flex justify-end pt-2 sm:pt-4">
+              <Button onClick={handleSaveProfile} disabled={isSaving} className="h-9 sm:h-10 text-xs sm:text-sm">
                 {isSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 )}
                 Save Changes
               </Button>
@@ -455,24 +459,24 @@ export default function VendorProfilePage() {
         {/* Security Settings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
               Security
             </CardTitle>
-            <CardDescription>Manage your password and security settings</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Manage your password and security settings</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                  <Lock className="h-5 w-5 text-muted-foreground" />
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+              <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 </div>
-                <div>
-                  <p className="font-medium">Password</p>
-                  <p className="text-sm text-muted-foreground">Change your account password</p>
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Password</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)}>
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="h-9 sm:h-10 text-xs sm:text-sm">
                 Change Password
               </Button>
             </div>
@@ -482,11 +486,11 @@ export default function VendorProfilePage() {
         {/* Notification Settings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
               Notifications
             </CardTitle>
-            <CardDescription>Configure how you receive notifications</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Configure how you receive notifications</CardDescription>
           </CardHeader>
           <CardContent>
             <NotificationSettings />
@@ -496,21 +500,21 @@ export default function VendorProfilePage() {
         {/* Danger Zone */}
         <Card className="border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Irreversible actions for your account</CardDescription>
+            <CardTitle className="text-destructive text-lg sm:text-xl">Danger Zone</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Irreversible actions for your account</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between p-4 border border-destructive/30 rounded-lg bg-destructive/5">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <LogOut className="h-5 w-5 text-destructive" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border border-destructive/30 rounded-lg bg-destructive/5">
+              <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                 </div>
-                <div>
-                  <p className="font-medium">Sign Out</p>
-                  <p className="text-sm text-muted-foreground">Sign out from your account</p>
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Sign Out</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Sign out from your account</p>
                 </div>
               </div>
-              <Button variant="destructive" onClick={() => setIsLogoutDialogOpen(true)}>
+              <Button variant="destructive" onClick={() => setIsLogoutDialogOpen(true)} className="h-9 sm:h-10 text-xs sm:text-sm">
                 Sign Out
               </Button>
             </div>
@@ -520,48 +524,51 @@ export default function VendorProfilePage() {
 
       {/* Change Password Dialog */}
       <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Change Password</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Enter your current password and choose a new one
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword" className="text-xs sm:text-sm">Current Password</Label>
               <Input
                 id="currentPassword"
                 type="password"
                 value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword" className="text-xs sm:text-sm">New Password</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirm New Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)} className="h-9 sm:h-10 text-xs sm:text-sm">
               Cancel
             </Button>
-            <Button onClick={handleChangePassword} disabled={isChangingPassword}>
-              {isChangingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button onClick={handleChangePassword} disabled={isChangingPassword} className="h-9 sm:h-10 text-xs sm:text-sm">
+              {isChangingPassword && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />}
               Change Password
             </Button>
           </DialogFooter>
@@ -570,18 +577,18 @@ export default function VendorProfilePage() {
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sign Out</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Sign Out</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Are you sure you want to sign out of your account?
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLogoutDialogOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsLogoutDialogOpen(false)} className="h-9 sm:h-10 text-xs sm:text-sm">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleLogout}>
+            <Button variant="destructive" onClick={handleLogout} className="h-9 sm:h-10 text-xs sm:text-sm">
               Sign Out
             </Button>
           </DialogFooter>

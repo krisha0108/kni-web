@@ -200,6 +200,8 @@ export default function TeamManagementPage() {
     return new Date(dateString).toLocaleDateString("en-IN");
   };
 
+  const isOwner = selectedRestaurant?.role === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -220,10 +222,12 @@ export default function TeamManagementPage() {
             Invite and manage team members for {selectedRestaurant.restaurant.name}
           </p>
         </div>
-        <Button onClick={() => setIsInviteOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Invite Member
-        </Button>
+        {isOwner && (
+          <Button onClick={() => setIsInviteOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Invite Member
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -245,23 +249,27 @@ export default function TeamManagementPage() {
             <CardDescription>Manage access and roles for your restaurant</CardDescription>
           </CardHeader>
           <CardContent>
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Invited By</TableHead>
                   <TableHead>Joined</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  {isOwner && <TableHead className="w-[100px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.user.name}</TableCell>
                     <TableCell>{member.user.email}</TableCell>
+                    
                     <TableCell>
                       <Badge variant="outline">{member.role}</Badge>
                     </TableCell>
@@ -270,42 +278,50 @@ export default function TeamManagementPage() {
                         {member.acceptedAt ? "Active" : "Pending"}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell>{member.inviter.name}</TableCell>
                     <TableCell>
                       {formatDate(member.acceptedAt)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(member)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedMember(member);
-                            setIsDeleteOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isOwner && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(member)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setIsDeleteOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+              
+                  
+            
           </CardContent>
         </Card>
       )}
 
       {/* Invite Dialog */}
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
@@ -373,7 +389,7 @@ export default function TeamManagementPage() {
 
       {/* Edit Role Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Update Role</DialogTitle>
             <DialogDescription>

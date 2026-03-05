@@ -314,7 +314,7 @@ export default function EngineerJobsPage() {
 
       {/* Job Rejection Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Job Assignment</DialogTitle>
             <DialogDescription>

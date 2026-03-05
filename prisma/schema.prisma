@@ -279,6 +279,7 @@ model User {
   vendorCommissions           VendorCommission[]          @relation("VendorCommissions")
   commissionCollections       VendorCommissionCollection[] @relation("VendorCommissionCollections")
   commissionCollectionsVerified VendorCommissionCollection[] @relation("AdminVerifiedCommissionCollections")
+  marketplaceCarts              MarketplaceCart[]            @relation("MarketplaceCarts")
   ownerPayments                 MarketplacePayment[]         @relation("OwnerPayments")
   vendorPayments                MarketplacePayment[]         @relation("VendorPayments")
 
@@ -497,6 +498,7 @@ model Restaurant {
   carts             Cart[]
   serviceBookings   ServiceBooking[]
   marketplaceOrders    MarketplaceOrder[]
+  marketplaceCarts     MarketplaceCart[]
   marketplacePayments  MarketplacePayment[]
   equipments           Equipment[]
   amcSubscriptions  AMCSubscription[]
@@ -850,9 +852,10 @@ model VendorProduct {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  vendor     User                   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  product    MarketplaceProduct?    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems MarketplaceOrderItem[]
+  vendor            User                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  product           MarketplaceProduct?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems        MarketplaceOrderItem[]
+  cartItems         MarketplaceCartItem[]
 
   @@index([vendorId])
   @@index([productId])
@@ -885,7 +888,6 @@ model MarketplaceOrder {
   statusHistory OrderStatusHistory[]
   rating        VendorRating?
   vendorCommission VendorCommission?
-  payment       MarketplacePayment?
 
   @@index([ownerId])
   @@index([vendorId])
@@ -914,11 +916,38 @@ model MarketplacePayment {
   owner      User              @relation("OwnerPayments", fields: [ownerId], references: [id])
   vendor     User              @relation("VendorPayments", fields: [vendorId], references: [id])
   restaurant Restaurant        @relation(fields: [restaurantId], references: [id])
-  order      MarketplaceOrder? @relation(fields: [orderId], references: [id])
+}
 
+model MarketplaceCart {
+  id           String   @id @default(cuid())
+  ownerId      String
+  restaurantId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner      User                  @relation("MarketplaceCarts", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      MarketplaceCartItem[]
+
+  @@unique([ownerId, restaurantId])
   @@index([ownerId])
-  @@index([vendorId])
-  @@index([status])
+  @@index([restaurantId])
+}
+
+model MarketplaceCartItem {
+  id              String   @id @default(cuid())
+  cartId          String
+  vendorProductId String
+  quantity        Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  cart    MarketplaceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product VendorProduct   @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, vendorProductId])
+  @@index([cartId])
+  @@index([vendorProductId])
 }
 
 model MarketplaceOrderItem {

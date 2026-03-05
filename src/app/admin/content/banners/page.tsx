@@ -305,6 +305,7 @@ export default function BannersPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
@@ -314,23 +315,27 @@ export default function BannersPage() {
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
+              
               <TableHead>Order</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Image</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Schedule</TableHead>
+              
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : banners.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No banners found. Create your first banner!
@@ -338,6 +343,7 @@ export default function BannersPage() {
               </TableRow>
             ) : (
               banners.map((banner) => (
+                
                 <TableRow key={banner.id}>
                   <TableCell>
                     <Checkbox
@@ -345,6 +351,7 @@ export default function BannersPage() {
                       onCheckedChange={() => toggleSelectBanner(banner.id)}
                     />
                   </TableCell>
+                  
                   <TableCell className="font-medium">{banner.sortOrder}</TableCell>
                   <TableCell>
                     <div className="max-w-[300px]">
@@ -356,6 +363,7 @@ export default function BannersPage() {
                       )}
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <img
                       src={banner.imageUrl}
@@ -363,6 +371,7 @@ export default function BannersPage() {
                       className="h-12 w-20 object-cover rounded"
                     />
                   </TableCell>
+                  
                   <TableCell>
                     <Badge
                       variant={
@@ -376,6 +385,7 @@ export default function BannersPage() {
                       {banner.status}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell>
                     {banner.startDate || banner.endDate ? (
                       <div className="text-sm">
@@ -388,6 +398,7 @@ export default function BannersPage() {
                       <span className="text-muted-foreground">Always active</span>
                     )}
                   </TableCell>
+                  
                   <TableCell>{formatDate(banner.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -412,6 +423,17 @@ export default function BannersPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                  
+                  
+                
+              
+              
+              
+              
+        
       </div>
 
       {/* Create/Edit Dialog */}
@@ -422,7 +444,7 @@ export default function BannersPage() {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>{isEditOpen ? "Edit Banner" : "Create New Banner"}</DialogTitle>
             <DialogDescription>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -34,9 +35,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check restaurant access with vendor-ledger:read permission
+    await requireRestaurantAccess(session, restaurantId, "vendor-ledger:read");
+
     const where: any = {
       restaurantId,
-      ownerId: session.id,
     };
 
     if (vendorName) {
@@ -79,20 +82,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createEntrySchema.parse(body);
 
-    // Verify restaurant ownership
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id: validated.restaurantId,
-        ownerId: session.id,
-      },
-    });
+    // Check restaurant access with vendor-ledger:create permission
+    await requireRestaurantAccess(session, validated.restaurantId, "vendor-ledger:create");
 
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
-        { status: 404 }
-      );
-    }
+    // Get the actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(validated.restaurantId);
 
     // Amount is stored in rupees directly
     const amount = validated.amount;
@@ -101,7 +95,6 @@ export async function POST(request: NextRequest) {
     const previousEntries = await db.vendorLedger.findMany({
       where: {
         restaurantId: validated.restaurantId,
-        ownerId: session.id,
         vendorName: validated.vendorName,
       },
       orderBy: {
@@ -126,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const entry = await db.vendorLedger.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: validated.restaurantId,
         vendorName: validated.vendorName,
         vendorPhone: validated.vendorPhone,

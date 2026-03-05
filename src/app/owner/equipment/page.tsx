@@ -347,6 +347,10 @@ export default function OwnerEquipmentPage() {
     setFilterDateTo("");
   };
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canDelete = userRole === "OWNER";
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -371,6 +375,7 @@ export default function OwnerEquipmentPage() {
             endpoint="/api/owner/exports/equipment"
             filename={`equipment-${new Date().toISOString().split('T')[0]}.csv`}
           />
+          {canCreate && (
           <ClientOnly>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
@@ -379,7 +384,7 @@ export default function OwnerEquipmentPage() {
                 Add Equipment
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Add Equipment</DialogTitle>
               <DialogDescription>
@@ -545,6 +550,7 @@ export default function OwnerEquipmentPage() {
           </DialogContent>
         </Dialog>
         </ClientOnly>
+          )}
         </div>
       </div>
 
@@ -590,7 +596,7 @@ export default function OwnerEquipmentPage() {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Filter Equipment</DialogTitle>
                   <DialogDescription>
@@ -726,27 +732,32 @@ export default function OwnerEquipmentPage() {
       </Card>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="hidden sm:table-cell">Category</TableHead>
+              
               <TableHead className="hidden md:table-cell">Brand</TableHead>
               <TableHead className="hidden lg:table-cell">Serial Number</TableHead>
               <TableHead className="hidden lg:table-cell">Purchase Date</TableHead>
               <TableHead className="hidden md:table-cell">Warranty</TableHead>
               <TableHead>Status</TableHead>
+              
               <TableHead className="w-[100px] sm:w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filteredEquipment.length === 0 && equipment.length > 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
                   <div className="flex flex-col items-center gap-3">
@@ -759,6 +770,7 @@ export default function OwnerEquipmentPage() {
                 </TableCell>
               </TableRow>
             ) : equipment.length === 0 ? (
+              
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No equipment found. Add your first equipment to get started.
@@ -768,6 +780,7 @@ export default function OwnerEquipmentPage() {
               filteredEquipment.map((item) => {
                 const warrantyStatus = getWarrantyStatus(item.warrantyEndDate);
                 return (
+                  
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
@@ -778,40 +791,46 @@ export default function OwnerEquipmentPage() {
                         )}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden md:table-cell">{item.brand || "-"}</TableCell>
                     <TableCell className="hidden lg:table-cell font-mono text-sm">
                       {item.serialNumber || "-"}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">{formatDate(item.purchaseDate)}</TableCell>
+                    
                     <TableCell className="hidden md:table-cell">
                       <Badge variant={warrantyStatus.color === "green" ? "success" : warrantyStatus.color === "yellow" ? "warning" : warrantyStatus.color === "red" ? "destructive" : "secondary"}>
                         {warrantyStatus.label}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell>
                       <Badge variant={getEquipmentStatusColor(item.status)}>
                         {getEquipmentStatusLabel(item.status)}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Request Service"
-                          onClick={() => {
-                            const params = new URLSearchParams();
-                            params.set("equipmentId", item.id);
-                            params.set("equipmentName", item.name);
-                            if (item.category?.id) params.set("categoryId", item.category.id);
-                            if (item.category?.name) params.set("categoryName", item.category.name);
-                            if (item.subCategory?.id) params.set("subCategoryId", item.subCategory.id);
-                            if (item.subCategory?.name) params.set("subCategoryName", item.subCategory.name);
-                            router.push(`/owner/request-service?${params.toString()}`);
-                          }}
-                        >
-                          <Wrench className="h-4 w-4 text-primary" />
-                        </Button>
+                        {canCreate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Request Service"
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              params.set("equipmentId", item.id);
+                              params.set("equipmentName", item.name);
+                              if (item.category?.id) params.set("categoryId", item.category.id);
+                              if (item.category?.name) params.set("categoryName", item.category.name);
+                              if (item.subCategory?.id) params.set("subCategoryId", item.subCategory.id);
+                              if (item.subCategory?.name) params.set("subCategoryName", item.subCategory.name);
+                              router.push(`/owner/request-service?${params.toString()}`);
+                            }}
+                          >
+                            <Wrench className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -820,14 +839,16 @@ export default function OwnerEquipmentPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Delete"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Delete"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -836,6 +857,17 @@ export default function OwnerEquipmentPage() {
             )}
           </TableBody>
         </Table>
+                    
+                    
+                    
+                    
+                  
+              
+              
+              
+              
+              
+        
       </div>
     </div>
   );

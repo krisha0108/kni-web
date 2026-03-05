@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { z } from "zod";
 
@@ -95,10 +95,11 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Create MarketplacePayment
+    // Create payment (order will be created after vendor verifies)
+    const ownerId = await getRestaurantOwnerId(restaurantId);
     const payment = await db.marketplacePayment.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         vendorId,
         restaurantId,
         totalAmount,
@@ -151,13 +152,11 @@ export async function GET(request: NextRequest) {
     const payments = await db.marketplacePayment.findMany({
       where: {
         restaurantId,
-        ownerId: session.id,
         ...(status ? { status: status as any } : {}),
       },
       include: {
         vendor: { select: { id: true, name: true } },
         restaurant: { select: { id: true, name: true } },
-        order: { select: { id: true, status: true } },
       },
       orderBy: { createdAt: "desc" },
     });

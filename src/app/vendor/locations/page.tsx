@@ -227,7 +227,7 @@ export default function VendorLocationsPage() {
                 Request New Location
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Request New Location</DialogTitle>
                 <DialogDescription>
@@ -327,17 +327,20 @@ export default function VendorLocationsPage() {
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Approved Locations ({approved.length})</h2>
                 <div className="border rounded-lg">
+                  
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
+                        
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {approved.map((loc) => (
+                        
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
@@ -347,6 +350,9 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                        
+                        
+                  
                 </div>
               </div>
             )}
@@ -356,21 +362,25 @@ export default function VendorLocationsPage() {
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Pending Requests ({pending.length})</h2>
                 <div className="border rounded-lg">
+                  
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
+                        
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Requested</TableHead>
                       </TableRow>
                     </TableHeader>
+                    
                     <TableBody>
                       {pending.map((loc) => (
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
+                          
                           <TableCell>{loc.area.city.state.name}</TableCell>
                           <TableCell>{getStatusBadge(loc.status)}</TableCell>
                           <TableCell className="text-sm">
@@ -380,6 +390,10 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                          
+                    
+                        
+                  
                 </div>
               </div>
             )}
@@ -389,21 +403,25 @@ export default function VendorLocationsPage() {
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Rejected Requests ({rejected.length})</h2>
                 <div className="border rounded-lg">
+                  
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
+                        
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Reason</TableHead>
                       </TableRow>
                     </TableHeader>
+                    
                     <TableBody>
                       {rejected.map((loc) => (
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
+                          
                           <TableCell>{loc.area.city.state.name}</TableCell>
                           <TableCell>{getStatusBadge(loc.status)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -413,6 +431,10 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                          
+                    
+                        
+                  
                 </div>
               </div>
             )}

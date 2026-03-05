@@ -145,11 +145,13 @@ export default function RestaurantRequestsPage() {
       </div>
 
       <div className="border rounded-lg">
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Restaurant</TableHead>
               <TableHead className="hidden md:table-cell">Owner</TableHead>
+              
               <TableHead className="hidden lg:table-cell">Location</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden sm:table-cell">Date</TableHead>
@@ -157,6 +159,7 @@ export default function RestaurantRequestsPage() {
               <TableHead className="w-[100px] sm:w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
+          
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
@@ -164,6 +167,7 @@ export default function RestaurantRequestsPage() {
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No restaurants found</TableCell></TableRow>
             ) : (
               restaurants.map((restaurant) => (
+                
                 <TableRow key={restaurant.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
@@ -183,6 +187,7 @@ export default function RestaurantRequestsPage() {
                       <span>{restaurant.name}</span>
                     </div>
                   </TableCell>
+                  
                   <TableCell className="hidden md:table-cell">
                     <div>{restaurant.owner.name}</div>
                     <div className="text-sm text-muted-foreground">{restaurant.owner.email}</div>
@@ -193,12 +198,14 @@ export default function RestaurantRequestsPage() {
                       </div>
                     )}
                   </TableCell>
+                  
                   <TableCell className="hidden lg:table-cell">
                     <div>{restaurant.address}</div>
                     <div className="text-sm text-muted-foreground">
                       {restaurant.city}{restaurant.pincode ? `, ${restaurant.pincode}` : ""}
                     </div>
                   </TableCell>
+                  
                   <TableCell>
                     <Badge variant={statusColors[restaurant.status]}>{restaurant.status}</Badge>
                   </TableCell>
@@ -223,6 +230,7 @@ export default function RestaurantRequestsPage() {
                       <span className="text-muted-foreground text-sm">Not provided</span>
                     )}
                   </TableCell>
+                  
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button
@@ -250,10 +258,18 @@ export default function RestaurantRequestsPage() {
             )}
           </TableBody>
         </Table>
+                  
+                  
+                  
+                  
+                
+          
+              
+        
       </div>
 
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Restaurant</DialogTitle>
             <DialogDescription>
@@ -279,7 +295,7 @@ export default function RestaurantRequestsPage() {
 
       {/* Restaurant Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Restaurant Details</DialogTitle>
             <DialogDescription>

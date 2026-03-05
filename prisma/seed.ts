@@ -397,6 +397,124 @@ async function main() {
   }
   console.log("Payment settings ready");
 
+  // ==========================================
+  // SERVICE LOCATIONS (States, Cities, Areas)
+  // ==========================================
+  console.log("\n--- Setting up Service Locations ---");
+
+  // Create States
+  const statesData = [
+    { name: "Maharashtra", sortOrder: 1 },
+    { name: "Delhi", sortOrder: 2 },
+    { name: "Karnataka", sortOrder: 3 },
+    { name: "Gujarat", sortOrder: 4 },
+    { name: "Tamil Nadu", sortOrder: 5 },
+  ];
+  const states: any[] = [];
+  for (const state of statesData) {
+    let existing = await prisma.serviceState.findFirst({ where: { name: state.name } });
+    if (!existing) {
+      existing = await prisma.serviceState.create({ data: { ...state, isActive: true } });
+      console.log("  + Created state:", state.name);
+    }
+    states.push(existing);
+  }
+  console.log("Service states ready:", states.length);
+
+  // Create Cities
+  const citiesData = [
+    // Maharashtra cities
+    { name: "Mumbai", stateId: states[0].id, sortOrder: 1 },
+    { name: "Pune", stateId: states[0].id, sortOrder: 2 },
+    { name: "Nagpur", stateId: states[0].id, sortOrder: 3 },
+    // Delhi cities
+    { name: "New Delhi", stateId: states[1].id, sortOrder: 1 },
+    { name: "Noida", stateId: states[1].id, sortOrder: 2 },
+    { name: "Gurgaon", stateId: states[1].id, sortOrder: 3 },
+    // Karnataka cities
+    { name: "Bangalore", stateId: states[2].id, sortOrder: 1 },
+    { name: "Mysore", stateId: states[2].id, sortOrder: 2 },
+    // Gujarat cities
+    { name: "Ahmedabad", stateId: states[3].id, sortOrder: 1 },
+    { name: "Surat", stateId: states[3].id, sortOrder: 2 },
+    // Tamil Nadu cities
+    { name: "Chennai", stateId: states[4].id, sortOrder: 1 },
+    { name: "Coimbatore", stateId: states[4].id, sortOrder: 2 },
+  ];
+  const cities: any[] = [];
+  for (const city of citiesData) {
+    let existing = await prisma.serviceCity.findFirst({ where: { name: city.name, stateId: city.stateId } });
+    if (!existing) {
+      existing = await prisma.serviceCity.create({ data: { ...city, isActive: true } });
+      console.log("  + Created city:", city.name);
+    }
+    cities.push(existing);
+  }
+  console.log("Service cities ready:", cities.length);
+
+  // Create Areas
+  const areasData = [
+    // Mumbai areas
+    { name: "Andheri", cityId: cities[0].id, sortOrder: 1 },
+    { name: "Bandra", cityId: cities[0].id, sortOrder: 2 },
+    { name: "Borivali", cityId: cities[0].id, sortOrder: 3 },
+    { name: "Malad", cityId: cities[0].id, sortOrder: 4 },
+    { name: "Goregaon", cityId: cities[0].id, sortOrder: 5 },
+    { name: "Powai", cityId: cities[0].id, sortOrder: 6 },
+    { name: "Kurla", cityId: cities[0].id, sortOrder: 7 },
+    { name: "Thane", cityId: cities[0].id, sortOrder: 8 },
+    // Pune areas
+    { name: "Kothrud", cityId: cities[1].id, sortOrder: 1 },
+    { name: "Hinjewadi", cityId: cities[1].id, sortOrder: 2 },
+    { name: "Wakad", cityId: cities[1].id, sortOrder: 3 },
+    { name: "Pimpri Chinchwad", cityId: cities[1].id, sortOrder: 4 },
+    // Nagpur areas
+    { name: "Dharampeth", cityId: cities[2].id, sortOrder: 1 },
+    { name: "Sitabuldi", cityId: cities[2].id, sortOrder: 2 },
+    // New Delhi areas
+    { name: "Connaught Place", cityId: cities[3].id, sortOrder: 1 },
+    { name: "Karol Bagh", cityId: cities[3].id, sortOrder: 2 },
+    { name: "Saket", cityId: cities[3].id, sortOrder: 3 },
+    { name: "Dwarka", cityId: cities[3].id, sortOrder: 4 },
+    // Noida areas
+    { name: "Sector 18", cityId: cities[4].id, sortOrder: 1 },
+    { name: "Sector 62", cityId: cities[4].id, sortOrder: 2 },
+    // Gurgaon areas
+    { name: "Cyber City", cityId: cities[5].id, sortOrder: 1 },
+    { name: "MG Road", cityId: cities[5].id, sortOrder: 2 },
+    // Bangalore areas
+    { name: "Koramangala", cityId: cities[6].id, sortOrder: 1 },
+    { name: "Whitefield", cityId: cities[6].id, sortOrder: 2 },
+    { name: "Indiranagar", cityId: cities[6].id, sortOrder: 3 },
+    { name: "HSR Layout", cityId: cities[6].id, sortOrder: 4 },
+    // Mysore areas
+    { name: "Jayalakshmipuram", cityId: cities[7].id, sortOrder: 1 },
+    { name: "V.V. Mohalla", cityId: cities[7].id, sortOrder: 2 },
+    // Ahmedabad areas
+    { name: "Satellite", cityId: cities[8].id, sortOrder: 1 },
+    { name: "Vastrapur", cityId: cities[8].id, sortOrder: 2 },
+    { name: "Maninagar", cityId: cities[8].id, sortOrder: 3 },
+    // Surat areas
+    { name: "Adajan", cityId: cities[9].id, sortOrder: 1 },
+    { name: "Vesu", cityId: cities[9].id, sortOrder: 2 },
+    // Chennai areas
+    { name: "T Nagar", cityId: cities[10].id, sortOrder: 1 },
+    { name: "Adyar", cityId: cities[10].id, sortOrder: 2 },
+    { name: "Anna Nagar", cityId: cities[10].id, sortOrder: 3 },
+    // Coimbatore areas
+    { name: "RS Puram", cityId: cities[11].id, sortOrder: 1 },
+    { name: "Peelamedu", cityId: cities[11].id, sortOrder: 2 },
+  ];
+  const areas: any[] = [];
+  for (const area of areasData) {
+    let existing = await prisma.serviceArea.findFirst({ where: { name: area.name, cityId: area.cityId } });
+    if (!existing) {
+      existing = await prisma.serviceArea.create({ data: { ...area, isActive: true } });
+    }
+    areas.push(existing);
+  }
+  console.log("Service areas ready:", areas.length);
+
   console.log("Seed completed successfully!");
   console.log("\n--- Login Credentials ---");
   console.log("Admin: admin@kni.com / Admin@123");

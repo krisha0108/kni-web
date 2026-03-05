@@ -100,57 +100,69 @@ export default function AdminEngineersPage() {
         />
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden sm:table-cell">Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Registered</TableHead>
-              <TableHead className="w-[100px] sm:w-[120px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="w-full">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Loading...
-                </TableCell>
+                <TableHead className="px-2 sm:px-4">Name</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden md:table-cell">Email</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Phone</TableHead>
+                <TableHead className="px-2 sm:px-4">Status</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden md:table-cell">Registered</TableHead>
+                <TableHead className="px-2 sm:px-4 w-[100px] sm:w-[120px]">Actions</TableHead>
               </TableRow>
-            ) : engineers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No engineers found
-                </TableCell>
-              </TableRow>
-            ) : (
-              engineers.map((engineer) => (
-                <TableRow key={engineer.id}>
-                  <TableCell className="font-medium">{engineer.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">{engineer.email}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{engineer.phone}</TableCell>
-                  <TableCell>
-                    <Badge variant={engineer.isActive ? "success" : "secondary"}>
-                      {engineer.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{formatDate(engineer.createdAt)}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant={engineer.isActive ? "destructive" : "default"}
-                      onClick={() => toggleStatus(engineer.id, engineer.isActive)}
-                    >
-                      {engineer.isActive ? "Deactivate" : "Activate"}
-                    </Button>
+            </TableHeader>
+            
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : engineers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No engineers found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                engineers.map((engineer) => (
+                  <TableRow key={engineer.id}>
+                    <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm break-words">
+                      {engineer.name}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-2 sm:px-4 text-xs sm:text-sm break-words">
+                      {engineer.email}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell px-2 sm:px-4 text-xs sm:text-sm break-words">
+                      {engineer.phone}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Badge variant={engineer.isActive ? "success" : "secondary"} className="text-xs whitespace-nowrap">
+                        {engineer.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell px-2 sm:px-4 text-xs sm:text-sm">
+                      {formatDate(engineer.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
+                      <Button
+                        size="sm"
+                        variant={engineer.isActive ? "destructive" : "default"}
+                        onClick={() => toggleStatus(engineer.id, engineer.isActive)}
+                        className="text-xs sm:text-sm h-8"
+                      >
+                        {engineer.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

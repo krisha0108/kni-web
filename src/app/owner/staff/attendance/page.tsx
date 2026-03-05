@@ -274,6 +274,9 @@ export default function StaffAttendancePage() {
     }
   };
 
+  const userRole = selectedRestaurant?.role;
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
+
   if (!selectedRestaurant) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -311,7 +314,7 @@ export default function StaffAttendancePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex gap-2">
+            {canUpdate && <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -330,7 +333,7 @@ export default function StaffAttendancePage() {
                 <Coffee className="mr-2 h-4 w-4" />
                 Mark All Weekly Off
               </Button>
-            </div>
+            </div>}
 
             {isLoading ? (
               <div className="text-center py-8">
@@ -341,17 +344,20 @@ export default function StaffAttendancePage() {
                 <p className="text-muted-foreground">No active staff members found</p>
               </div>
             ) : (
+              
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Staff Name</TableHead>
                     <TableHead>Designation</TableHead>
+                    
                     <TableHead>Status</TableHead>
                     <TableHead>Check In</TableHead>
                     <TableHead>Check Out</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
                 </TableHeader>
+                
                 <TableBody>
                   {staff.map((member) => {
                     const existing = attendance.find((a) => a.staffId === member.id);
@@ -362,6 +368,7 @@ export default function StaffAttendancePage() {
                     };
 
                     return (
+                      
                       <TableRow key={member.id}>
                         <TableCell className="font-medium">{member.name}</TableCell>
                         <TableCell>{member.designation}</TableCell>
@@ -370,7 +377,7 @@ export default function StaffAttendancePage() {
                             <Badge variant={statusColors[existing.status]}>
                               {attendanceStatusLabels[existing.status]}
                             </Badge>
-                          ) : (
+                          ) : canUpdate ? (
                             <Select
                               value={formData.status}
                               onValueChange={(value: any) =>
@@ -391,8 +398,11 @@ export default function StaffAttendancePage() {
                                 <SelectItem value="WEEKLY_OFF">Weekly Off</SelectItem>
                               </SelectContent>
                             </Select>
+                          ) : (
+                            <Badge variant="default">Not Marked</Badge>
                           )}
                         </TableCell>
+                        
                         <TableCell>
                           {existing ? (
                             existing.checkInTime ? (
@@ -419,6 +429,7 @@ export default function StaffAttendancePage() {
                             "-"
                           )}
                         </TableCell>
+                        
                         <TableCell>
                           {existing ? (
                             existing.checkOutTime ? (
@@ -445,10 +456,11 @@ export default function StaffAttendancePage() {
                             "-"
                           )}
                         </TableCell>
+                        
                         <TableCell>
                           {existing ? (
                             <Badge variant="outline">Marked</Badge>
-                          ) : (
+                          ) : canUpdate ? (
                             <Button
                               size="sm"
                               onClick={() => handleMarkAttendance(member.id)}
@@ -456,6 +468,8 @@ export default function StaffAttendancePage() {
                             >
                               Mark
                             </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -463,6 +477,13 @@ export default function StaffAttendancePage() {
                   })}
                 </TableBody>
               </Table>
+                        
+                        
+                        
+                      
+                
+                    
+              
             )}
           </div>
         </CardContent>

@@ -321,21 +321,25 @@ export default function AdminSupportPage() {
               No tickets found
             </div>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Ticket</TableHead>
                   <TableHead className="hidden md:table-cell">Owner</TableHead>
+                  
                   <TableHead className="hidden lg:table-cell">Restaurant</TableHead>
                   <TableHead className="hidden sm:table-cell">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Replies</TableHead>
                   <TableHead className="hidden lg:table-cell">Created</TableHead>
+                  
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tickets.map((ticket) => (
+                  
                   <TableRow
                     key={ticket.id}
                     className={ticket.status === "PENDING" ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}
@@ -361,6 +365,7 @@ export default function AdminSupportPage() {
                         )}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden md:table-cell">
                       <div>
                         <p className="font-medium">{ticket.owner.name}</p>
@@ -370,12 +375,14 @@ export default function AdminSupportPage() {
                         )}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden lg:table-cell">
                       {ticket.restaurant ? ticket.restaurant.name : "-"}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline">{ticket.category}</Badge>
                     </TableCell>
+                    
                     <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-1">
@@ -383,11 +390,13 @@ export default function AdminSupportPage() {
                         {ticket._count.threads}
                       </div>
                     </TableCell>
+                    
                     <TableCell className="hidden lg:table-cell">
                       <div className="text-sm">
                         <p>{formatDate(ticket.createdAt)}</p>
                       </div>
                     </TableCell>
+                    
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
@@ -418,6 +427,15 @@ export default function AdminSupportPage() {
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+                    
+                    
+                    
+                  
+                  
+                  
+            
           )}
 
           {/* Pagination */}

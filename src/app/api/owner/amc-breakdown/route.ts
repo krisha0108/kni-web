@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
 
@@ -10,7 +11,7 @@ import { NotificationType } from "@prisma/client";
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const body = await request.json();
     const { contractId, equipmentName, problemDesc, urgency } = body;
 
@@ -22,13 +23,19 @@ export async function POST(request: NextRequest) {
     }
 
     const contract = await db.aMCContract.findFirst({
-      where: { id: contractId, ownerId: session.id, status: "ACTIVE" },
-      include: { restaurant: { select: { name: true } } },
+      where: { id: contractId, status: "ACTIVE" },
+      include: { restaurant: { select: { id: true, name: true } } },
     });
 
     if (!contract) {
       return NextResponse.json({ ok: false, error: "Active contract not found" }, { status: 404 });
     }
+
+    // RBAC: verify user has amc:create access for this restaurant
+    await requireRestaurantAccess(session, contract.restaurantId, "amc:create");
+
+    // Get actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(contract.restaurantId);
 
     // Check free breakdown visits
     const isCovered = contract.breakdownVisitsUsed < contract.freeBreakdownVisits;
@@ -36,7 +43,7 @@ export async function POST(request: NextRequest) {
     const breakdown = await db.aMCBreakdownRequest.create({
       data: {
         contractId,
-        ownerId: session.id,
+        ownerId,
         equipmentName,
         problemDesc,
         urgency: urgency || "MEDIUM",
@@ -71,24 +78,33 @@ export async function POST(request: NextRequest) {
     console.error("Breakdown request error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }
 
 /**
  * GET /api/owner/amc-breakdown
- * List owner's breakdown requests
+ * List breakdown requests for a restaurant
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // RBAC: verify user has amc:read access for this restaurant
+    await requireRestaurantAccess(session, restaurantId, "amc:read");
 
     const breakdowns = await db.aMCBreakdownRequest.findMany({
       where: {
-        ownerId: session.id,
-        ...(restaurantId ? { contract: { restaurantId } } : {}),
+        contract: { restaurantId },
       },
       include: {
         contract: {
@@ -105,7 +121,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

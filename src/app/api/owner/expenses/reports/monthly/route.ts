@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { groupExpensesByCategory } from "@/lib/expense";
 
 export async function GET(request: NextRequest) {
@@ -11,6 +12,16 @@ export async function GET(request: NextRequest) {
     const restaurantId = searchParams.get("restaurantId");
     const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString(), 10);
     const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString(), 10);
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    // Check restaurant access with expenses:read permission
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
 
     // Validate month
     if (month < 1 || month > 12) {
@@ -25,13 +36,12 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
     const where: any = {
-      ownerId: session.id,
+      restaurantId,
       deletedAt: null,
       expenseDate: {
         gte: startDate,
         lte: endDate,
       },
-      ...(restaurantId ? { restaurantId } : {}),
     };
 
     // Fetch all expenses for the month
@@ -69,13 +79,12 @@ export async function GET(request: NextRequest) {
 
     const prevExpenses = await db.expense.findMany({
       where: {
-        ownerId: session.id,
+        restaurantId,
         deletedAt: null,
         expenseDate: {
           gte: prevStartDate,
           lte: prevEndDate,
         },
-        ...(restaurantId ? { restaurantId } : {}),
       },
       select: {
         amount: true,

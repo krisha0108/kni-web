@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { createEngineerRating } from "@/server/ratings/service";
 import { z } from "zod";
@@ -24,11 +25,10 @@ export async function POST(
     const session = await requireOwnerMobile(request);
     const { id: bookingId } = await params;
 
-    // Verify booking belongs to owner
+    // Fetch booking by id to get restaurantId for RBAC
     const booking = await db.serviceBooking.findUnique({
       where: { id: bookingId },
       select: {
-        ownerId: true,
         restaurantId: true,
         status: true,
       },
@@ -44,15 +44,8 @@ export async function POST(
       );
     }
 
-    if (booking.ownerId !== session.id) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized - not your booking",
-        },
-        { status: 403 }
-      );
-    }
+    // RBAC check - verify user has access to update bookings for this restaurant
+    await requireRestaurantAccess(session, booking.restaurantId, "bookings:update");
 
     if (booking.status !== "COMPLETED") {
       return NextResponse.json(
@@ -120,10 +113,13 @@ export async function POST(
       );
     }
 
+    // Use actual restaurant owner ID for the rating record FK
+    const actualOwnerId = await getRestaurantOwnerId(booking.restaurantId);
+
     const rating = await createEngineerRating({
       assignmentId,
       engineerId: assignment.engineerId,
-      ownerId: session.id,
+      ownerId: actualOwnerId,
       restaurantId: booking.restaurantId,
       bookingId,
       ...ratingData,
@@ -155,11 +151,28 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id: bookingId } = await params;
 
-    // Verify booking belongs to owner
+    // Fetch booking by id to get restaurantId for RBAC
+    const bookingCheck = await db.serviceBooking.findUnique({
+      where: { id: bookingId },
+      select: { restaurantId: true },
+    });
+
+    if (!bookingCheck) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Booking not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    // RBAC check - verify user has access to read bookings for this restaurant
+    await requireRestaurantAccess(session, bookingCheck.restaurantId, "bookings:read");
+
     const booking = await db.serviceBooking.findUnique({
       where: { id: bookingId },
       select: {
-        ownerId: true,
         engineerAssignments: {
           where: { status: "COMPLETED" },
           select: {
@@ -177,29 +190,9 @@ export async function GET(
       },
     });
 
-    if (!booking) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Booking not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    if (booking.ownerId !== session.id) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized",
-        },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json({
       ok: true,
-      data: booking.engineerAssignments,
+      data: booking?.engineerAssignments ?? [],
     });
   } catch (error: any) {
     console.error("Fetch engineer ratings error:", error);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ClientOnly } from "@/components/client-only";
+import { fetchCart, addCartItem, updateCartItemQuantity } from "@/lib/marketplace-cart";
 import {
   Search,
   ShoppingBag,
@@ -22,15 +23,11 @@ import {
   Minus,
   Store,
   Building2,
-  Clock,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { ProductDetailDialog } from "./components/product-detail-dialog";
-import type { Product, Category, CartItem, PaymentRecord } from "./types";
+import type { Product, Category, CartItem } from "./types";
 
 export default function OwnerMarketplacePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,67 +36,33 @@ export default function OwnerMarketplacePage() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<PaymentRecord[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
 
-  // ========== CART PERSISTENCE (localStorage) ==========
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
 
-  // Load cart from localStorage
-  const reloadCart = useCallback(() => {
+  // ========== CART MANAGEMENT (Server-Side) ==========
+
+  // Load cart from server
+  const reloadCart = useCallback(async () => {
     if (!selectedRestaurant) return;
     try {
-      // Check if a vendor was paid → remove their items (matching mobile pattern)
-      const paidVendorId = localStorage.getItem("marketplace_paid_vendor");
-      const saved = localStorage.getItem(`marketplace_cart_${selectedRestaurant.restaurantId}`);
-      let parsed = saved ? JSON.parse(saved) : [];
-      if (!Array.isArray(parsed)) parsed = [];
-
-      if (paidVendorId) {
-        parsed = parsed.filter((item: CartItem) => {
-          const vid = item.product.vendor?.id || "unknown";
-          return vid !== paidVendorId;
-        });
-        localStorage.setItem(
-          `marketplace_cart_${selectedRestaurant.restaurantId}`,
-          JSON.stringify(parsed)
-        );
-        localStorage.removeItem("marketplace_paid_vendor");
-      }
-
-      setCart(parsed);
-    } catch {
+      const data = await fetchCart(selectedRestaurant.restaurantId);
+      setCart(data.items as CartItem[]);
+    } catch (error: any) {
+      console.error("Load cart error:", error);
       setCart([]);
     }
   }, [selectedRestaurant]);
 
-  // Restore cart on mount, restaurant change, and on navigation (pathname changes)
+  // Restore cart on mount and restaurant change
   useEffect(() => {
     reloadCart();
-  }, [reloadCart, pathname]);
-
-  // Re-read cart when user navigates back to this page (window focus)
-  useEffect(() => {
-    const handleFocus = () => reloadCart();
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
   }, [reloadCart]);
-
-  const saveCart = (items: CartItem[]) => {
-    setCart(items);
-    if (selectedRestaurant) {
-      try {
-        localStorage.setItem(
-          `marketplace_cart_${selectedRestaurant.restaurantId}`,
-          JSON.stringify(items)
-        );
-      } catch {}
-    }
-  };
 
   const fetchProducts = async () => {
     if (!selectedRestaurant) return;
@@ -145,21 +108,6 @@ export default function OwnerMarketplacePage() {
     }
   };
 
-  const fetchPendingPayments = useCallback(async () => {
-    if (!selectedRestaurant) return;
-    try {
-      const response = await fetch(
-        `/api/owner/marketplace/payments?restaurantId=${selectedRestaurant.restaurantId}`
-      );
-      const data = await response.json();
-      if (data.ok) {
-        setPendingPayments(data.data);
-      }
-    } catch {
-      // Ignore
-    }
-  }, [selectedRestaurant]);
-
   useEffect(() => {
     if (selectedRestaurant) {
       fetchProducts();
@@ -170,55 +118,50 @@ export default function OwnerMarketplacePage() {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    if (selectedRestaurant) {
-      fetchPendingPayments();
-    }
-  }, [selectedRestaurant, fetchPendingPayments]);
-
   // Re-read cart + payments when page becomes visible (handles navigation back from cart/payment)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         reloadCart();
-        fetchPendingPayments();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [reloadCart, fetchPendingPayments]);
+  }, [reloadCart]);
 
-  const addToCart = (product: Product) => {
-    const existing = cart.find((item) => item.product.id === product.id);
-    if (existing) {
-      saveCart(
-        cart.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: Math.min(item.quantity + 1, product.stockQuantity) }
-            : item
-        )
-      );
-    } else {
-      saveCart([...cart, { product, quantity: 1 }]);
+  const addToCart = async (product: Product) => {
+    if (!selectedRestaurant) return;
+    try {
+      const existing = cart.find((item) => item.product.id === product.id);
+      const newQuantity = existing ? Math.min(existing.quantity + 1, product.stockQuantity) : 1;
+      
+      const data = await addCartItem(selectedRestaurant.restaurantId, product.id, newQuantity);
+      setCart(data.items as CartItem[]);
+      toast({ title: "Added to cart", description: product.name });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to add to cart", variant: "destructive" });
     }
-    toast({ title: "Added to cart", description: product.name });
   };
 
-  const updateCartQuantity = (productId: string, delta: number) => {
+  const updateCartQuantity = async (productId: string, delta: number) => {
+    if (!selectedRestaurant) return;
     const item = cart.find((i) => i.product.id === productId);
     if (!item) return;
+    
     const newQty = item.quantity + delta;
-    if (newQty <= 0) {
-      saveCart(cart.filter((i) => i.product.id !== productId));
-      return;
+    
+    try {
+      if (newQty <= 0) {
+        // Remove item by setting quantity to 0
+        await addCartItem(selectedRestaurant.restaurantId, productId, 0);
+      } else {
+        const clamped = Math.min(newQty, item.product.stockQuantity);
+        await updateCartItemQuantity(item.id, clamped);
+      }
+      await reloadCart();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update cart", variant: "destructive" });
     }
-    saveCart(
-      cart.map((i) =>
-        i.product.id === productId
-          ? { ...i, quantity: Math.min(newQty, i.product.stockQuantity) }
-          : i
-      )
-    );
   };
 
   const getCartTotal = () => {
@@ -249,76 +192,13 @@ export default function OwnerMarketplacePage() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Marketplace</h1>
           <p className="text-muted-foreground">Browse and order products from vendors delivering to {selectedRestaurant.restaurant.name}</p>
         </div>
-        {cart.length > 0 && (
+        {canCreate && cart.length > 0 && (
           <Button onClick={() => router.push("/owner/marketplace/cart")}>
             <ShoppingBag className="mr-2 h-4 w-4" />
             Cart ({cart.length}) - {formatPrice(getCartTotal())}
           </Button>
         )}
       </div>
-
-      {/* Pending Payments Status */}
-      {pendingPayments.filter((p) => p.status === "PENDING" || p.status === "REJECTED").length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>Payment Status</span>
-              <Button variant="ghost" size="sm" onClick={fetchPendingPayments}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {pendingPayments
-              .filter((p) => p.status === "PENDING" || p.status === "REJECTED")
-              .map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{payment.vendor.name}</span>
-                      {payment.status === "PENDING" ? (
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                          <Clock className="mr-1 h-3 w-3" />
-                          Pending Verification
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
-                          <XCircle className="mr-1 h-3 w-3" />
-                          Rejected
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatPrice(payment.totalAmount)} &middot; {payment.items.length} items
-                    </p>
-                    {payment.rejectionReason && (
-                      <p className="text-sm text-red-600">Reason: {payment.rejectionReason}</p>
-                    )}
-                  </div>
-                  {payment.status === "REJECTED" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push("/owner/marketplace/cart")}
-                    >
-                      Re-upload
-                    </Button>
-                  )}
-                </div>
-              ))}
-            {pendingPayments.filter((p) => p.status === "VERIFIED").slice(0, 3).map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border bg-green-50/50">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium">{payment.vendor.name}</span>
-                  <span className="text-sm text-green-700">Order placed!</span>
-                </div>
-                <span className="text-sm text-muted-foreground">{formatPrice(payment.totalAmount)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-full sm:max-w-sm">
@@ -417,7 +297,7 @@ export default function OwnerMarketplacePage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <span className="text-lg font-bold">{formatPrice(product.price)}</span>
-                  {cartQty > 0 ? (
+                  {canCreate && (cartQty > 0 ? (
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -455,7 +335,7 @@ export default function OwnerMarketplacePage() {
                     >
                       Add to Cart
                     </Button>
-                  )}
+                  ))}
                 </CardFooter>
               </Card>
             );
@@ -471,6 +351,7 @@ export default function OwnerMarketplacePage() {
         cartQuantity={selectedProduct ? getCartItemQuantity(selectedProduct.id) : 0}
         onAddToCart={addToCart}
         onUpdateQuantity={updateCartQuantity}
+        canCreate={canCreate}
       />
     </div>
   );

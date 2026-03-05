@@ -203,7 +203,7 @@ export default function VendorDashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.products.activeCount}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.products.activeCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Products in catalog</p>
             <Button size="sm" variant="outline" asChild className="mt-2">
               <Link href="/vendor/products">Manage Products</Link>
@@ -217,7 +217,7 @@ export default function VendorDashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.summary.orders.count}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight">{analyticsData.summary.orders.count}</div>
             <p className="text-xs text-muted-foreground mt-1">In selected period</p>
             <Button size="sm" variant="outline" asChild className="mt-2">
               <Link href="/vendor/orders">View Orders</Link>
@@ -231,7 +231,7 @@ export default function VendorDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPrice(analyticsData.summary.orders.revenue)}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(analyticsData.summary.orders.revenue)}</div>
             <p className="text-xs text-muted-foreground mt-1">From all orders</p>
           </CardContent>
         </Card>
@@ -245,7 +245,7 @@ export default function VendorDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">
+            <span className="text-lg sm:text-2xl font-bold leading-tight">
               {analyticsData.summary.locations?.approvedCount || 0}
             </span>
             <span className="text-sm text-muted-foreground">Approved Areas</span>

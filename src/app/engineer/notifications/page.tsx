@@ -181,77 +181,77 @@ export default function EngineerNotificationsPage() {
   };
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="h-6 w-6" />
+          <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2">
+            <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
             Notifications
             {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
+              <Badge variant="destructive" className="ml-2 text-xs sm:text-sm">{unreadCount}</Badge>
             )}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Stay updated with your job assignments, payouts, and system alerts
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead}>
-            <CheckCheck className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={markAllAsRead} className="h-9 sm:h-10 text-xs sm:text-sm">
+            <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
             Mark All Read
           </Button>
         )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Bell className="h-5 w-5 text-blue-600" />
+          <CardContent className="p-3 sm:pt-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 flex-shrink-0">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{notifications.length}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold">{notifications.length}</p>
                 <p className="text-xs text-muted-foreground">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <AlertCircle className="h-5 w-5 text-red-600" />
+          <CardContent className="p-3 sm:pt-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-red-100 flex-shrink-0">
+                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{unreadCount}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold">{unreadCount}</p>
                 <p className="text-xs text-muted-foreground">Unread</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Wrench className="h-5 w-5 text-blue-600" />
+          <CardContent className="p-3 sm:pt-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 flex-shrink-0">
+                <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{jobCount}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold">{jobCount}</p>
                 <p className="text-xs text-muted-foreground">Jobs</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <Wallet className="h-5 w-5 text-green-600" />
+          <CardContent className="p-3 sm:pt-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 rounded-lg bg-green-100 flex-shrink-0">
+                <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{payoutCount}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold">{payoutCount}</p>
                 <p className="text-xs text-muted-foreground">Payouts</p>
               </div>
             </div>
@@ -261,19 +261,19 @@ export default function EngineerNotificationsPage() {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="p-3 sm:pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search notifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
             <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
@@ -295,17 +295,17 @@ export default function EngineerNotificationsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <BellOff className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">No Notifications</h3>
-              <p className="text-muted-foreground text-sm mt-1">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <BellOff className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold">No Notifications</h3>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                 {filter !== "all" ? "Try changing the filter" : "You're all caught up!"}
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {filteredNotifications.map((notification) => {
                 const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.SYSTEM;
                 const Icon = config.icon;
@@ -313,40 +313,40 @@ export default function EngineerNotificationsPage() {
                 return (
                   <div
                     key={notification.id}
-                    className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
+                    className={`flex items-start gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
                       !notification.isRead ? "bg-primary/5 border-primary/20" : ""
                     }`}
                     onClick={() => openNotification(notification)}
                   >
-                    <div className={`p-2 rounded-lg ${config.color}`}>
-                      <Icon className="h-5 w-5" />
+                    <div className={`p-2 rounded-lg ${config.color} flex-shrink-0`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className={`font-medium ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`}>
                           {notification.title}
                         </p>
                         {!notification.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-primary" />
+                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                         {notification.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant={config.badge}>{config.label}</Badge>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge variant={config.badge} className="text-xs">{config.label}</Badge>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {getTimeAgo(notification.createdAt)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" onClick={() => openNotification(notification)}>
-                        <Eye className="h-4 w-4" />
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => openNotification(notification)}>
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteNotification(notification.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => deleteNotification(notification.id)}>
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
                       </Button>
                     </div>
                   </div>
@@ -359,41 +359,41 @@ export default function EngineerNotificationsPage() {
 
       {/* Notification Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {selectedNotification && (
                 <>
                   {(() => {
                     const config = TYPE_CONFIG[selectedNotification.type] || TYPE_CONFIG.SYSTEM;
                     const Icon = config.icon;
                     return (
-                      <div className={`p-2 rounded-lg ${config.color}`}>
-                        <Icon className="h-5 w-5" />
+                      <div className={`p-2 rounded-lg ${config.color} flex-shrink-0`}>
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
                     );
                   })()}
-                  {selectedNotification.title}
+                  <span className="truncate">{selectedNotification.title}</span>
                 </>
               )}
             </DialogTitle>
           </DialogHeader>
           {selectedNotification && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm">{selectedNotification.message}</p>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <p className="text-xs sm:text-sm">{selectedNotification.message}</p>
               </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <Badge variant={TYPE_CONFIG[selectedNotification.type]?.badge || "default"}>
+              <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                <Badge variant={TYPE_CONFIG[selectedNotification.type]?.badge || "default"} className="text-xs">
                   {TYPE_CONFIG[selectedNotification.type]?.label || selectedNotification.type}
                 </Badge>
                 <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {formatDate(selectedNotification.createdAt)}
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">{formatDate(selectedNotification.createdAt)}</span>
                 </span>
               </div>
               {selectedNotification.linkUrl && (
-                <Button className="w-full" asChild>
+                <Button className="w-full h-9 sm:h-10 text-xs sm:text-sm" asChild>
                   <a href={selectedNotification.linkUrl}>View Details</a>
                 </Button>
               )}

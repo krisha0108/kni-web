@@ -253,17 +253,20 @@ export default function AnalyticsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
+                
                 <TableHead>Sponsor</TableHead>
                 <TableHead className="text-right">Impressions</TableHead>
                 <TableHead className="text-right">Clicks</TableHead>
                 <TableHead className="text-right">CTR</TableHead>
               </TableRow>
             </TableHeader>
+            
             <TableBody>
               {analytics.performance.sponsored.topPerforming.map((item) => (
                 <TableRow key={item.id}>
@@ -271,11 +274,13 @@ export default function AnalyticsPage() {
                   <TableCell>
                     <Badge variant="outline">{item.type}</Badge>
                   </TableCell>
+                  
                   <TableCell className="text-sm text-muted-foreground">
                     {item.sponsoredBy}
                   </TableCell>
                   <TableCell className="text-right">{item.impressions.toLocaleString()}</TableCell>
                   <TableCell className="text-right">{item.clicks.toLocaleString()}</TableCell>
+                  
                   <TableCell className="text-right">
                     <Badge variant={parseFloat(item.ctr) > 5 ? "default" : "secondary"}>
                       {item.ctr}%
@@ -285,6 +290,11 @@ export default function AnalyticsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+                  
+            
+                
+          
         </CardContent>
       </Card>
 

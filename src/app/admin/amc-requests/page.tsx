@@ -114,6 +114,7 @@ const frequencyLabels: Record<string, string> = { MONTHLY: "Monthly", BI_MONTHLY
 const kitchenLabels: Record<string, string> = { CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine", HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering" };
 
 export default function AdminAMCRequestsPage() {
+  const [mounted, setMounted] = useState(false);
   const [requests, setRequests] = useState<AMCRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -133,6 +134,10 @@ export default function AdminAMCRequestsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showRejectPayment, setShowRejectPayment] = useState(false);
   const [paymentRejectReason, setPaymentRejectReason] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchRequests = async () => {
     try {
@@ -162,6 +167,8 @@ export default function AdminAMCRequestsPage() {
     fetchRequests();
     fetchEngineers();
   }, [filterStatus, searchQuery]);
+
+  if (!mounted) return null;
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     // If status is SURVEY_SCHEDULED, show survey form instead
@@ -367,26 +374,31 @@ export default function AdminAMCRequestsPage() {
         <Card><CardContent className="flex flex-col items-center justify-center py-12"><Shield className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-lg text-muted-foreground">No AMC requests found</p></CardContent></Card>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Restaurant</TableHead>
                 <TableHead className="hidden md:table-cell">Owner</TableHead>
+                
                 <TableHead className="hidden lg:table-cell">Kitchen</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead className="hidden md:table-cell">Frequency</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
+                
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {requests.map((req) => (
+                
                 <TableRow key={req.id}>
                   <TableCell className="font-medium">{req.restaurant.name}<span className="block text-xs text-muted-foreground">{req.restaurant.city}</span></TableCell>
                   <TableCell className="hidden md:table-cell">{req.owner.name}<span className="block text-xs text-muted-foreground">{req.owner.phone}</span></TableCell>
                   <TableCell className="hidden lg:table-cell">{kitchenLabels[req.kitchenType] || req.kitchenType}</TableCell>
                   <TableCell><Badge className={planColors[req.planType] || ""}>{planLabels[req.planType] || req.planType}</Badge></TableCell>
+                  
                   <TableCell className="hidden md:table-cell">{frequencyLabels[req.visitFrequency] || req.visitFrequency}</TableCell>
                   <TableCell>
                     <Badge variant={statusColors[req.status] || "default"}>{statusLabels[req.status] || req.status}</Badge>
@@ -397,18 +409,25 @@ export default function AdminAMCRequestsPage() {
                       <span className="block text-xs text-yellow-600 mt-1">Awaiting Accept</span>
                     )}
                   </TableCell>
+                  
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(req.createdAt)}</TableCell>
                   <TableCell><Button variant="ghost" size="icon" onClick={() => { setSelectedRequest(req); setShowSurveyForm(false); }}><Eye className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+                  
+                  
+                
+                
+                
+          
         </div>
       )}
 
       {/* Detail + Actions Dialog */}
       <Dialog open={!!selectedRequest} onOpenChange={(open) => { if (!open) { setSelectedRequest(null); setShowSurveyForm(false); } }}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>AMC Request Details</DialogTitle>
             <DialogDescription>View and manage this AMC request</DialogDescription>

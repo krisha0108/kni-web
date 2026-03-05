@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 
 // GET /api/owner/finance-reports - Get comprehensive finance report
@@ -17,6 +18,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
+
     // Build date filter
     const dateFilter = startDate && endDate
       ? {
@@ -29,7 +32,6 @@ export async function GET(request: NextRequest) {
     const cashbookEntries = await db.cashbookEntry.findMany({
       where: {
         restaurantId,
-        ownerId: session.id,
         ...(dateFilter && { entryDate: dateFilter }),
       },
       select: {
@@ -81,7 +83,6 @@ export async function GET(request: NextRequest) {
     const vendorEntries = await db.vendorLedger.findMany({
       where: {
         restaurantId,
-        ownerId: session.id,
         ...(dateFilter && { entryDate: dateFilter }),
       },
       select: {
@@ -127,9 +128,6 @@ export async function GET(request: NextRequest) {
     const salaryRecords = await db.staffSalary.findMany({
       where: {
         restaurantId,
-        staff: {
-          ownerId: session.id,
-        },
         ...(startDate &&
           endDate && {
             OR: [
@@ -165,9 +163,6 @@ export async function GET(request: NextRequest) {
     const bookings = await db.serviceBooking.findMany({
       where: {
         restaurantId,
-        restaurant: {
-          ownerId: session.id,
-        },
         ...(dateFilter && { createdAt: dateFilter }),
       },
       select: {
@@ -184,9 +179,6 @@ export async function GET(request: NextRequest) {
     const marketplaceOrders = await db.marketplaceOrder.findMany({
       where: {
         restaurantId,
-        restaurant: {
-          ownerId: session.id,
-        },
         ...(dateFilter && { createdAt: dateFilter }),
       },
       select: {
@@ -260,7 +252,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to generate finance report" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }

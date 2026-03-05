@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireOwner } from "@/server/auth/rbac";
+import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 /**
  * GET /api/owner/amc-dashboard
@@ -8,12 +9,20 @@ import { requireOwner } from "@/server/auth/rbac";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireOwner();
+    const session = await requireOwnerMobile(request);
     const restaurantId = request.nextUrl.searchParams.get("restaurantId");
 
+    if (!restaurantId) {
+      return NextResponse.json(
+        { ok: false, error: "Restaurant ID required" },
+        { status: 400 }
+      );
+    }
+
+    await requireRestaurantAccess(session, restaurantId, "amc:read");
+
     const where = {
-      ownerId: session.id,
-      ...(restaurantId ? { restaurantId } : {}),
+      restaurantId,
     };
 
     const [contracts, requests, breakdowns] = await Promise.all([
@@ -30,8 +39,7 @@ export async function GET(request: NextRequest) {
       }),
       db.aMCBreakdownRequest.findMany({
         where: {
-          ownerId: session.id,
-          ...(restaurantId ? { contract: { restaurantId } } : {}),
+          contract: { restaurantId },
         },
         select: { id: true, status: true },
       }),
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: error instanceof Error && (error.message === "Unauthorized" || error.message.includes("Unauthorized")) ? 401 : 500 }
     );
   }
 }

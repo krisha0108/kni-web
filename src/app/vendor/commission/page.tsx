@@ -454,28 +454,33 @@ export default function VendorCommissionPage() {
               </p>
             </div>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Order Amount</TableHead>
+                  
                   <TableHead>Rate</TableHead>
                   <TableHead>Commission</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {commissions.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono text-xs">
                       {c.orderId.slice(0, 8)}
                     </TableCell>
+                    
                     <TableCell>{formatPrice(c.orderAmount)}</TableCell>
                     <TableCell>{c.commissionRate}%</TableCell>
                     <TableCell className="font-medium">
                       {formatPrice(c.commissionAmount)}
                     </TableCell>
+                    
                     <TableCell>{formatDate(c.createdAt)}</TableCell>
                     <TableCell>
                       {c.collectionId ? (
@@ -488,6 +493,11 @@ export default function VendorCommissionPage() {
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+              
+                  
+            
           )}
         </CardContent>
       </Card>
@@ -505,17 +515,20 @@ export default function VendorCommissionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Collection ID</TableHead>
                   <TableHead>Amount</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {collections.map((col) => (
+                  
                   <TableRow key={col.id}>
                     <TableCell className="font-mono text-xs">
                       {col.id.slice(0, 8)}
@@ -523,12 +536,17 @@ export default function VendorCommissionPage() {
                     <TableCell className="font-medium">
                       {formatPrice(col.totalAmount)}
                     </TableCell>
+                    
                     <TableCell>{collectionStatusBadge(col.status)}</TableCell>
                     <TableCell>{formatDate(col.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+                    
+                  
+                  
+            
           </CardContent>
         </Card>
       )}

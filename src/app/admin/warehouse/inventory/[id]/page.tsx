@@ -273,17 +273,20 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
               No stock movements recorded yet.
             </p>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Type</TableHead>
+                  
                   <TableHead>Quantity</TableHead>
                   <TableHead>Balance After</TableHead>
                   <TableHead>Recorded By</TableHead>
                   <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {inventory.stockMovements.map((movement) => (
                   <TableRow key={movement.id}>
@@ -293,11 +296,13 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
                         {getMovementTypeLabel(movement.movementType as any)}
                       </Badge>
                     </TableCell>
+                    
                     <TableCell className="font-mono">
                       {movement.movementType.startsWith("INWARD") ? "+" : "-"}
                       {movement.quantity}
                     </TableCell>
                     <TableCell className="font-mono">{movement.balanceAfter}</TableCell>
+                    
                     <TableCell>{movement.creator?.name || "System"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {movement.notes || "-"}
@@ -306,13 +311,18 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+              
+                  
+            
           )}
         </CardContent>
       </Card>
 
       {/* Update Threshold Dialog */}
       <Dialog open={isThresholdOpen} onOpenChange={setIsThresholdOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Update Low Stock Threshold</DialogTitle>
           </DialogHeader>
@@ -341,7 +351,7 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Record Movement Dialog */}
       <Dialog open={isMovementOpen} onOpenChange={setIsMovementOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Stock Movement</DialogTitle>
           </DialogHeader>

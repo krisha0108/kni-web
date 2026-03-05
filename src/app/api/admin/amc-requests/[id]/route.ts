@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
-import { createNotification } from "@/server/notifications/service";
-import { NotificationType } from "@prisma/client";
+import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
+import { NotificationType, RestaurantRole } from "@prisma/client";
 
 /**
  * GET /api/admin/amc-requests/[id]
@@ -107,6 +107,17 @@ export async function PATCH(
     if (notif) {
       await createNotification({
         userId: amcRequest.ownerId,
+        title: notif.title,
+        message: notif.message,
+        type: NotificationType.AMC,
+        linkUrl: `/owner/amc-requests`,
+      });
+
+      // Notify team members (non-blocking)
+      notifyRestaurantTeam({
+        restaurantId: amcRequest.restaurantId,
+        excludeUserIds: [amcRequest.ownerId],
+        roles: [RestaurantRole.MANAGER],
         title: notif.title,
         message: notif.message,
         type: NotificationType.AMC,

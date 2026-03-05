@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
-import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
 const equipmentBookingSchema = z.object({
@@ -48,11 +48,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify equipment belongs to owner
+    // Verify equipment belongs to restaurant
     const equipment = await db.equipment.findFirst({
       where: {
         id: equipmentId,
-        ownerId: session.id,
         restaurantId,
         deletedAt: null,
       },
@@ -94,9 +93,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the booking
+    const ownerId = await getRestaurantOwnerId(restaurantId);
     const booking = await db.serviceBooking.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId,
         equipmentId,
         slotStartDateTime: new Date(slotStartDateTime),

@@ -54,12 +54,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If password provided, update user password
+    // Update user: set password if provided and mark email as verified
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
       await db.user.update({
         where: { id: membership.userId },
-        data: { passwordHash },
+        data: { passwordHash, emailVerified: true },
+      });
+    } else {
+      // Even without password change, mark email as verified (user accepted invite via email link)
+      await db.user.update({
+        where: { id: membership.userId },
+        data: { emailVerified: true },
       });
     }
 

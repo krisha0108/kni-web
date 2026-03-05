@@ -120,7 +120,7 @@ export default function EngineerEarningsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">My Earnings</h1>
         <p className="text-muted-foreground mt-1">
@@ -129,15 +129,15 @@ export default function EngineerEarningsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Total Earnings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
+            <p className="text-lg sm:text-2xl font-bold leading-tight break-all">
               {formatAmount(summary.totalEarnings)}
             </p>
           </CardContent>
@@ -145,12 +145,12 @@ export default function EngineerEarningsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Paid Out
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-lg sm:text-2xl font-bold text-green-600 leading-tight break-all">
               {formatAmount(summary.paidEarnings)}
             </p>
           </CardContent>
@@ -158,12 +158,12 @@ export default function EngineerEarningsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Pending Payment
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">
+            <p className="text-lg sm:text-2xl font-bold text-yellow-600 leading-tight break-all">
               {formatAmount(summary.pendingEarnings)}
             </p>
           </CardContent>
@@ -171,23 +171,23 @@ export default function EngineerEarningsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Completed Jobs
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{summary.completedJobs}</p>
+            <p className="text-lg sm:text-2xl font-bold leading-tight">{summary.completedJobs}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Pending Payouts
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{summary.pendingPayouts}</p>
+            <p className="text-lg sm:text-2xl font-bold leading-tight">{summary.pendingPayouts}</p>
           </CardContent>
         </Card>
       </div>
@@ -203,11 +203,13 @@ export default function EngineerEarningsPage() {
               No earnings yet. Complete jobs to start earning!
             </p>
           ) : (
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Restaurant</TableHead>
                   <TableHead>Service Date</TableHead>
+                  
                   <TableHead>Booking Amount</TableHead>
                   <TableHead>Commission Rate</TableHead>
                   <TableHead>Your Earnings</TableHead>
@@ -215,6 +217,7 @@ export default function EngineerEarningsPage() {
                   <TableHead>Paid Date</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {payouts.map((payout) => (
                   <TableRow key={payout.id}>
@@ -228,6 +231,7 @@ export default function EngineerEarningsPage() {
                         </p>
                       </div>
                     </TableCell>
+                    
                     <TableCell>
                       {payout.assignment.booking.slotStartDateTime
                         ? new Date(
@@ -235,12 +239,14 @@ export default function EngineerEarningsPage() {
                           ).toLocaleDateString()
                         : "N/A"}
                     </TableCell>
+                    
                     <TableCell>
                       {formatAmount(payout.assignment.booking.totalAmount)}
                     </TableCell>
                     <TableCell>
                       {payout.assignment.commissionRate}%
                     </TableCell>
+                    
                     <TableCell className="font-semibold text-green-600">
                       {formatAmount(payout.amount)}
                     </TableCell>
@@ -254,6 +260,12 @@ export default function EngineerEarningsPage() {
                 ))}
               </TableBody>
             </Table>
+                    
+                    
+                    
+              
+                  
+            
           )}
         </CardContent>
       </Card>

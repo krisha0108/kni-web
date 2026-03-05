@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 
 // DELETE /api/owner/category-request/[id] - Delete a pending category request
 export async function DELETE(
@@ -11,12 +12,9 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Find the category request
-    const categoryRequest = await db.categoryRequest.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    // Find the category request by ID
+    const categoryRequest = await db.categoryRequest.findUnique({
+      where: { id },
     });
 
     if (!categoryRequest) {
@@ -24,6 +22,11 @@ export async function DELETE(
         { ok: false, error: "Request not found" },
         { status: 404 }
       );
+    }
+
+    // RBAC check using restaurantId from the category request
+    if (categoryRequest.restaurantId) {
+      await requireRestaurantAccess(session, categoryRequest.restaurantId, "category:create");
     }
 
     // Only allow deletion of pending requests
@@ -46,8 +49,8 @@ export async function DELETE(
   } catch (error) {
     console.error("Delete category request error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Access denied") ? 403 : 500 }
     );
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -30,10 +31,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await requireRestaurantAccess(session, restaurantId, "expenses:read");
+
     // Build where clause
     const where: any = {
       restaurantId,
-      ownerId: session.id,
     };
 
     if (startDate && endDate) {
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to fetch cashbook entries" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }
@@ -74,24 +76,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createEntrySchema.parse(body);
 
-    // Verify restaurant ownership
+    // Verify RBAC access
+    await requireRestaurantAccess(session, validated.restaurantId, "expenses:create");
+
+    // Verify restaurant exists
     const restaurant = await db.restaurant.findFirst({
       where: {
         id: validated.restaurantId,
-        ownerId: session.id,
+        status: "APPROVED",
       },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
+        { ok: false, error: "Restaurant not found or not approved" },
         { status: 404 }
       );
     }
 
+    // Use actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(validated.restaurantId);
+
     const entry = await db.cashbookEntry.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: validated.restaurantId,
         entryType: validated.entryType,
         amount: validated.amount,
@@ -117,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to create cashbook entry" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }

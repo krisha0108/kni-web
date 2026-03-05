@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -28,9 +29,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await requireRestaurantAccess(session, restaurantId, "staff:read");
+
     const where: any = {
       restaurantId,
-      ownerId: session.id,
     };
 
     if (status) {
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to fetch staff" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }
@@ -71,17 +73,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createStaffSchema.parse(body);
 
-    // Verify restaurant ownership
+    // Verify RBAC access
+    await requireRestaurantAccess(session, validated.restaurantId, "staff:create");
+
+    // Verify restaurant exists
     const restaurant = await db.restaurant.findFirst({
       where: {
         id: validated.restaurantId,
-        ownerId: session.id,
+        status: "APPROVED",
       },
     });
 
     if (!restaurant) {
       return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
+        { ok: false, error: "Restaurant not found or not approved" },
         { status: 404 }
       );
     }
@@ -101,9 +106,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use actual restaurant owner ID for FK
+    const ownerId = await getRestaurantOwnerId(validated.restaurantId);
+
     const staff = await db.staff.create({
       data: {
-        ownerId: session.id,
+        ownerId,
         restaurantId: validated.restaurantId,
         name: validated.name,
         phone: validated.phone,
@@ -129,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to create staff member" },
-      { status: error.status || 500 }
+      { status: error.message?.includes("Unauthorized") ? 401 : (error.status || 500) }
     );
   }
 }

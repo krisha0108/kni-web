@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -16,26 +17,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = generateSalarySchema.parse(body);
 
-    // Verify restaurant ownership
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id: validated.restaurantId,
-        ownerId: session.id,
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found or access denied" },
-        { status: 404 }
-      );
-    }
+    // Verify restaurant access via RBAC
+    await requireRestaurantAccess(session, validated.restaurantId, "staff:create");
 
     // Get all active staff
     const staff = await db.staff.findMany({
       where: {
         restaurantId: validated.restaurantId,
-        ownerId: session.id,
         status: "ACTIVE",
       },
     });

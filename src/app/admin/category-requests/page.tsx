@@ -47,7 +47,12 @@ export default function AdminCategoryRequestsPage() {
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const fetchRequests = async (status?: string) => {
     try {
@@ -147,62 +152,65 @@ export default function AdminCategoryRequestsPage() {
   };
 
   const renderRequest = (request: CategoryRequest) => (
-    <Card key={request.id} className="mb-4">
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-semibold">{request.requestedName}</h3>
+    <Card key={request.id} className="mb-3 sm:mb-4">
+      <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+        <div className="flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold line-clamp-2">{request.requestedName}</h3>
+            </div>
+            <div className="flex-shrink-0">
               {getStatusBadge(request.status)}
             </div>
-
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>{request.owner.name} ({request.owner.email})</span>
-              </div>
-              {request.restaurant && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>{request.restaurant.name}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDate(request.createdAt)}</span>
-              </div>
-            </div>
-
-            {request.description && (
-              <div className="mt-3">
-                <p className="text-sm font-medium mb-1">Description:</p>
-                <p className="text-sm text-muted-foreground">{request.description}</p>
-              </div>
-            )}
-
-            {request.reason && (
-              <div className="mt-3">
-                <p className="text-sm font-medium mb-1">Reason:</p>
-                <p className="text-sm text-muted-foreground">{request.reason}</p>
-              </div>
-            )}
-
-            {request.status === "REJECTED" && request.rejectionReason && (
-              <div className="mt-3 p-3 bg-destructive/10 rounded-md">
-                <p className="text-sm font-medium mb-1 text-destructive">Rejection Reason:</p>
-                <p className="text-sm text-destructive">{request.rejectionReason}</p>
-              </div>
-            )}
           </div>
 
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">{request.owner.name} ({request.owner.email})</span>
+            </div>
+            {request.restaurant && (
+              <div className="flex items-center gap-2 min-w-0">
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{request.restaurant.name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 min-w-0">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">{formatDate(request.createdAt)}</span>
+            </div>
+          </div>
+
+          {request.description && (
+            <div className="mt-3 sm:mt-4">
+              <p className="text-xs sm:text-sm font-medium mb-1">Description:</p>
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">{request.description}</p>
+            </div>
+          )}
+
+          {request.reason && (
+            <div className="mt-3 sm:mt-4">
+              <p className="text-xs sm:text-sm font-medium mb-1">Reason:</p>
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">{request.reason}</p>
+            </div>
+          )}
+
+          {request.status === "REJECTED" && request.rejectionReason && (
+            <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-destructive/10 rounded-md">
+              <p className="text-xs sm:text-sm font-medium mb-1 text-destructive">Rejection Reason:</p>
+              <p className="text-xs sm:text-sm text-destructive line-clamp-3">{request.rejectionReason}</p>
+            </div>
+          )}
+
           {request.status === "PENDING" && (
-            <div className="flex gap-2 ml-4">
+            <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4 ml-0">
               <Button
                 size="sm"
                 onClick={() => handleApprove(request.id)}
                 disabled={isApproving}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               >
-                <CheckCircle className="h-4 w-4 mr-1" />
+                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
                 Approve
               </Button>
               <Button
@@ -212,8 +220,9 @@ export default function AdminCategoryRequestsPage() {
                   setSelectedRequest(request);
                   setIsRejectDialogOpen(true);
                 }}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
               >
-                <XCircle className="h-4 w-4 mr-1" />
+                <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
                 Reject
               </Button>
             </div>
@@ -224,61 +233,64 @@ export default function AdminCategoryRequestsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Category Requests</h1>
-        <p className="text-muted-foreground">Review and manage category requests from restaurant owners</p>
+        <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Category Requests</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Review and manage category requests from restaurant owners</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
-        </TabsList>
+      {isMounted && (
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value={activeTab} className="mt-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading category requests...</p>
-            </div>
-          ) : requests.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No category requests found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div>
-              {requests.map(renderRequest)}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value={activeTab} className="mt-4 sm:mt-6">
+            {isLoading ? (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-muted-foreground text-xs sm:text-sm">Loading category requests...</p>
+              </div>
+            ) : requests.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 sm:py-12 text-center">
+                  <p className="text-muted-foreground text-xs sm:text-sm">No category requests found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div>
+                {requests.map(renderRequest)}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Reject Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Reject Category Request</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Reject Category Request</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Please provide a reason for rejecting this category request. The owner will be notified.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="rejectionReason" className="text-xs sm:text-sm">Rejection Reason *</Label>
               <Textarea
                 id="rejectionReason"
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="Explain why this request is being rejected..."
                 rows={4}
+                className="text-xs sm:text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => {
@@ -286,6 +298,8 @@ export default function AdminCategoryRequestsPage() {
                 setRejectionReason("");
               }}
               disabled={isRejecting}
+              size="sm"
+              className="h-9 sm:h-10 text-xs sm:text-sm"
             >
               Cancel
             </Button>
@@ -293,6 +307,8 @@ export default function AdminCategoryRequestsPage() {
               variant="destructive"
               onClick={handleReject}
               disabled={isRejecting || !rejectionReason.trim()}
+              size="sm"
+              className="h-9 sm:h-10 text-xs sm:text-sm"
             >
               {isRejecting ? "Rejecting..." : "Reject Request"}
             </Button>

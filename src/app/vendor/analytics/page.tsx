@@ -175,14 +175,14 @@ export default function VendorAnalyticsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight break-all">
               {formatPrice(analytics.summary.orders.revenue)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -197,7 +197,7 @@ export default function VendorAnalyticsPage() {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPrice(avgOrderValue)}</div>
+            <div className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(avgOrderValue)}</div>
             <p className="text-xs text-muted-foreground">Per order average</p>
           </CardContent>
         </Card>
@@ -208,7 +208,7 @@ export default function VendorAnalyticsPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight">
               {analytics.summary.products.activeCount}
             </div>
             <p className="text-xs text-muted-foreground">Listed products</p>
@@ -221,7 +221,7 @@ export default function VendorAnalyticsPage() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-2xl font-bold leading-tight">
               {analytics.summary.locations?.approvedCount || 0}
             </div>
             <p className="text-xs text-muted-foreground">Approved Areas</p>

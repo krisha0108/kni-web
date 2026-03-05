@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { getUserRestaurants } from "@/server/auth/restaurant-rbac";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const items: any[] = [];
 
     try {
-      // Check for pending restaurant approvals (always show all owner's pending restaurants)
+      // Check for pending restaurant approvals (owner-only: only show restaurants user owns)
       const pendingRestaurants = await db.restaurant.findMany({
         where: {
           ownerId: session.id,
@@ -38,39 +39,53 @@ export async function GET(request: NextRequest) {
         });
       });
 
-      // Check for pending team invitations (filtered by restaurantId)
-      const pendingInvites = await db.restaurantMember.findMany({
-        where: {
-          restaurant: {
-            ownerId: session.id,
-          },
-          ...(restaurantId ? { restaurantId } : {}),
-          acceptedAt: null, // Pending invites have null acceptedAt
-        },
-        include: {
-          user: { select: { email: true } },
-          restaurant: { select: { name: true } },
-        },
-      });
+      // Get all restaurants accessible by this user for team invite + booking queries
+      const userRestaurants = await getUserRestaurants(session.id);
+      const accessibleRestaurantIds = restaurantId
+        ? [restaurantId]
+        : userRestaurants.map((r) => r.restaurantId);
 
-      pendingInvites.forEach((invite) => {
-        items.push({
-          id: `invite-${invite.id}`,
-          type: "TEAM_INVITE",
-          title: "Team Invitation Sent",
-          description: `Waiting for ${invite.user?.email || 'member'} to accept invitation to ${invite.restaurant?.name}`,
-          status: "PENDING",
-          createdAt: invite.createdAt?.toISOString() || new Date().toISOString(),
-          metadata: { memberEmail: invite.user?.email },
+      // Check for pending team invitations (filtered by restaurantId)
+      // Only show for restaurants user owns (team invite management is owner-only)
+      const ownedRestaurantIds = userRestaurants
+        .filter((r) => r.role === "OWNER")
+        .map((r) => r.restaurantId);
+
+      const inviteRestaurantIds = restaurantId
+        ? ownedRestaurantIds.includes(restaurantId) ? [restaurantId] : []
+        : ownedRestaurantIds;
+
+      if (inviteRestaurantIds.length > 0) {
+        const pendingInvites = await db.restaurantMember.findMany({
+          where: {
+            restaurantId: { in: inviteRestaurantIds },
+            acceptedAt: null,
+          },
+          include: {
+            user: { select: { email: true } },
+            restaurant: { select: { name: true } },
+          },
         });
-      });
+
+        pendingInvites.forEach((invite) => {
+          items.push({
+            id: `invite-${invite.id}`,
+            type: "TEAM_INVITE",
+            title: "Team Invitation Sent",
+            description: `Waiting for ${invite.user?.email || 'member'} to accept invitation to ${invite.restaurant?.name}`,
+            status: "PENDING",
+            createdAt: invite.createdAt?.toISOString() || new Date().toISOString(),
+            metadata: { memberEmail: invite.user?.email },
+          });
+        });
+      }
 
       // Check for pending bookings requiring payment (filtered by restaurantId)
-      if (restaurantId) {
+      if (restaurantId && accessibleRestaurantIds.includes(restaurantId)) {
         const pendingBookings = await db.serviceBooking.findMany({
           where: {
             restaurantId,
-            status: "SLOT_SELECTED", // Awaiting payment upload
+            status: "SLOT_SELECTED",
           },
           select: {
             id: true,
@@ -92,12 +107,13 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Check for pending category requests (filtered by restaurantId)
+      // Check for pending category requests (across accessible restaurants)
       const pendingCategories = await db.categoryRequest.findMany({
         where: {
-          ownerId: session.id,
+          restaurantId: restaurantId
+            ? restaurantId
+            : { in: accessibleRestaurantIds },
           status: "PENDING",
-          ...(restaurantId ? { restaurantId } : {}),
         },
         select: {
           id: true,
@@ -119,33 +135,11 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ ok: true, data: items });
     } catch (dbError) {
-      // Return sample data if database query fails
-      return NextResponse.json({
-        ok: true,
-        data: [
-          {
-            id: "1",
-            type: "RESTAURANT",
-            title: "Restaurant Registration",
-            description: "Your restaurant 'Spice Garden' is pending approval",
-            status: "PENDING",
-            createdAt: new Date().toISOString(),
-            metadata: { restaurantName: "Spice Garden" },
-          },
-          {
-            id: "2",
-            type: "TEAM_INVITE",
-            title: "Team Invitation Sent",
-            description: "Waiting for john@example.com to accept invitation",
-            status: "PENDING",
-            createdAt: new Date().toISOString(),
-            metadata: { memberEmail: "john@example.com" },
-          },
-        ],
-      });
+      console.error("Database error in pending-approvals:", dbError);
+      return NextResponse.json({ ok: true, data: [] });
     }
   } catch (error: any) {
-    if (error.message === "Unauthorized") {
+    if (error.message === "Unauthorized" || error.message?.includes("Unauthorized")) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error fetching pending approvals:", error);

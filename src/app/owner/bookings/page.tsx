@@ -214,6 +214,10 @@ export default function OwnerBookingsPage() {
     setFilterMaxAmount("");
   };
 
+  const userRole = selectedRestaurant?.role;
+  const canCreate = userRole === "OWNER" || userRole === "MANAGER";
+  const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
+
   if (!selectedRestaurant) {
     return (
       <Card>
@@ -238,10 +242,10 @@ export default function OwnerBookingsPage() {
             endpoint="/api/owner/exports/bookings"
             filename={`my-bookings-${new Date().toISOString().split('T')[0]}.csv`}
           />
-          <Button onClick={() => router.push("/owner/cart")}>
+          {canCreate && <Button onClick={() => router.push("/owner/cart")}>
             <Calendar className="mr-2 h-4 w-4" />
             New Booking
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -287,7 +291,7 @@ export default function OwnerBookingsPage() {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Filter Bookings</DialogTitle>
                   <DialogDescription>
@@ -469,36 +473,43 @@ export default function OwnerBookingsPage() {
         </Card>
       ) : (
         <div className="border rounded-lg">
+          
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="hidden lg:table-cell">Booking ID</TableHead>
                 <TableHead>Restaurant</TableHead>
+                
                 <TableHead className="hidden md:table-cell">Items</TableHead>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Engineer</TableHead>
+                
                 <TableHead className="w-[80px] sm:w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBookings.map((booking) => (
+                
                 <TableRow key={booking.id}>
                   <TableCell className="hidden lg:table-cell font-mono text-sm">
                     {booking.id.slice(0, 8)}...
                   </TableCell>
                   <TableCell>{booking.restaurant.name}</TableCell>
+                  
                   <TableCell className="hidden md:table-cell">
                     {booking.items.length} item{booking.items.length !== 1 ? "s" : ""}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{formatDate(booking.preferredDate)}</TableCell>
                   <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
+                  
                   <TableCell>
                     <Badge variant={statusColors[booking.status] || "default"}>
                       {getStatusLabel(booking.status)}
                     </Badge>
                   </TableCell>
+                  
                   <TableCell className="hidden md:table-cell">
                     {booking.engineerAssignment?.engineer?.name || "-"}
                   </TableCell>
@@ -511,7 +522,7 @@ export default function OwnerBookingsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {booking.status === "PENDING_PAYMENT" && (
+                      {canUpdate && booking.status === "PENDING_PAYMENT" && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -526,6 +537,13 @@ export default function OwnerBookingsPage() {
               ))}
             </TableBody>
           </Table>
+                  
+                  
+                  
+                
+                
+                
+          
         </div>
       )}
     </div>

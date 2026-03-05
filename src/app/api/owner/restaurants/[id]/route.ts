@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 
 // Helper to validate image URLs (accepts full URLs or relative paths like /uploads/...)
@@ -28,11 +29,10 @@ export async function GET(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
+    const access = await requireRestaurantAccess(session, id, "restaurant:read");
+
+    const restaurant = await db.restaurant.findUnique({
+      where: { id },
       include: {
         categories: {
           include: { category: { select: { id: true, name: true } } },
@@ -47,7 +47,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ ok: true, data: restaurant });
+    return NextResponse.json({ ok: true, data: { ...restaurant, userRole: access.role } });
   } catch (error) {
     console.error("Get restaurant error:", error);
     return NextResponse.json(
@@ -66,20 +66,7 @@ export async function PATCH(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Verify ownership
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found" },
-        { status: 404 }
-      );
-    }
+    await requireRestaurantAccess(session, id, "restaurant:update");
 
     const body = await request.json();
     const validation = updateRestaurantSchema.safeParse(body);
@@ -140,20 +127,7 @@ export async function DELETE(
     const session = await requireOwnerMobile(request);
     const { id } = await params;
 
-    // Verify ownership
-    const restaurant = await db.restaurant.findFirst({
-      where: {
-        id,
-        ownerId: session.id,
-      },
-    });
-
-    if (!restaurant) {
-      return NextResponse.json(
-        { ok: false, error: "Restaurant not found" },
-        { status: 404 }
-      );
-    }
+    await requireRestaurantAccess(session, id, "restaurant:delete");
 
     // Check for active bookings (not completed or cancelled)
     const activeBookings = await db.serviceBooking.count({

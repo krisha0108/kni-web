@@ -18,6 +18,7 @@ export default function CreateRestaurantPage() {
     address: "",
     city: "",
     pincode: "",
+    outletType: "",
     restaurantImageUrl: "",
     fssaiNumber: "",
     fssaiCertificateUrl: "",
@@ -170,6 +171,29 @@ export default function CreateRestaurantPage() {
                 required
                 disabled={isLoading}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Outlet Type</Label>
+              <Select
+                value={formData.outletType}
+                onValueChange={(value) => setFormData({ ...formData, outletType: value })}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Outlet Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLOUD_KITCHEN">Cloud Kitchen</SelectItem>
+                  <SelectItem value="QSR">QSR (Quick Service)</SelectItem>
+                  <SelectItem value="FINE_DINE">Fine Dine</SelectItem>
+                  <SelectItem value="HOTEL">Hotel</SelectItem>
+                  <SelectItem value="CAFE">Cafe</SelectItem>
+                  <SelectItem value="CATERING">Catering</SelectItem>
+                  <SelectItem value="HOSPITAL">Hospital</SelectItem>
+                  <SelectItem value="INDUSTRIES">Industries</SelectItem>
+                  <SelectItem value="INSTITUTE">Institute</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

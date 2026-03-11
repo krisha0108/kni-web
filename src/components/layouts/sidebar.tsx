@@ -267,8 +267,8 @@ export const adminSidebarItems: SidebarEntry[] = [
     icon: Warehouse,
     children: [
       { title: "My Store Products", href: "/admin/my-store/products", icon: Store },
+      { title: "Price Requests", href: "/admin/my-store/price-requests", icon: Tag },
       { title: "My Store Orders", href: "/admin/my-store/orders", icon: ShoppingCart },
-      { title: "Store Payments", href: "/admin/my-store/payments", icon: CreditCard },
       { title: "Store Payment Settings", href: "/admin/my-store/payment-settings", icon: QrCode },
       { title: "My Store Analytics", href: "/admin/my-store/analytics", icon: BarChart },
     ],
@@ -372,7 +372,6 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "My Categories", href: "/vendor/categories", icon: FolderOpen },
   { title: "My Products", href: "/vendor/products", icon: Package },
   { title: "My Orders", href: "/vendor/orders", icon: ShoppingCart },
-  { title: "Payments", href: "/vendor/payments", icon: CreditCard },
   { title: "Payment Settings", href: "/vendor/payment-settings", icon: QrCode },
   { title: "My Locations", href: "/vendor/locations", icon: MapPin },
   { title: "Subscription", href: "/vendor/subscription", icon: Clock },
@@ -380,6 +379,7 @@ export const vendorSidebarItems: SidebarItem[] = [
   { title: "Notifications", href: "/vendor/notifications", icon: Bell },
   { title: "Profile", href: "/vendor/profile", icon: User },
 ];
+
 
 export const engineerSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/engineer/dashboard", icon: LayoutDashboard },

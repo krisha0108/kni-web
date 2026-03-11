@@ -53,23 +53,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Block login for unverified email (owners)
+    // Block login for unverified email (owners who registered themselves)
+    // Skip this check for team-invited users (they have pending memberships)
     if (user.role === "OWNER" && !user.emailVerified) {
-      // Send a new verification code
-      await generateAndSendEmailCode({
-        email,
-        purpose: "EMAIL_VERIFICATION",
-        userName: user.name,
-      });
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Email not verified. A new verification code has been sent to your email.",
-          code: "EMAIL_NOT_VERIFIED",
-          email: user.email,
+      const hasPendingInvite = await db.restaurantMember.findFirst({
+        where: {
+          userId: user.id,
+          acceptedAt: null,
         },
-        { status: 403 }
-      );
+      });
+
+      // Only block if user is NOT a team invite (registered themselves)
+      if (!hasPendingInvite) {
+        // Send a new verification code
+        await generateAndSendEmailCode({
+          email,
+          purpose: "EMAIL_VERIFICATION",
+          userName: user.name,
+        });
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Email not verified. A new verification code has been sent to your email.",
+            code: "EMAIL_NOT_VERIFIED",
+            email: user.email,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Block login for vendors who are not approved yet
@@ -93,6 +104,52 @@ export async function POST(request: NextRequest) {
           },
           { status: 403 }
         );
+      }
+    }
+
+    // Auto-accept any pending team invitations for this user on first login
+    // This handles the case where a new user was invited via team management
+    // and logs in with their temp password before clicking the invite link
+    if (user.role === "OWNER" && user.restaurantMemberships.length === 0) {
+      const pendingInvites = await db.restaurantMember.findMany({
+        where: {
+          userId: user.id,
+          acceptedAt: null,
+          restaurant: { status: "APPROVED" },
+        },
+      });
+
+      if (pendingInvites.length > 0) {
+        await db.restaurantMember.updateMany({
+          where: {
+            userId: user.id,
+            acceptedAt: null,
+            restaurant: { status: "APPROVED" },
+          },
+          data: {
+            acceptedAt: new Date(),
+            inviteToken: null,
+            inviteExpiresAt: null,
+          },
+        });
+
+        // Mark email as verified since they logged in with valid credentials
+        if (!user.emailVerified) {
+          await db.user.update({
+            where: { id: user.id },
+            data: { emailVerified: true },
+          });
+        }
+
+        // Re-fetch memberships after auto-accept
+        user.restaurantMemberships = await db.restaurantMember.findMany({
+          where: {
+            userId: user.id,
+            acceptedAt: { not: null },
+            restaurant: { status: "APPROVED" },
+          },
+          take: 1,
+        });
       }
     }
 

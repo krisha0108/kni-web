@@ -67,6 +67,7 @@ export async function getMobileSession(request?: NextRequest): Promise<SessionUs
     isActive: session.user.isActive,
     vendorApprovalStatus: session.user.vendorProfile?.approvalStatus ?? null,
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
+    vendorRevenueModel: session.user.vendorProfile?.revenueModel ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
   };
 }

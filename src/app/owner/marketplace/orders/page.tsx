@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatPrice } from "@/lib/utils";
-import { Package, Store, MapPin, Calendar, Phone, Building2, Star, CreditCard, Clock, CheckCircle2, XCircle, Image as ImageIcon } from "lucide-react";
+import { Package, Store, MapPin, Calendar, Phone, Building2, Star, CreditCard, Clock, CheckCircle2, XCircle, Image as ImageIcon, Truck, ShoppingCart, ClipboardCheck, Cog, Ban, Upload } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { VendorRatingDialog } from "@/components/ratings/vendor-rating-dialog";
 
@@ -20,16 +20,30 @@ interface OrderItem {
     id: string;
     name: string;
     unit: string;
+    deliveryTime?: string;
   };
 }
 
 type OrderStatus = "PLACED" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
+interface StatusHistoryItem {
+  id: string;
+  oldStatus: OrderStatus | null;
+  newStatus: OrderStatus;
+  notes: string | null;
+  createdAt: string;
+}
 
 interface Order {
   id: string;
   status: OrderStatus;
   totalAmount: number;
   createdAt: string;
+  statusNotes?: string;
+  cancellationReason?: string;
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  statusUpdatedAt?: string;
   vendor: {
     id: string;
     name: string;
@@ -39,6 +53,7 @@ interface Order {
     name: string;
   };
   items: OrderItem[];
+  statusHistory?: StatusHistoryItem[];
 }
 
 interface PaymentItem {
@@ -57,6 +72,7 @@ interface Payment {
   deliveryAddress: string | null;
   notes: string | null;
   rejectionReason: string | null;
+  orderId: string | null;
   createdAt: string;
   verifiedAt: string | null;
   vendor: {
@@ -430,11 +446,11 @@ export default function OwnerMarketplaceOrdersPage() {
                           </div>
                         )}
 
-                        {payment.status === "VERIFIED" && payment.order && (
+                        {payment.status === "VERIFIED" && payment.orderId && (
                           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
                             <p className="text-sm text-green-800 dark:text-green-200">
                               <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" />
-                              Payment verified! Order #{payment.order.id.slice(0, 8).toUpperCase()} has been placed.
+                              Payment verified! Order #{payment.orderId.slice(0, 8).toUpperCase()} has been placed.
                             </p>
                           </div>
                         )}
@@ -456,11 +472,11 @@ export default function OwnerMarketplaceOrdersPage() {
                           >
                             View Details
                           </Button>
-                          {payment.status === "VERIFIED" && payment.order && (
+                          {payment.status === "VERIFIED" && payment.orderId && (
                             <Button
                               size="sm"
                               onClick={() => {
-                                const order = orders.find(o => o.id === payment.order!.id);
+                                const order = orders.find(o => o.id === payment.orderId);
                                 if (order) {
                                   openOrderDetails(order);
                                 } else {
@@ -489,14 +505,45 @@ export default function OwnerMarketplaceOrdersPage() {
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
 
-          {selectedOrder && (
+          {selectedOrder && (() => {
+            const isCancelled = selectedOrder.status === "CANCELLED";
+            // Find linked payment for this order
+            const linkedPayment = payments.find(p => p.orderId === selectedOrder.id);
+
+            // 6-step timeline: Payment Submitted → Verified → Confirmed → Processing → Shipped → Delivered
+            const FULL_STEPS = [
+              { key: "PAYMENT_SUBMITTED", label: "Payment Submitted", icon: Upload },
+              { key: "PAYMENT_VERIFIED", label: "Payment Verified", icon: CheckCircle2 },
+              { key: "CONFIRMED", label: "Order Confirmed", icon: ClipboardCheck },
+              { key: "PROCESSING", label: "Processing", icon: Cog },
+              { key: "SHIPPED", label: "Shipped", icon: Truck },
+              { key: "DELIVERED", label: "Delivered", icon: CheckCircle2 },
+            ];
+
+            let currentStep = -1;
+            const isRejected = linkedPayment?.status === "REJECTED";
+            if (linkedPayment) {
+              if (linkedPayment.status === "PENDING") currentStep = 0;
+              else if (linkedPayment.status === "REJECTED") currentStep = 0;
+              else if (linkedPayment.status === "VERIFIED") {
+                const orderStepMap: Record<string, number> = { PLACED: 2, CONFIRMED: 2, PROCESSING: 3, SHIPPED: 4, DELIVERED: 5 };
+                currentStep = orderStepMap[selectedOrder.status] ?? 2;
+              }
+            } else {
+              // Legacy order without payment
+              const orderStepMap: Record<string, number> = { PLACED: 2, CONFIRMED: 2, PROCESSING: 3, SHIPPED: 4, DELIVERED: 5 };
+              currentStep = orderStepMap[selectedOrder.status] ?? 2;
+            }
+
+            return (
             <div className="space-y-6">
+              {/* Order Info */}
               <div>
                 <h3 className="font-semibold mb-2">Order Information</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Order ID:</span>
-                    <span className="font-mono">{selectedOrder.id}</span>
+                    <span className="font-mono text-xs">{selectedOrder.id}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
@@ -506,78 +553,182 @@ export default function OwnerMarketplaceOrdersPage() {
                     <span className="text-muted-foreground">Order Date:</span>
                     <span>{formatDate(selectedOrder.createdAt)}</span>
                   </div>
+                  {selectedOrder.expectedDeliveryDate && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Expected Delivery:</span>
+                      <span>{formatDate(selectedOrder.expectedDeliveryDate)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.actualDeliveryDate && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Delivered On:</span>
+                      <span className="text-green-600 font-medium">{formatDate(selectedOrder.actualDeliveryDate)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Vendor Information</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
+              {/* Payment Rejected Warning */}
+              {isRejected && (
+                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">Payment Rejected</p>
+                      <p className="text-xs text-red-600 mt-1">{linkedPayment?.rejectionReason || "Please re-upload payment screenshot"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 7-Step Progress Timeline */}
+              {!isCancelled && (
+                <div>
+                  <h3 className="font-semibold mb-3">Order Journey</h3>
+                  <div className="space-y-0 ml-1">
+                    {FULL_STEPS.map((step, idx) => {
+                      const isCompleted = !isCancelled && !isRejected && currentStep > idx;
+                      const isCurrent = !isCancelled && !isRejected && currentStep === idx;
+                      const isLast = idx === FULL_STEPS.length - 1;
+                      const StepIcon = step.icon;
+                      return (
+                        <div key={step.key} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                              isCompleted ? "bg-green-500 border-green-500 text-white" :
+                              isCurrent ? "bg-white border-primary text-primary border-[3px]" :
+                              "bg-gray-50 border-gray-200 text-gray-400"
+                            }`}>
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                <StepIcon className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                            {!isLast && (
+                              <div className={`w-0.5 flex-1 min-h-[28px] ${isCompleted ? "bg-green-500" : "bg-gray-200"}`} />
+                            )}
+                          </div>
+                          <div className="pb-4">
+                            <span className={`text-sm font-medium ${
+                              isCompleted ? "text-green-600" :
+                              isCurrent ? "text-primary font-bold" :
+                              "text-gray-400"
+                            }`}>{step.label}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancelled with reason */}
+              {isCancelled && (
+                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Ban className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-semibold text-red-900 dark:text-red-100">Order Cancelled</span>
+                  </div>
+                  {selectedOrder.cancellationReason && (
+                    <p className="text-sm text-red-700 dark:text-red-200 mt-1">
+                      Reason: {selectedOrder.cancellationReason}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Status Notes */}
+              {selectedOrder.statusNotes && !isCancelled && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <strong>Vendor Note:</strong> {selectedOrder.statusNotes}
+                  </p>
+                </div>
+              )}
+
+              {/* Vendor & Delivery */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Vendor</h3>
+                  <div className="flex items-center gap-2 text-sm">
                     <Store className="h-4 w-4 text-muted-foreground" />
                     <span>{selectedOrder.vendor.name}</span>
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Delivery Address</h3>
-                <div className="flex items-start gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
+                <div>
+                  <h3 className="font-semibold mb-2">Delivery Address</h3>
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <p className="font-medium">{selectedOrder.restaurant.name}</p>
                   </div>
                 </div>
               </div>
 
+              {/* Order Items */}
               <div>
                 <h3 className="font-semibold mb-2">Order Items</h3>
                 <div className="space-y-3">
                   {selectedOrder.items?.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-center p-3 border rounded-lg"
-                    >
+                    <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{item.product.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {item.qty} {item.product.unit} × {formatPrice(item.priceSnapshot)}
                         </p>
+                        {item.product.deliveryTime && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Clock className="h-3 w-3" />
+                            Delivery: {item.product.deliveryTime}
+                          </p>
+                        )}
                       </div>
-                      <p className="font-semibold">
-                        {formatPrice(item.qty * item.priceSnapshot)}
-                      </p>
+                      <p className="font-semibold">{formatPrice(item.qty * item.priceSnapshot)}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Total */}
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total Amount:</span>
-                  <span className="text-2xl font-bold">
-                    {formatPrice(selectedOrder.totalAmount)}
-                  </span>
+                  <span className="text-2xl font-bold">{formatPrice(selectedOrder.totalAmount)}</span>
                 </div>
               </div>
 
-              {selectedOrder.status === "PLACED" && (
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm text-blue-900 dark:text-blue-100">
-                    <strong>Order Status:</strong> Your order has been placed and is awaiting vendor confirmation.
-                    You will be notified when the vendor updates the order status.
-                  </p>
-                </div>
-              )}
-
-              {selectedOrder.status === "CANCELLED" && (
-                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <p className="text-sm text-red-900 dark:text-red-100">
-                    <strong>Order Cancelled:</strong> This order has been cancelled by the vendor.
-                  </p>
+              {/* Status History Timeline */}
+              {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3">Status History</h3>
+                  <div className="space-y-0">
+                    {selectedOrder.statusHistory.map((entry, idx) => (
+                      <div key={entry.id} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${idx === selectedOrder.statusHistory!.length - 1 ? "bg-primary" : "bg-green-500"}`} />
+                          {idx < selectedOrder.statusHistory!.length - 1 && (
+                            <div className="w-0.5 h-full min-h-[24px] bg-gray-200" />
+                          )}
+                        </div>
+                        <div className="pb-3">
+                          <div className="flex items-center gap-2">
+                            {entry.oldStatus && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{entry.oldStatus}</Badge>
+                            )}
+                            {entry.oldStatus && <span className="text-xs text-muted-foreground">→</span>}
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{entry.newStatus}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatDate(entry.createdAt)}</p>
+                          {entry.notes && <p className="text-xs text-muted-foreground mt-0.5">{entry.notes}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           <DialogFooter>
             {selectedOrder?.status === "DELIVERED" && canCreate && (
@@ -736,10 +887,10 @@ export default function OwnerMarketplaceOrdersPage() {
                 </div>
               )}
 
-              {selectedPayment.status === "VERIFIED" && selectedPayment.order && (
+              {selectedPayment.status === "VERIFIED" && selectedPayment.orderId && (
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    <strong>Payment Verified!</strong> Order #{selectedPayment.order.id.slice(0, 8).toUpperCase()} has been created automatically.
+                    <strong>Payment Verified!</strong> Order #{selectedPayment.orderId.slice(0, 8).toUpperCase()} has been created automatically.
                   </p>
                 </div>
               )}

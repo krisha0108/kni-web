@@ -2,12 +2,21 @@ export interface Product {
   id: string;
   name: string;
   description?: string;
-  price: number;
+  price: number | null;
   stockQuantity: number;
   imageUrl?: string;
+  deliveryTime?: string;
   vendor: { id: string; name: string };
   category: { id: string; name: string };
   isAdminStore?: boolean;
+  priceOnRequest?: boolean;
+  priceUnlock?: {
+    status: string;
+    unlockedPrice: number | null;
+    validUntil: string | null;
+    isExpired: boolean;
+  } | null;
+  canPurchase?: boolean;
 }
 
 export interface Category {

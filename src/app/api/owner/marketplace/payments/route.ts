@@ -73,25 +73,72 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate products and calculate total
+    // Include MarketplaceProduct relation to get actual product name (VendorProduct.name is legacy/null)
     const products = await db.vendorProduct.findMany({
       where: { id: { in: items.map((i) => i.productId) } },
+      include: {
+        product: { select: { name: true } },
+        vendor: {
+          select: { vendorProfile: { select: { isSystemVendor: true } } },
+        },
+      },
     });
 
     const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Fetch price unlocks for price-on-request products
+    const priceOnRequestIds = products
+      .filter((p) => p.priceOnRequest && p.vendor.vendorProfile?.isSystemVendor)
+      .map((p) => p.id);
+
+    let unlockMap = new Map<string, number>();
+    if (priceOnRequestIds.length > 0) {
+      const unlocks = await db.priceUnlockRequest.findMany({
+        where: {
+          ownerId: session.id,
+          vendorProductId: { in: priceOnRequestIds },
+          status: "UNLOCKED",
+        },
+        select: { vendorProductId: true, unlockedPrice: true, validUntil: true },
+      });
+
+      for (const u of unlocks) {
+        if (u.validUntil && u.validUntil < new Date()) {
+          const pName = productMap.get(u.vendorProductId)?.product?.name || "product";
+          throw new Error(`Your price quote for "${pName}" has expired. Please request a new price.`);
+        }
+        if (u.unlockedPrice) {
+          unlockMap.set(u.vendorProductId, u.unlockedPrice);
+        }
+      }
+    }
+
     let totalAmount = 0;
 
     const itemSnapshots = items.map((item) => {
       const product = productMap.get(item.productId);
       if (!product) throw new Error("Product not found: " + item.productId);
+      const productName = product.product?.name || product.name || "Unknown Product";
       if (product.stockQuantity < item.qty) {
-        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stockQuantity}`);
+        throw new Error(`Insufficient stock for ${productName}. Available: ${product.stockQuantity}`);
       }
-      totalAmount += product.price * item.qty;
+
+      // Use unlocked price for price-on-request products
+      let itemPrice = product.price;
+      if (product.priceOnRequest && product.vendor.vendorProfile?.isSystemVendor) {
+        const unlockedPrice = unlockMap.get(product.id);
+        if (!unlockedPrice) {
+          throw new Error(`Price not unlocked for "${productName}". Please request a price first.`);
+        }
+        itemPrice = unlockedPrice;
+      }
+
+      totalAmount += itemPrice * item.qty;
       return {
         productId: item.productId,
         qty: item.qty,
-        priceSnapshot: product.price,
-        name: product.name,
+        priceSnapshot: itemPrice,
+        name: productName,
       };
     });
 
@@ -119,7 +166,7 @@ export async function POST(request: NextRequest) {
     createNotification({
       userId: vendorId,
       title: "New Payment Received",
-      message: `Payment of ₹${(totalAmount / 100).toFixed(2)} from ${payment.owner.name} for ${payment.restaurant.name}. Please verify.`,
+      message: `Payment of ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} from ${payment.owner.name} for ${payment.restaurant.name}. Please verify.`,
       type: "PAYMENT",
       linkUrl: "/vendor/payments",
     }).catch(console.error);
@@ -161,7 +208,39 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ ok: true, data: payments });
+    // Resolve product names for items with missing names (legacy data)
+    // Collect all productIds that have null/empty name
+    const allProductIds: string[] = [];
+    for (const payment of payments) {
+      const items = (payment.items as any[]) || [];
+      for (const item of items) {
+        if (!item.name && item.productId) {
+          allProductIds.push(item.productId);
+        }
+      }
+    }
+
+    let productNameMap = new Map<string, string>();
+    if (allProductIds.length > 0) {
+      const vendorProducts = await db.vendorProduct.findMany({
+        where: { id: { in: [...new Set(allProductIds)] } },
+        select: { id: true, name: true, product: { select: { name: true } } },
+      });
+      for (const vp of vendorProducts) {
+        productNameMap.set(vp.id, vp.product?.name || vp.name || "Unknown Product");
+      }
+    }
+
+    // Backfill names in response
+    const resolved = payments.map((payment) => ({
+      ...payment,
+      items: ((payment.items as any[]) || []).map((item: any) => ({
+        ...item,
+        name: item.name || productNameMap.get(item.productId) || "Unknown Product",
+      })),
+    }));
+
+    return NextResponse.json({ ok: true, data: resolved });
   } catch (error) {
     console.error("Get marketplace payments error:", error);
     return NextResponse.json(

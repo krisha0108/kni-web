@@ -77,6 +77,7 @@ const DELIVERY_OPTIONS = [
   { value: "2-3 days", label: "2-3 days" },
   { value: "3-5 days", label: "3-5 days" },
   { value: "1 week", label: "1 week" },
+  { value: "__custom__", label: "Custom (enter your own)" },
 ];
 
 export default function VendorProductsPage() {
@@ -91,6 +92,7 @@ export default function VendorProductsPage() {
   const [selectedAdminProduct, setSelectedAdminProduct] = useState<AdminProduct | null>(null);
   const [availableSearch, setAvailableSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isCustomDelivery, setIsCustomDelivery] = useState(false);
 
   // Form state for pricing
   const [formData, setFormData] = useState({
@@ -158,6 +160,7 @@ export default function VendorProductsPage() {
       deliveryTime: "",
       isActive: true,
     });
+    setIsCustomDelivery(false);
     setSelectedAdminProduct(null);
   };
 
@@ -254,13 +257,18 @@ export default function VendorProductsPage() {
     }
   };
 
+  const PRESET_VALUES = DELIVERY_OPTIONS.filter(o => o.value !== "__custom__").map(o => o.value);
+
   const openEditDialog = (product: VendorProduct) => {
     setSelectedProduct(product);
+    const dt = product.deliveryTime || "";
+    const isCustom = dt !== "" && !PRESET_VALUES.includes(dt);
+    setIsCustomDelivery(isCustom);
     setFormData({
       price: product.price.toString(),
       description: product.description || "",
       stockQuantity: product.stockQuantity.toString(),
-      deliveryTime: product.deliveryTime || "",
+      deliveryTime: dt,
       isActive: product.isActive,
     });
     setIsEditOpen(true);
@@ -405,8 +413,16 @@ export default function VendorProductsPage() {
                   <Label htmlFor="deliveryTime">Delivery Time</Label>
                   <ClientOnly>
                     <Select
-                      value={formData.deliveryTime}
-                      onValueChange={(value) => setFormData({ ...formData, deliveryTime: value })}
+                      value={isCustomDelivery ? "__custom__" : (formData.deliveryTime || undefined)}
+                      onValueChange={(value) => {
+                        if (value === "__custom__") {
+                          setIsCustomDelivery(true);
+                          setFormData({ ...formData, deliveryTime: "" });
+                        } else {
+                          setIsCustomDelivery(false);
+                          setFormData({ ...formData, deliveryTime: value });
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select delivery time" />
@@ -420,6 +436,14 @@ export default function VendorProductsPage() {
                       </SelectContent>
                     </Select>
                   </ClientOnly>
+                  {isCustomDelivery && (
+                    <Input
+                      placeholder="e.g., 4-6 hours, 10 days, etc."
+                      value={formData.deliveryTime}
+                      onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Your Description (optional)</Label>
@@ -631,8 +655,19 @@ export default function VendorProductsPage() {
                 <Label htmlFor="edit-deliveryTime">Delivery Time</Label>
                 <ClientOnly>
                   <Select
-                    value={formData.deliveryTime || "__none__"}
-                    onValueChange={(value) => setFormData({ ...formData, deliveryTime: value === "__none__" ? "" : value })}
+                    value={isCustomDelivery ? "__custom__" : (formData.deliveryTime || "__none__")}
+                    onValueChange={(value) => {
+                      if (value === "__none__") {
+                        setIsCustomDelivery(false);
+                        setFormData({ ...formData, deliveryTime: "" });
+                      } else if (value === "__custom__") {
+                        setIsCustomDelivery(true);
+                        setFormData({ ...formData, deliveryTime: "" });
+                      } else {
+                        setIsCustomDelivery(false);
+                        setFormData({ ...formData, deliveryTime: value });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select delivery time" />
@@ -647,6 +682,14 @@ export default function VendorProductsPage() {
                     </SelectContent>
                   </Select>
                 </ClientOnly>
+                {isCustomDelivery && (
+                  <Input
+                    placeholder="e.g., 4-6 hours, 10 days, etc."
+                    value={formData.deliveryTime}
+                    onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                    className="mt-2"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-description">Your Description</Label>

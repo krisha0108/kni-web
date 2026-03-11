@@ -18,48 +18,16 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Loader2, Building2 } from "lucide-react";
 
 export default function AcceptInvitePage() {
-  const [password, setPassword] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidating, setIsValidating] = useState(true);
-  const [inviteDetails, setInviteDetails] = useState<{
-    restaurantName: string;
-    userEmail: string;
-    needsPassword: boolean;
-  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!token) {
-      setError("Invalid invitation link");
-      setIsValidating(false);
-      return;
-    }
-
-    validateToken();
-  }, [token]);
-
-  const validateToken = async () => {
-    try {
-      setIsValidating(true);
-      // For now, we'll skip pre-validation and just show password form
-      // The API will validate the token when accepting
-      setInviteDetails({
-        restaurantName: "Loading...",
-        userEmail: "Loading...",
-        needsPassword: true,
-      });
-      setIsValidating(false);
-    } catch (error) {
-      setError("Failed to validate invitation");
-      setIsValidating(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,24 +41,31 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    if (inviteDetails?.needsPassword) {
-      if (password.length < 8) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 8 characters",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!tempPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter your temporary password from the invitation email",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (password !== confirmPassword) {
-        toast({
-          title: "Error",
-          description: "Passwords do not match",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsLoading(true);
@@ -101,7 +76,8 @@ export default function AcceptInvitePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          password: inviteDetails?.needsPassword ? password : undefined,
+          tempPassword,
+          newPassword,
         }),
       });
 
@@ -118,7 +94,7 @@ export default function AcceptInvitePage() {
 
       toast({
         title: "Success",
-        description: `You've joined ${data.data.restaurant.name}! Please login to continue.`,
+        description: `You've joined ${data.data.restaurant.name}! Please login with your new password.`,
       });
 
       router.push("/login");
@@ -133,7 +109,7 @@ export default function AcceptInvitePage() {
     }
   };
 
-  if (!token || error) {
+  if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
@@ -143,7 +119,7 @@ export default function AcceptInvitePage() {
             </div>
             <CardTitle className="text-2xl font-bold">Invalid Invitation</CardTitle>
             <CardDescription>
-              {error || "This invitation link is invalid or has expired"}
+              This invitation link is invalid or has expired
             </CardDescription>
           </CardHeader>
           <CardFooter>
@@ -151,22 +127,6 @@ export default function AcceptInvitePage() {
               <Link href="/login">Back to Login</Link>
             </Button>
           </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isValidating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Validating Invitation</CardTitle>
-            <CardDescription>Please wait while we validate your invitation...</CardDescription>
-          </CardHeader>
         </Card>
       </div>
     );
@@ -181,44 +141,61 @@ export default function AcceptInvitePage() {
             <CardTitle className="text-2xl font-bold">Join Restaurant Team</CardTitle>
           </div>
           <CardDescription>
-            You've been invited to join a restaurant team. Set your password to accept the invitation.
+            Verify your temporary password and set a new password to accept the invitation.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {inviteDetails?.needsPassword && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Create Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter a strong password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    minLength={8}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 8 characters
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Re-enter your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    minLength={8}
-                  />
-                </div>
-              </>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="tempPassword">Temporary Password *</Label>
+              <Input
+                id="tempPassword"
+                type="password"
+                placeholder="Enter the password from your invitation email"
+                value={tempPassword}
+                onChange={(e) => setTempPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                This was sent to you in the invitation email
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Set your new password</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password *</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Enter a strong password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                minLength={8}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum 8 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Re-enter your new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                minLength={8}
+              />
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
@@ -230,12 +207,12 @@ export default function AcceptInvitePage() {
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Accept Invitation
+                  Accept Invitation & Set Password
                 </>
               )}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
-              Already have an account?{" "}
+              Already accepted?{" "}
               <Link href="/login" className="text-primary hover:underline">
                 Sign in
               </Link>

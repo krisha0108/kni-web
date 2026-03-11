@@ -1,5 +1,6 @@
-export type AMCDuration = "MONTHLY" | "QUARTERLY" | "YEARLY";
+export type AMCDuration = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
 export type AMCSubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
+export type AMCSource = "INTERNAL" | "EXTERNAL";
 
 /**
  * Calculate the end date for an AMC subscription based on start date and duration
@@ -13,6 +14,9 @@ export function calculateAMCEndDate(startDate: Date, duration: AMCDuration): Dat
       break;
     case "QUARTERLY":
       endDate.setMonth(endDate.getMonth() + 3);
+      break;
+    case "HALF_YEARLY":
+      endDate.setMonth(endDate.getMonth() + 6);
       break;
     case "YEARLY":
       endDate.setFullYear(endDate.getFullYear() + 1);
@@ -83,6 +87,8 @@ export function getAMCDurationLabel(duration: AMCDuration): string {
       return "Monthly";
     case "QUARTERLY":
       return "Quarterly (3 months)";
+    case "HALF_YEARLY":
+      return "Half Yearly (6 months)";
     case "YEARLY":
       return "Yearly (12 months)";
     default:
@@ -143,4 +149,18 @@ export function getUsageStatus(used: number, limit: number): {
 export function isExpiringSoon(endDate: Date | string): boolean {
   const daysRemaining = getDaysRemaining(endDate);
   return daysRemaining > 0 && daysRemaining <= 7;
+}
+
+/**
+ * Get AMC source label
+ */
+export function getAMCSourceLabel(source: AMCSource): string {
+  return source === "EXTERNAL" ? "External" : "KNI Platform";
+}
+
+/**
+ * Get AMC source badge color
+ */
+export function getAMCSourceColor(source: AMCSource): "default" | "secondary" {
+  return source === "EXTERNAL" ? "secondary" : "default";
 }

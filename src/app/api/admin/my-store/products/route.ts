@@ -11,6 +11,7 @@ const vendorProductSchema = z.object({
   stockQuantity: z.number().int().min(0).optional().default(0),
   deliveryTime: z.string().optional(),
   isActive: z.boolean().optional().default(true),
+  priceOnRequest: z.boolean().optional().default(false),
 });
 
 // GET /api/admin/my-store/products - List admin's store products
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
         vendorId: vp.vendorId,
         productId: vp.productId,
         price: vp.price,
+        priceOnRequest: vp.priceOnRequest,
         description: vp.description,
         stockQuantity: vp.stockQuantity,
         deliveryTime: vp.deliveryTime,
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, price, description, stockQuantity, deliveryTime, isActive } = validation.data;
+    const { productId, price, description, stockQuantity, deliveryTime, isActive, priceOnRequest } = validation.data;
 
     // Verify the admin product exists and is active
     const adminProduct = await db.marketplaceProduct.findUnique({
@@ -140,6 +142,7 @@ export async function POST(request: NextRequest) {
         stockQuantity: stockQuantity ?? 0,
         deliveryTime: deliveryTime || null,
         isActive: isActive ?? true,
+        priceOnRequest: priceOnRequest ?? false,
       },
       include: {
         product: {
@@ -164,6 +167,7 @@ export async function POST(request: NextRequest) {
       stockQuantity: vendorProduct.stockQuantity,
       deliveryTime: vendorProduct.deliveryTime,
       isActive: vendorProduct.isActive,
+      priceOnRequest: vendorProduct.priceOnRequest,
       createdAt: vendorProduct.createdAt,
       name: vendorProduct.product?.name ?? "",
       imageUrl: vendorProduct.product?.imageUrl ?? null,

@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 unit: true,
+                product: { select: { name: true, unit: true } },
               },
             },
           },
@@ -48,9 +49,22 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
+    const resolved = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) => ({
+        ...item,
+        product: {
+          id: item.product.id,
+          name: item.product.product?.name || item.product.name || "Unknown Product",
+          unit: item.product.product?.unit || item.product.unit || "pcs",
+        },
+      })),
+    }));
+
     return NextResponse.json({
       ok: true,
-      data: orders,
+      data: resolved,
     });
   } catch (error) {
     console.error("Get vendor orders error:", error);

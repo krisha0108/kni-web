@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
           address: true,
           city: true,
           pincode: true,
+          outletType: true,
           restaurantImageUrl: true,
           fssaiNumber: true,
           fssaiCertificateUrl: true,

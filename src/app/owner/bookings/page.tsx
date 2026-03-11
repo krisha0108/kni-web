@@ -40,31 +40,34 @@ import { useRestaurant } from "@/contexts/restaurant-context";
 interface Booking {
   id: string;
   status: string;
-  preferredDate: string;
-  preferredTimeSlot: string;
+  slotStartDateTime: string;
   totalAmount: number;
   createdAt: string;
   restaurant: { id: string; name: string };
   items: Array<{
     id: string;
-    quantity: number;
-    price: number;
+    qty: number;
+    priceSnapshot: number;
     serviceItem?: { name: string };
     partItem?: { name: string };
   }>;
   paymentProof?: { status: string };
-  engineerAssignment?: {
+  engineerAssignments?: Array<{
     status: string;
     engineer?: { name: string };
-  };
+  }>;
 }
 
 const statusColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
-  PENDING_PAYMENT: "warning",
+  DRAFT: "secondary",
+  SLOT_SELECTED: "warning",
   PAYMENT_UPLOADED: "secondary",
   PAYMENT_VERIFIED: "success",
-  SCHEDULED: "default",
+  PAYMENT_REJECTED: "destructive",
+  ENGINEER_ASSIGNED: "default",
+  ACCEPTED_BY_ENGINEER: "default",
   IN_PROGRESS: "default",
+  REJECTED_BY_ENGINEER: "destructive",
   COMPLETED: "success",
   CANCELLED: "destructive",
 };
@@ -121,11 +124,15 @@ export default function OwnerBookingsPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      PENDING_PAYMENT: "Pending Payment",
+      DRAFT: "Draft",
+      SLOT_SELECTED: "Slot Selected",
       PAYMENT_UPLOADED: "Payment Uploaded",
       PAYMENT_VERIFIED: "Payment Verified",
-      SCHEDULED: "Scheduled",
+      PAYMENT_REJECTED: "Payment Rejected",
+      ENGINEER_ASSIGNED: "Engineer Assigned",
+      ACCEPTED_BY_ENGINEER: "Engineer Accepted",
       IN_PROGRESS: "In Progress",
+      REJECTED_BY_ENGINEER: "Engineer Rejected",
       COMPLETED: "Completed",
       CANCELLED: "Cancelled",
     };
@@ -154,12 +161,12 @@ export default function OwnerBookingsPage() {
     // Date range filter
     if (filterDateFrom) {
       filtered = filtered.filter((booking) =>
-        new Date(booking.preferredDate) >= new Date(filterDateFrom)
+        new Date(booking.slotStartDateTime) >= new Date(filterDateFrom)
       );
     }
     if (filterDateTo) {
       filtered = filtered.filter((booking) =>
-        new Date(booking.preferredDate) <= new Date(filterDateTo)
+        new Date(booking.slotStartDateTime) <= new Date(filterDateTo)
       );
     }
 
@@ -179,9 +186,9 @@ export default function OwnerBookingsPage() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "date-desc":
-          return new Date(b.preferredDate).getTime() - new Date(a.preferredDate).getTime();
+          return new Date(b.slotStartDateTime).getTime() - new Date(a.slotStartDateTime).getTime();
         case "date-asc":
-          return new Date(a.preferredDate).getTime() - new Date(b.preferredDate).getTime();
+          return new Date(a.slotStartDateTime).getTime() - new Date(b.slotStartDateTime).getTime();
         case "amount-desc":
           return b.totalAmount - a.totalAmount;
         case "amount-asc":
@@ -309,10 +316,13 @@ export default function OwnerBookingsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="PENDING_PAYMENT">Pending Payment</SelectItem>
+                        <SelectItem value="DRAFT">Draft</SelectItem>
+                        <SelectItem value="SLOT_SELECTED">Slot Selected</SelectItem>
                         <SelectItem value="PAYMENT_UPLOADED">Payment Uploaded</SelectItem>
                         <SelectItem value="PAYMENT_VERIFIED">Payment Verified</SelectItem>
-                        <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                        <SelectItem value="PAYMENT_REJECTED">Payment Rejected</SelectItem>
+                        <SelectItem value="ENGINEER_ASSIGNED">Engineer Assigned</SelectItem>
+                        <SelectItem value="ACCEPTED_BY_ENGINEER">Engineer Accepted</SelectItem>
                         <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                         <SelectItem value="COMPLETED">Completed</SelectItem>
                         <SelectItem value="CANCELLED">Cancelled</SelectItem>
@@ -501,7 +511,7 @@ export default function OwnerBookingsPage() {
                   <TableCell className="hidden md:table-cell">
                     {booking.items.length} item{booking.items.length !== 1 ? "s" : ""}
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{formatDate(booking.preferredDate)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDate(booking.slotStartDateTime)}</TableCell>
                   <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
                   
                   <TableCell>
@@ -511,7 +521,7 @@ export default function OwnerBookingsPage() {
                   </TableCell>
                   
                   <TableCell className="hidden md:table-cell">
-                    {booking.engineerAssignment?.engineer?.name || "-"}
+                    {booking.engineerAssignments?.[0]?.engineer?.name || "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -522,7 +532,7 @@ export default function OwnerBookingsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {canUpdate && booking.status === "PENDING_PAYMENT" && (
+                      {canUpdate && (booking.status === "SLOT_SELECTED" || booking.status === "PAYMENT_REJECTED") && (
                         <Button
                           variant="ghost"
                           size="icon"

@@ -90,7 +90,11 @@ export async function PATCH(
           include: {
             product: {
               include: {
-                product: true,
+                product: {
+                  include: {
+                    marketplaceCategory: { select: { id: true, name: true } },
+                  },
+                },
                 vendor: {
                   select: {
                     id: true,
@@ -124,8 +128,9 @@ export async function PATCH(
           stockQuantity: item.product.stockQuantity,
           imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
           unit: item.product.product?.unit || item.product.unit,
+          deliveryTime: item.product.deliveryTime,
           vendor: item.product.vendor,
-          category: null,
+          category: item.product.product?.marketplaceCategory || null,
         },
       });
     }

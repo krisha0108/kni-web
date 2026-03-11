@@ -47,6 +47,7 @@ export async function GET(
                 id: true,
                 name: true,
                 unit: true,
+                product: { select: { name: true, unit: true } },
               },
             },
           },
@@ -61,9 +62,22 @@ export async function GET(
       );
     }
 
+    // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
+    const resolved = {
+      ...order,
+      items: order.items.map((item) => ({
+        ...item,
+        product: {
+          id: item.product.id,
+          name: item.product.product?.name || item.product.name || "Unknown Product",
+          unit: item.product.product?.unit || item.product.unit || "pcs",
+        },
+      })),
+    };
+
     return NextResponse.json({
       ok: true,
-      data: order,
+      data: resolved,
     });
   } catch (error) {
     console.error("Get vendor order error:", error);

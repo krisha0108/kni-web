@@ -81,6 +81,9 @@ const KITCHEN_TYPES = [
   { value: "HOTEL", label: "Hotel" },
   { value: "CAFE", label: "Cafe" },
   { value: "CATERING", label: "Catering" },
+  { value: "HOSPITAL", label: "Hospital" },
+  { value: "INDUSTRIES", label: "Industries" },
+  { value: "INSTITUTE", label: "Institute" },
 ];
 
 const PLAN_TYPES = [

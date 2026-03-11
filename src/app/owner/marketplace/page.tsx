@@ -23,10 +23,12 @@ import {
   Minus,
   Store,
   Building2,
+  Clock,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { ProductDetailDialog } from "./components/product-detail-dialog";
+import { PriceRequestDialog } from "./components/price-request-dialog";
 import type { Product, Category, CartItem } from "./types";
 
 export default function OwnerMarketplacePage() {
@@ -38,6 +40,8 @@ export default function OwnerMarketplacePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
+  const [priceRequestProduct, setPriceRequestProduct] = useState<Product | null>(null);
+  const [isPriceRequestOpen, setIsPriceRequestOpen] = useState(false);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
@@ -165,7 +169,7 @@ export default function OwnerMarketplacePage() {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+    return cart.reduce((total, item) => total + (item.product.price || 0) * item.quantity, 0);
   };
 
   const getCartItemQuantity = (productId: string) => {
@@ -291,51 +295,124 @@ export default function OwnerMarketplacePage() {
                   <p className="text-sm text-muted-foreground">
                     Stock: {product.stockQuantity}
                   </p>
+                  {product.deliveryTime && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Clock className="inline h-3 w-3" />
+                      {product.deliveryTime}
+                    </p>
+                  )}
                 </CardContent>
                 <CardFooter
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="text-lg font-bold">{formatPrice(product.price)}</span>
-                  {canCreate && (cartQty > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateCartQuantity(product.id, -1);
-                        }}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center">{cartQty}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateCartQuantity(product.id, 1);
-                        }}
-                        disabled={cartQty >= product.stockQuantity}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  {product.priceOnRequest && !product.canPurchase ? (
+                    <>
+                      <div>
+                        {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired ? (
+                          <span className="text-lg font-bold">{formatPrice(product.priceUnlock.unlockedPrice)}</span>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Price on Request</Badge>
+                        )}
+                      </div>
+                      {canCreate && (
+                        <>
+                          {!product.priceUnlock ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPriceRequestProduct(product);
+                                setIsPriceRequestOpen(true);
+                              }}
+                            >
+                              Request Price
+                            </Button>
+                          ) : product.priceUnlock.status === "PENDING" ? (
+                            <Badge variant="secondary" className="text-xs">Requested</Badge>
+                          ) : product.priceUnlock.status === "DECLINED" ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="destructive" className="text-xs">Declined</Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPriceRequestProduct(product);
+                                  setIsPriceRequestOpen(true);
+                                }}
+                              >
+                                Re-request
+                              </Button>
+                            </div>
+                          ) : product.priceUnlock.isExpired ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs text-orange-600">Expired</Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPriceRequestProduct(product);
+                                  setIsPriceRequestOpen(true);
+                                }}
+                              >
+                                Re-request
+                              </Button>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </>
                   ) : (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(product);
-                      }}
-                      disabled={product.stockQuantity === 0}
-                    >
-                      Add to Cart
-                    </Button>
-                  ))}
+                    <>
+                      <span className="text-lg font-bold">
+                        {product.priceUnlock?.unlockedPrice
+                          ? formatPrice(product.priceUnlock.unlockedPrice)
+                          : formatPrice(product.price)}
+                      </span>
+                      {canCreate && (cartQty > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateCartQuantity(product.id, -1);
+                            }}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center">{cartQty}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateCartQuantity(product.id, 1);
+                            }}
+                            disabled={cartQty >= product.stockQuantity}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          disabled={product.stockQuantity === 0}
+                        >
+                          Add to Cart
+                        </Button>
+                      ))}
+                    </>
+                  )}
                 </CardFooter>
               </Card>
             );
@@ -352,6 +429,22 @@ export default function OwnerMarketplacePage() {
         onAddToCart={addToCart}
         onUpdateQuantity={updateCartQuantity}
         canCreate={canCreate}
+        onRequestPrice={(product) => {
+          setIsProductDetailOpen(false);
+          setPriceRequestProduct(product);
+          setIsPriceRequestOpen(true);
+        }}
+      />
+
+      {/* Price Request Dialog */}
+      <PriceRequestDialog
+        product={priceRequestProduct}
+        restaurantId={selectedRestaurant?.restaurantId || ""}
+        open={isPriceRequestOpen}
+        onOpenChange={setIsPriceRequestOpen}
+        onSuccess={() => {
+          fetchProducts();
+        }}
       />
     </div>
   );

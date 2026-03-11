@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { db } from "@/server/db";
 import { v4 as uuidv4 } from "uuid";
-import type { User, Role, VendorApprovalStatus, VendorSubscriptionStatus } from "@prisma/client";
+import type { User, Role, VendorApprovalStatus, VendorSubscriptionStatus, VendorRevenueModel } from "@prisma/client";
 
 const SESSION_COOKIE_NAME = "kni_session";
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -14,6 +14,7 @@ export interface SessionUser {
   isActive: boolean;
   vendorApprovalStatus?: VendorApprovalStatus | null;
   vendorSubscriptionStatus?: VendorSubscriptionStatus | null;
+  vendorRevenueModel?: VendorRevenueModel | null;
   vendorTrialEndsAt?: Date | null;
   vendorActiveUntil?: Date | null;
   hasApprovedRestaurant?: boolean;
@@ -97,6 +98,7 @@ export async function getSession(): Promise<SessionUser | null> {
     isActive: session.user.isActive,
     vendorApprovalStatus: session.user.vendorProfile?.approvalStatus ?? null,
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
+    vendorRevenueModel: session.user.vendorProfile?.revenueModel ?? null,
     vendorTrialEndsAt: session.user.vendorProfile?.trialEndsAt ?? null,
     vendorActiveUntil: session.user.vendorProfile?.activeUntil ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,

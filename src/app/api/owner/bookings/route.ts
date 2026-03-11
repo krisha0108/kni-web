@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       where: { restaurantId },
       include: {
         restaurant: { select: { id: true, name: true } },
+        equipment: { select: { id: true, name: true } },
         items: {
           include: {
             serviceItem: { select: { id: true, name: true } },

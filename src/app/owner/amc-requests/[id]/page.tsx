@@ -120,6 +120,7 @@ const frequencyLabels: Record<string, string> = { MONTHLY: "Monthly", BI_MONTHLY
 const kitchenLabels: Record<string, string> = {
   CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine",
   HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering",
+  HOSPITAL: "Hospital", INDUSTRIES: "Industries", INSTITUTE: "Institute",
 };
 
 const statusFlow = [

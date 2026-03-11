@@ -9,6 +9,7 @@ const updateVendorProductSchema = z.object({
   stockQuantity: z.number().int().min(0).optional(),
   deliveryTime: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
+  priceOnRequest: z.boolean().optional(),
 });
 
 // GET /api/admin/my-store/products/[id] - Single product detail
@@ -43,6 +44,7 @@ export async function GET(
       vendorId: vendorProduct.vendorId,
       productId: vendorProduct.productId,
       price: vendorProduct.price,
+      priceOnRequest: vendorProduct.priceOnRequest,
       description: vendorProduct.description,
       stockQuantity: vendorProduct.stockQuantity,
       deliveryTime: vendorProduct.deliveryTime,
@@ -96,7 +98,7 @@ export async function PATCH(
       );
     }
 
-    const { price, description, stockQuantity, deliveryTime, isActive } = validation.data;
+    const { price, description, stockQuantity, deliveryTime, isActive, priceOnRequest } = validation.data;
 
     const vendorProduct = await db.vendorProduct.update({
       where: { id },
@@ -106,6 +108,7 @@ export async function PATCH(
         ...(stockQuantity !== undefined ? { stockQuantity } : {}),
         ...(deliveryTime !== undefined ? { deliveryTime } : {}),
         ...(isActive !== undefined ? { isActive } : {}),
+        ...(priceOnRequest !== undefined ? { priceOnRequest } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -118,6 +121,7 @@ export async function PATCH(
       vendorId: vendorProduct.vendorId,
       productId: vendorProduct.productId,
       price: vendorProduct.price,
+      priceOnRequest: vendorProduct.priceOnRequest,
       description: vendorProduct.description,
       stockQuantity: vendorProduct.stockQuantity,
       deliveryTime: vendorProduct.deliveryTime,

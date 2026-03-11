@@ -233,7 +233,7 @@ export async function sendBookingConfirmationEmail(
       <ul>
         <li><strong>Booking ID:</strong> ${bookingId}</li>
         <li><strong>Restaurant:</strong> ${restaurantName}</li>
-        <li><strong>Total Amount:</strong> ₹${(totalAmount / 100).toFixed(2)}</li>
+        <li><strong>Total Amount:</strong> ₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</li>
       </ul>
     </div>
 
@@ -657,7 +657,7 @@ export async function sendOrderStatusUpdateEmail(
         <li><strong>Order ID:</strong> #${orderId.slice(0, 8).toUpperCase()}</li>
         <li><strong>Restaurant:</strong> ${restaurantName}</li>
         <li><strong>Vendor:</strong> ${vendorName}</li>
-        <li><strong>Total Amount:</strong> ₹${(orderTotal / 100).toFixed(2)}</li>
+        <li><strong>Total Amount:</strong> ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</li>
       </ul>
     </div>
 

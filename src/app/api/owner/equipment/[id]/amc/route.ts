@@ -115,17 +115,19 @@ export async function POST(
       );
     }
 
-    // Check for existing ACTIVE subscription
+    // Check for existing ACTIVE subscription of the same source
+    const source = validation.data.source || "INTERNAL";
     const existingActive = await db.aMCSubscription.findFirst({
       where: {
         equipmentId,
         status: "ACTIVE",
+        source,
       },
     });
 
     if (existingActive) {
       return NextResponse.json(
-        { ok: false, error: "Equipment already has an active AMC subscription" },
+        { ok: false, error: `Equipment already has an active ${source === "EXTERNAL" ? "external" : "internal"} AMC subscription` },
         { status: 400 }
       );
     }
@@ -185,8 +187,15 @@ export async function POST(
         ...planData,
         startDate,
         endDate,
-        autoRenew: validation.data.autoRenew || false,
+        autoRenew: source === "EXTERNAL" ? false : (validation.data.autoRenew || false),
         status: "ACTIVE",
+        source,
+        ...(source === "EXTERNAL" ? {
+          providerName: validation.data.providerName || null,
+          providerContact: validation.data.providerContact || null,
+          contractNumber: validation.data.contractNumber || null,
+          documentUrl: validation.data.documentUrl || null,
+        } : {}),
       },
       include: {
         equipment: {

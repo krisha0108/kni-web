@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package, Grid3X3, Shield } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, User, Upload, Star, Wrench, Package, Grid3X3, Shield, CheckCircle2, CreditCard, UserCheck, Cog, Trophy, Ban, XCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { EngineerRatingDialog } from "@/components/ratings/engineer-rating-dialog";
@@ -15,15 +15,16 @@ import { useRestaurant } from "@/contexts/restaurant-context";
 interface Booking {
   id: string;
   status: string;
-  preferredDate: string;
-  preferredTimeSlot: string;
-  scheduledDate?: string;
-  scheduledTimeSlot?: string;
+  slotStartDateTime: string;
+  slotEndDateTime?: string;
+  adminAdjustedSlotStart?: string;
+  adminAdjustedSlotEnd?: string;
   totalAmount: number;
   gstAmount?: number;
   tipAmount?: number;
   problemDescription?: string;
   notes?: string;
+  cancellationReason?: string;
   createdAt: string;
   restaurant: { id: string; name: string; address: string; city: string };
   items: Array<{
@@ -72,14 +73,44 @@ interface Booking {
 }
 
 const statusColors: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
-  PENDING_PAYMENT: "warning",
+  DRAFT: "secondary",
+  SLOT_SELECTED: "warning",
   PAYMENT_UPLOADED: "secondary",
   PAYMENT_VERIFIED: "success",
-  SCHEDULED: "default",
+  PAYMENT_REJECTED: "destructive",
+  ENGINEER_ASSIGNED: "default",
+  ACCEPTED_BY_ENGINEER: "default",
   IN_PROGRESS: "default",
+  REJECTED_BY_ENGINEER: "destructive",
   COMPLETED: "success",
   CANCELLED: "destructive",
 };
+
+const BOOKING_STEPS = [
+  { key: "SLOT_SELECTED", label: "Booked", icon: Calendar },
+  { key: "PAYMENT", label: "Payment", icon: CreditCard },
+  { key: "VERIFIED", label: "Verified", icon: CheckCircle2 },
+  { key: "ASSIGNED", label: "Assigned", icon: UserCheck },
+  { key: "IN_PROGRESS", label: "In Progress", icon: Cog },
+  { key: "COMPLETED", label: "Completed", icon: Trophy },
+];
+
+function getBookingStep(status: string): number {
+  const stepMap: Record<string, number> = {
+    DRAFT: 0,
+    SLOT_SELECTED: 0,
+    PAYMENT_UPLOADED: 1,
+    PAYMENT_VERIFIED: 2,
+    PAYMENT_REJECTED: 1,
+    ENGINEER_ASSIGNED: 3,
+    ACCEPTED_BY_ENGINEER: 3,
+    IN_PROGRESS: 4,
+    REJECTED_BY_ENGINEER: 3,
+    COMPLETED: 5,
+    CANCELLED: -1,
+  };
+  return stepMap[status] ?? 0;
+}
 
 export default function BookingDetailPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -129,11 +160,15 @@ export default function BookingDetailPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      PENDING_PAYMENT: "Pending Payment",
+      DRAFT: "Draft",
+      SLOT_SELECTED: "Slot Selected",
       PAYMENT_UPLOADED: "Payment Uploaded",
       PAYMENT_VERIFIED: "Payment Verified",
-      SCHEDULED: "Scheduled",
+      PAYMENT_REJECTED: "Payment Rejected",
+      ENGINEER_ASSIGNED: "Engineer Assigned",
+      ACCEPTED_BY_ENGINEER: "Engineer Accepted",
       IN_PROGRESS: "In Progress",
+      REJECTED_BY_ENGINEER: "Engineer Rejected",
       COMPLETED: "Completed",
       CANCELLED: "Cancelled",
     };
@@ -197,26 +232,30 @@ export default function BookingDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm text-muted-foreground">Preferred Date</p>
-                  <p className="font-medium">{formatDate(booking.preferredDate)}</p>
+                  <p className="text-sm text-muted-foreground">Requested Slot</p>
+                  <p className="font-medium">{formatDate(booking.slotStartDateTime)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Preferred Time</p>
-                  <p className="font-medium">{booking.preferredTimeSlot}</p>
-                </div>
+                {booking.slotEndDateTime && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Slot End</p>
+                    <p className="font-medium">{formatDate(booking.slotEndDateTime)}</p>
+                  </div>
+                )}
               </div>
-              {booking.scheduledDate && (
+              {booking.adminAdjustedSlotStart && (
                 <>
                   <Separator />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-sm text-muted-foreground">Scheduled Date</p>
-                      <p className="font-medium text-green-600">{formatDate(booking.scheduledDate)}</p>
+                      <p className="text-sm text-muted-foreground">Confirmed Slot (Admin)</p>
+                      <p className="font-medium text-green-600">{formatDate(booking.adminAdjustedSlotStart)}</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Scheduled Time</p>
-                      <p className="font-medium text-green-600">{booking.scheduledTimeSlot}</p>
-                    </div>
+                    {booking.adminAdjustedSlotEnd && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Confirmed End</p>
+                        <p className="font-medium text-green-600">{formatDate(booking.adminAdjustedSlotEnd)}</p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -573,7 +612,7 @@ export default function BookingDetailPage() {
               ) : (
                 <>
                   <p className="text-muted-foreground">No payment uploaded yet</p>
-                  {canUpdate && booking.status === "PENDING_PAYMENT" && (
+                  {canUpdate && (booking.status === "SLOT_SELECTED" || booking.status === "PAYMENT_REJECTED") && (
                     <Button
                       className="w-full"
                       onClick={() => router.push("/owner/bookings/" + booking.id + "/payment")}
@@ -599,30 +638,108 @@ export default function BookingDetailPage() {
             </Card>
           )}
 
-          {/* Timeline */}
+          {/* Progress Timeline Stepper */}
           <Card>
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle>Progress Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm">
+              {booking.status === "CANCELLED" ? (
+                <div className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                  <Ban className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-900 dark:text-red-100">Booking Cancelled</p>
+                    {booking.notes && <p className="text-xs text-red-700 dark:text-red-200 mt-0.5">{booking.notes}</p>}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    {BOOKING_STEPS.map((step, idx) => {
+                      const currentStep = getBookingStep(booking.status);
+                      const isCompleted = idx < currentStep;
+                      const isCurrent = idx === currentStep;
+                      const StepIcon = step.icon;
+                      return (
+                        <div key={step.key} className="flex flex-col items-center flex-1 relative">
+                          {idx > 0 && (
+                            <div
+                              className={`absolute top-4 right-1/2 left-[-50%] h-0.5 ${isCompleted ? "bg-green-500" : "bg-gray-200"}`}
+                              style={{ zIndex: 0 }}
+                            />
+                          )}
+                          <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                            isCompleted ? "bg-green-500 border-green-500 text-white" :
+                            isCurrent ? "bg-white border-primary text-primary border-[3px]" :
+                            "bg-gray-50 border-gray-200 text-gray-400"
+                          }`}>
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <StepIcon className="h-3.5 w-3.5" />
+                            )}
+                          </div>
+                          <span className={`text-[10px] mt-1 text-center leading-tight ${
+                            isCompleted ? "text-green-600 font-semibold" :
+                            isCurrent ? "text-primary font-bold" :
+                            "text-gray-400"
+                          }`}>{step.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Payment Rejected Warning */}
+                  {booking.status === "PAYMENT_REJECTED" && (
+                    <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                      <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                      <p className="text-xs text-red-700 dark:text-red-200">Payment was rejected. Please re-upload payment proof.</p>
+                    </div>
+                  )}
+
+                  {/* Engineer Rejected Warning */}
+                  {booking.status === "REJECTED_BY_ENGINEER" && (
+                    <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                      <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                      <p className="text-xs text-red-700 dark:text-red-200">Engineer rejected the assignment. Admin will assign a new engineer.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Key Dates */}
+              <div className="mt-4 pt-4 border-t space-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Created:</span>
                   <span>{formatDate(booking.createdAt)}</span>
                 </div>
                 {booking.paymentProof?.verifiedAt && (
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
                     <span className="text-muted-foreground">Payment Verified:</span>
                     <span>{formatDate(booking.paymentProof.verifiedAt)}</span>
                   </div>
                 )}
                 {booking.engineerAssignments && booking.engineerAssignments.length > 0 && booking.engineerAssignments[0].assignedAt && (
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <UserCheck className="h-3.5 w-3.5 text-blue-600" />
                     <span className="text-muted-foreground">Engineer Assigned:</span>
                     <span>{formatDate(booking.engineerAssignments[0].assignedAt)}</span>
+                  </div>
+                )}
+                {booking.engineerAssignments?.[0]?.workLog?.startedAt && (
+                  <div className="flex items-center gap-2">
+                    <Cog className="h-3.5 w-3.5 text-orange-600" />
+                    <span className="text-muted-foreground">Work Started:</span>
+                    <span>{formatDate(booking.engineerAssignments[0].workLog.startedAt)}</span>
+                  </div>
+                )}
+                {booking.engineerAssignments?.[0]?.workLog?.completedAt && (
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-3.5 w-3.5 text-green-600" />
+                    <span className="text-muted-foreground">Completed:</span>
+                    <span>{formatDate(booking.engineerAssignments[0].workLog.completedAt)}</span>
                   </div>
                 )}
               </div>

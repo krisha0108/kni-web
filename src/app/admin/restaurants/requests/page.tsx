@@ -40,6 +40,7 @@ interface Restaurant {
   address: string;
   city: string;
   pincode: string | null;
+  outletType: string | null;
   restaurantImageUrl: string | null;
   fssaiNumber: string | null;
   fssaiCertificateUrl: string | null;
@@ -118,6 +119,12 @@ export default function RestaurantRequestsPage() {
     }
   };
 
+  const outletLabels: Record<string, string> = {
+    CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine",
+    HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering",
+    HOSPITAL: "Hospital", INDUSTRIES: "Industries", INSTITUTE: "Institute",
+  };
+
   const statusColors: Record<string, "default" | "success" | "destructive" | "warning"> = {
     PENDING: "warning",
     APPROVED: "success",
@@ -151,7 +158,7 @@ export default function RestaurantRequestsPage() {
             <TableRow>
               <TableHead>Restaurant</TableHead>
               <TableHead className="hidden md:table-cell">Owner</TableHead>
-              
+              <TableHead className="hidden lg:table-cell">Outlet Type</TableHead>
               <TableHead className="hidden lg:table-cell">Location</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden sm:table-cell">Date</TableHead>
@@ -162,9 +169,9 @@ export default function RestaurantRequestsPage() {
           
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8">Loading...</TableCell></TableRow>
             ) : restaurants.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No restaurants found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No restaurants found</TableCell></TableRow>
             ) : (
               restaurants.map((restaurant) => (
                 
@@ -198,7 +205,13 @@ export default function RestaurantRequestsPage() {
                       </div>
                     )}
                   </TableCell>
-                  
+                  <TableCell className="hidden lg:table-cell">
+                    {restaurant.outletType ? (
+                      <Badge variant="outline">{outletLabels[restaurant.outletType] || restaurant.outletType}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <div>{restaurant.address}</div>
                     <div className="text-sm text-muted-foreground">
@@ -343,6 +356,14 @@ export default function RestaurantRequestsPage() {
                   <div><Badge variant={statusColors[selectedRestaurant.status]}>{selectedRestaurant.status}</Badge></div>
                 </div>
               </div>
+
+              {/* Outlet Type */}
+              {selectedRestaurant.outletType && (
+                <div>
+                  <Label className="text-muted-foreground">Outlet Type</Label>
+                  <div><Badge variant="outline" className="mt-1">{outletLabels[selectedRestaurant.outletType] || selectedRestaurant.outletType}</Badge></div>
+                </div>
+              )}
 
               {/* Owner Info */}
               <div className="space-y-2">

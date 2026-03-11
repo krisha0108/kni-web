@@ -39,15 +39,47 @@ export async function GET(request: NextRequest) {
         restaurant: { select: { id: true, name: true } },
         items: {
           include: {
-            product: { select: { id: true, name: true, unit: true } },
+            product: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+                deliveryTime: true,
+                product: { select: { name: true, unit: true } },
+              },
+            },
           },
         },
         rating: { select: { id: true, overallRating: true, review: true } },
+        statusHistory: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            oldStatus: true,
+            newStatus: true,
+            notes: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ ok: true, data: orders });
+    // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
+    const resolved = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) => ({
+        ...item,
+        product: {
+          id: item.product.id,
+          name: item.product.product?.name || item.product.name || "Unknown Product",
+          unit: item.product.product?.unit || item.product.unit || "pcs",
+          deliveryTime: item.product.deliveryTime,
+        },
+      })),
+    }));
+
+    return NextResponse.json({ ok: true, data: resolved });
   } catch (error) {
     console.error("Get marketplace orders error:", error);
     return NextResponse.json(
@@ -117,22 +149,67 @@ export async function POST(request: NextRequest) {
 
     const products = await db.vendorProduct.findMany({
       where: { id: { in: items.map((i) => i.productId) } },
+      include: {
+        product: { select: { name: true } },
+        vendor: {
+          select: { vendorProfile: { select: { isSystemVendor: true } } },
+        },
+      },
     });
 
     const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Fetch price unlocks for price-on-request products
+    const priceOnRequestIds = products
+      .filter((p) => p.priceOnRequest && p.vendor.vendorProfile?.isSystemVendor)
+      .map((p) => p.id);
+
+    let unlockMap = new Map<string, number>();
+    if (priceOnRequestIds.length > 0) {
+      const unlocks = await db.priceUnlockRequest.findMany({
+        where: {
+          ownerId: session.id,
+          vendorProductId: { in: priceOnRequestIds },
+          status: "UNLOCKED",
+        },
+        select: { vendorProductId: true, unlockedPrice: true, validUntil: true },
+      });
+
+      for (const u of unlocks) {
+        if (u.validUntil && u.validUntil < new Date()) {
+          const pName = productMap.get(u.vendorProductId)?.product?.name || "product";
+          throw new Error(`Your price quote for "${pName}" has expired. Please request a new price.`);
+        }
+        if (u.unlockedPrice) {
+          unlockMap.set(u.vendorProductId, u.unlockedPrice);
+        }
+      }
+    }
+
     let totalAmount = 0;
 
     const orderItems = items.map((item) => {
       const product = productMap.get(item.productId);
       if (!product) throw new Error("Product not found: " + item.productId);
       if (product.stockQuantity < item.qty) {
-        throw new Error(`Insufficient stock for "${product.name || "product"}". Available: ${product.stockQuantity}, Requested: ${item.qty}`);
+        throw new Error(`Insufficient stock for "${product.product?.name || product.name || "product"}". Available: ${product.stockQuantity}, Requested: ${item.qty}`);
       }
-      totalAmount += product.price * item.qty;
+
+      // Use unlocked price for price-on-request products
+      let itemPrice = product.price;
+      if (product.priceOnRequest && product.vendor.vendorProfile?.isSystemVendor) {
+        const unlockedPrice = unlockMap.get(product.id);
+        if (!unlockedPrice) {
+          throw new Error(`Price not unlocked for "${product.product?.name || "product"}". Please request a price first.`);
+        }
+        itemPrice = unlockedPrice;
+      }
+
+      totalAmount += itemPrice * item.qty;
       return {
         vendorProductId: item.productId,
         qty: item.qty,
-        priceSnapshot: product.price,
+        priceSnapshot: itemPrice,
       };
     });
 

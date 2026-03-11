@@ -55,9 +55,16 @@ export default async function VendorLayout({
 
   const showLocationWarning = approvalStatus === "APPROVED" && !session.hasApprovedLocation;
 
+  // Filter sidebar items based on revenue model
+  const revenueModel = session.vendorRevenueModel;
+  const hiddenPaths: string[] = [];
+  if (revenueModel === "COMMISSION") hiddenPaths.push("/vendor/subscription");
+  if (revenueModel === "SUBSCRIPTION") hiddenPaths.push("/vendor/commission");
+
   return (
     <DashboardLayout
       sidebarItems={vendorSidebarItems}
+      hidePaths={hiddenPaths}
       sidebarTitle="KNI Vendor"
       user={{
         name: session.name,

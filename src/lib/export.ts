@@ -88,7 +88,7 @@ export function exportToCSV<T extends Record<string, any>>(
 export const exportFormatters = {
   currency: (value: number) => {
     if (typeof value !== 'number') return value
-    return `₹${(value / 100).toFixed(2)}`
+    return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   },
 
   date: (value: Date | string) => {

@@ -15,6 +15,7 @@ const updateRestaurantSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters").optional(),
   city: z.string().min(2, "City must be at least 2 characters").optional(),
   pincode: z.string().min(6, "Pincode must be 6 digits").max(6, "Pincode must be 6 digits").optional(),
+  outletType: z.string().optional().or(z.literal("")),
   restaurantImageUrl: imageUrlSchema.optional().or(z.literal("")),
   fssaiNumber: z.string().min(14, "FSSAI number must be 14 digits").max(14, "FSSAI number must be 14 digits").optional(),
   fssaiCertificateUrl: imageUrlSchema.optional().or(z.literal("")),
@@ -101,6 +102,9 @@ export async function PATCH(
     }
     if (validation.data.fssaiCertificateUrl !== undefined) {
       updateData.fssaiCertificateUrl = validation.data.fssaiCertificateUrl || null;
+    }
+    if (validation.data.outletType !== undefined) {
+      updateData.outletType = validation.data.outletType || null;
     }
 
     const updatedRestaurant = await db.restaurant.update({

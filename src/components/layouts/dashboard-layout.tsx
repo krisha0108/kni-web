@@ -11,6 +11,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   sidebarItems: SidebarEntry[];
   sidebarTitle: string;
+  hidePaths?: string[];
   user: {
     name: string;
     email: string;
@@ -22,13 +23,18 @@ export function DashboardLayout({
   children,
   sidebarItems,
   sidebarTitle,
+  hidePaths,
   user,
 }: DashboardLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const filteredItems = hidePaths && hidePaths.length > 0
+    ? sidebarItems.filter((item) => !("href" in item && hidePaths.includes(item.href)))
+    : sidebarItems;
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar items={sidebarItems} title={sidebarTitle} />
+      <Sidebar items={filteredItems} title={sidebarTitle} />
       
       {/* Mobile sidebar overlay */}
       {isMobileMenuOpen && (
@@ -45,7 +51,7 @@ export function DashboardLayout({
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar items={sidebarItems} title={sidebarTitle} mobile />
+        <Sidebar items={filteredItems} title={sidebarTitle} mobile />
       </div>
 
       <div className="lg:pl-64">

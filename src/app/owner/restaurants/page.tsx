@@ -30,6 +30,7 @@ interface Restaurant {
   name: string;
   address: string;
   city: string;
+  outletType: string | null;
   restaurantImageUrl: string | null;
   fssaiNumber: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -290,6 +291,13 @@ export default function RestaurantsPage() {
                       <div className="mt-2">
                         <Badge variant="outline" className="text-xs">
                           {restaurant.userRole}
+                        </Badge>
+                      </div>
+                    )}
+                    {restaurant.outletType && (
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {restaurant.outletType.replace(/_/g, ' ')}
                         </Badge>
                       </div>
                     )}

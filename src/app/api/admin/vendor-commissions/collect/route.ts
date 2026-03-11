@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       return newCollection;
     });
 
-    // Format amount for notification (convert paise to rupees)
-    const amountInRupees = (totalAmount / 100).toLocaleString("en-IN");
+    // Format amount for notification
+    const amountInRupees = totalAmount.toLocaleString("en-IN");
 
     await createNotification({
       userId: vendorId,

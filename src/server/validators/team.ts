@@ -17,7 +17,8 @@ export const updateRoleSchema = z.object({
 // Accept Invitation Validation
 export const acceptInviteSchema = z.object({
   token: z.string().min(1, "Invitation token is required"),
-  password: z.string().min(8, "Password must be at least 8 characters").optional(),
+  tempPassword: z.string().min(1, "Temporary password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
 });
 
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;

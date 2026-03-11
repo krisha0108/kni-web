@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { token, password } = validation.data;
+    const { token, tempPassword, newPassword } = validation.data;
 
     // Find membership by invite token
     const membership = await db.restaurantMember.findUnique({
@@ -49,27 +49,35 @@ export async function POST(request: NextRequest) {
     // Check if already accepted
     if (membership.acceptedAt) {
       return NextResponse.json(
-        { ok: false, error: "Invitation already accepted" },
+        { ok: false, error: "Invitation already accepted. Please login with your password." },
         { status: 400 }
       );
     }
 
-    // Update user: set password if provided and mark email as verified
-    if (password) {
-      const passwordHash = await bcrypt.hash(password, 10);
-      await db.user.update({
-        where: { id: membership.userId },
-        data: { passwordHash, emailVerified: true },
-      });
-    } else {
-      // Even without password change, mark email as verified (user accepted invite via email link)
-      await db.user.update({
-        where: { id: membership.userId },
-        data: { emailVerified: true },
-      });
+    // Verify temp password before allowing password change
+    const isTempPasswordValid = await bcrypt.compare(
+      tempPassword,
+      membership.user.passwordHash
+    );
+
+    if (!isTempPasswordValid) {
+      return NextResponse.json(
+        { ok: false, error: "Temporary password is incorrect" },
+        { status: 401 }
+      );
     }
 
-    // Update membership: accept and clear token
+    // Set new password and mark email as verified
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await db.user.update({
+      where: { id: membership.userId },
+      data: {
+        passwordHash: newPasswordHash,
+        emailVerified: true,
+      },
+    });
+
+    // Accept invitation and clear token
     const updatedMembership = await db.restaurantMember.update({
       where: { id: membership.id },
       data: {

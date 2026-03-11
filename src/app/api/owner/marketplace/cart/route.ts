@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
           include: {
             product: {
               include: {
-                product: true,
+                product: {
+                  include: {
+                    marketplaceCategory: { select: { id: true, name: true } },
+                  },
+                },
                 vendor: {
                   select: {
                     id: true,
@@ -83,21 +87,52 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Format response: cart items with full product details
-    const formattedItems = validItems.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      product: {
-        id: item.product.id,
-        name: item.product.product?.name || item.product.name || "Unknown",
-        price: item.product.price,
-        stockQuantity: item.product.stockQuantity,
-        imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
-        unit: item.product.product?.unit || item.product.unit,
-        vendor: item.product.vendor,
-        category: null,
+    // Fetch active price unlocks for price-on-request items in cart
+    const cartProductIds = validItems.map((item) => item.product.id);
+    const activeUnlocks = await db.priceUnlockRequest.findMany({
+      where: {
+        ownerId: session.id,
+        vendorProductId: { in: cartProductIds },
+        status: "UNLOCKED",
       },
-    }));
+      select: { vendorProductId: true, unlockedPrice: true, validUntil: true },
+    });
+    const unlockMap = new Map(activeUnlocks.map((u) => [u.vendorProductId, u]));
+
+    // Format response: cart items with full product details
+    const formattedItems = validItems.map((item) => {
+      let price = item.product.price;
+      let priceExpired = false;
+
+      // Use unlocked price for price-on-request products
+      if (item.product.priceOnRequest) {
+        const unlock = unlockMap.get(item.product.id);
+        if (unlock && unlock.unlockedPrice) {
+          if (unlock.validUntil && unlock.validUntil < new Date()) {
+            priceExpired = true;
+          } else {
+            price = unlock.unlockedPrice;
+          }
+        }
+      }
+
+      return {
+        id: item.id,
+        quantity: item.quantity,
+        priceExpired,
+        product: {
+          id: item.product.id,
+          name: item.product.product?.name || item.product.name || "Unknown",
+          price,
+          stockQuantity: item.product.stockQuantity,
+          imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
+          unit: item.product.product?.unit || item.product.unit,
+          deliveryTime: item.product.deliveryTime,
+          vendor: item.product.vendor,
+          category: (item.product as any).product?.marketplaceCategory || null,
+        },
+      };
+    });
 
     return NextResponse.json({
       ok: true,
@@ -138,6 +173,11 @@ export async function POST(request: NextRequest) {
     // Verify product exists and is available
     const vendorProduct = await db.vendorProduct.findUnique({
       where: { id: vendorProductId },
+      include: {
+        vendor: {
+          select: { vendorProfile: { select: { isSystemVendor: true } } },
+        },
+      },
     });
 
     if (!vendorProduct || !vendorProduct.isActive) {
@@ -145,6 +185,34 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "Product not found or unavailable" },
         { status: 400 }
       );
+    }
+
+    // Block add-to-cart for price-on-request products without valid unlock
+    if (vendorProduct.priceOnRequest && vendorProduct.vendor.vendorProfile?.isSystemVendor) {
+      if (quantity > 0) {
+        const unlock = await db.priceUnlockRequest.findUnique({
+          where: {
+            ownerId_vendorProductId: {
+              ownerId: session.id,
+              vendorProductId,
+            },
+          },
+        });
+
+        if (!unlock || unlock.status !== "UNLOCKED") {
+          return NextResponse.json(
+            { ok: false, error: "Please request a price for this product first" },
+            { status: 400 }
+          );
+        }
+
+        if (unlock.validUntil && unlock.validUntil < new Date()) {
+          return NextResponse.json(
+            { ok: false, error: "Your price quote has expired. Please request a new price." },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Stock validation
@@ -208,7 +276,11 @@ export async function POST(request: NextRequest) {
           include: {
             product: {
               include: {
-                product: true,
+                product: {
+                  include: {
+                    marketplaceCategory: { select: { id: true, name: true } },
+                  },
+                },
                 vendor: {
                   select: {
                     id: true,
@@ -222,22 +294,44 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Fetch unlocks for price-on-request items in updated cart
+    const updatedProductIds = updatedCart!.items.map((item) => item.product.id);
+    const updatedUnlocks = await db.priceUnlockRequest.findMany({
+      where: {
+        ownerId: session.id,
+        vendorProductId: { in: updatedProductIds },
+        status: "UNLOCKED",
+      },
+      select: { vendorProductId: true, unlockedPrice: true, validUntil: true },
+    });
+    const updatedUnlockMap = new Map(updatedUnlocks.map((u) => [u.vendorProductId, u]));
+
     const formattedItems = updatedCart!.items
       .filter((item) => item.product && item.product.isActive)
-      .map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-        product: {
-          id: item.product.id,
-          name: item.product.product?.name || item.product.name || "Unknown",
-          price: item.product.price,
-          stockQuantity: item.product.stockQuantity,
-          imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
-          unit: item.product.product?.unit || item.product.unit,
-          vendor: item.product.vendor,
-          category: null,
-        },
-      }));
+      .map((item) => {
+        let price = item.product.price;
+        if (item.product.priceOnRequest) {
+          const unlock = updatedUnlockMap.get(item.product.id);
+          if (unlock?.unlockedPrice && (!unlock.validUntil || unlock.validUntil >= new Date())) {
+            price = unlock.unlockedPrice;
+          }
+        }
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name: item.product.product?.name || item.product.name || "Unknown",
+            price,
+            stockQuantity: item.product.stockQuantity,
+            imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
+            unit: item.product.product?.unit || item.product.unit,
+            deliveryTime: item.product.deliveryTime,
+            vendor: item.product.vendor,
+            category: (item.product as any).product?.marketplaceCategory || null,
+          },
+        };
+      });
 
     return NextResponse.json({
       ok: true,

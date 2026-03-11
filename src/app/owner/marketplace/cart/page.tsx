@@ -115,7 +115,7 @@ export default function OwnerCartPage() {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+    return cart.reduce((total, item) => total + (item.product.price ?? 0) * item.quantity, 0);
   };
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -157,7 +157,7 @@ export default function OwnerCartPage() {
         };
       }
       groups[vendorId].items.push(item);
-      groups[vendorId].total += item.product.price * item.quantity;
+      groups[vendorId].total += (item.product.price ?? 0) * item.quantity;
     });
     return Object.values(groups);
   };
@@ -378,7 +378,14 @@ export default function OwnerCartPage() {
                     <p className="font-medium text-xs sm:text-sm leading-tight line-clamp-2">{item.product.name}</p>
                     
                     {/* Price */}
-                    <p className="text-xs sm:text-sm text-muted-foreground">{formatPrice(item.product.price)}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{formatPrice(item.product.price ?? 0)}</p>
+                    {/* Delivery Time */}
+                    {item.product.deliveryTime && (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        {item.product.deliveryTime}
+                      </p>
+                    )}
 
                     {/* Qty Controls + Line Total in one row on mobile */}
                     <div className="flex items-center justify-between gap-2">
@@ -405,7 +412,7 @@ export default function OwnerCartPage() {
 
                       {/* Line Total */}
                       <span className="text-sm sm:text-base font-bold">
-                        {formatPrice(item.product.price * item.quantity)}
+                        {formatPrice((item.product.price ?? 0) * item.quantity)}
                       </span>
                     </div>
                   </div>

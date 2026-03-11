@@ -22,11 +22,12 @@ export async function updateAMCOnBookingComplete(bookingId: string) {
     // No equipment linked to this booking - skip
     if (!booking?.equipmentId) return;
 
-    // Find active AMC for this equipment
+    // Find active INTERNAL AMC for this equipment (skip external AMCs)
     const activeAmc = await db.aMCSubscription.findFirst({
       where: {
         equipmentId: booking.equipmentId,
         status: "ACTIVE",
+        source: "INTERNAL",
         endDate: { gt: new Date() },
       },
     });

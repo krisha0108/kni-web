@@ -92,7 +92,7 @@ export async function POST(
           ownerId: payment.ownerId,
           vendorId: payment.vendorId,
           restaurantId: payment.restaurantId,
-          status: "PLACED",
+          status: "CONFIRMED",
           totalAmount: payment.totalAmount,
           deliveryAddress: payment.deliveryAddress,
           notes: payment.notes,
@@ -176,6 +176,7 @@ export async function POST(
         data: {
           status: "VERIFIED",
           verifiedAt: new Date(),
+          orderId: newOrder.id,
         },
       });
 
@@ -186,7 +187,7 @@ export async function POST(
     createNotification({
       userId: payment.ownerId,
       title: "Payment Verified!",
-      message: `Your payment has been verified. Order #${order.id.substring(0, 8)} has been placed.`,
+      message: `Your payment has been verified. Order #${order.id.substring(0, 8)} has been confirmed.`,
       type: "PAYMENT",
       linkUrl: "/owner/marketplace/orders",
     }).catch(console.error);

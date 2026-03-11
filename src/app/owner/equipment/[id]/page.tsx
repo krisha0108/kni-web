@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, CheckCircle2, XCircle, Clock, FileText, Image as ImageIcon, Shield, Wrench, IndianRupee, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle2, XCircle, Clock, FileText, Image as ImageIcon, Shield, Wrench, IndianRupee, AlertCircle, Building2, Pencil, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getWarrantyStatus, getEquipmentStatusColor, getEquipmentStatusLabel } from "@/lib/equipment";
-import { getAMCDurationLabel, getAMCStatusColor, getAMCStatusLabel } from "@/lib/amc";
+import { getAMCDurationLabel, getAMCStatusColor, getAMCStatusLabel, getAMCSourceLabel, getAMCSourceColor } from "@/lib/amc";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface ServiceTemplate {
   id: string;
@@ -69,6 +70,11 @@ interface AMCSubscription {
   endDate: string;
   status: string;
   autoRenew: boolean;
+  source: "INTERNAL" | "EXTERNAL";
+  providerName: string | null;
+  providerContact: string | null;
+  contractNumber: string | null;
+  documentUrl: string | null;
   createdAt: string;
   usageLogs?: {
     id: string;
@@ -88,17 +94,49 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
+  const userRole = selectedRestaurant?.role;
+  const canManage = userRole === "OWNER" || userRole === "MANAGER";
 
   const [amcFormData, setAmcFormData] = useState({
     planName: "",
     planDescription: "",
-    duration: "MONTHLY",
+    duration: "YEARLY" as string,
     serviceLimit: 1,
     featuresJson: [] as string[],
     totalAmount: 0,
     startDate: "",
-    autoRenew: false,
+    providerName: "",
+    providerContact: "",
+    contractNumber: "",
+    documentUrl: "",
   });
+
+  // Edit external AMC state
+  const [isEditAmcOpen, setIsEditAmcOpen] = useState(false);
+  const [editingAmc, setEditingAmc] = useState<AMCSubscription | null>(null);
+  const [editAmcData, setEditAmcData] = useState({
+    planName: "",
+    planDescription: "",
+    providerName: "",
+    providerContact: "",
+    contractNumber: "",
+    documentUrl: "",
+    totalAmount: 0,
+    featuresJson: [] as string[],
+  });
+  const [editFeatureInput, setEditFeatureInput] = useState("");
+
+  // Log service state
+  const [isLogServiceOpen, setIsLogServiceOpen] = useState(false);
+  const [logServiceAmcId, setLogServiceAmcId] = useState<string | null>(null);
+  const [logServiceData, setLogServiceData] = useState({
+    serviceDate: "",
+    serviceType: "",
+    notes: "",
+  });
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const [featureInput, setFeatureInput] = useState("");
 
@@ -124,10 +162,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
       if (data.ok) {
         setEquipment(data.data);
-        setAmcFormData(prev => ({
-          ...prev,
-          planName: `${data.data.name} Maintenance Plan`,
-        }));
       } else {
         toast({
           title: "Error",
@@ -159,12 +193,29 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const resetAmcForm = () => {
+    setAmcFormData({
+      planName: "",
+      planDescription: "",
+      duration: "YEARLY",
+      serviceLimit: 1,
+      featuresJson: [],
+      totalAmount: 0,
+      startDate: "",
+      providerName: "",
+      providerContact: "",
+      contractNumber: "",
+      documentUrl: "",
+    });
+    setFeatureInput("");
+  };
+
   const handleCreateAmc = async () => {
     try {
-      if (!amcFormData.planName || !amcFormData.startDate || amcFormData.serviceLimit < 1) {
+      if (!amcFormData.providerName || !amcFormData.planName || !amcFormData.startDate) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields",
+          description: "Provider name, plan name and start date are required",
           variant: "destructive",
         });
         return;
@@ -182,7 +233,12 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           featuresJson: amcFormData.featuresJson.length > 0 ? amcFormData.featuresJson : undefined,
           totalAmount: amcFormData.totalAmount,
           startDate: new Date(amcFormData.startDate).toISOString(),
-          autoRenew: amcFormData.autoRenew,
+          autoRenew: false,
+          source: "EXTERNAL",
+          providerName: amcFormData.providerName,
+          providerContact: amcFormData.providerContact || undefined,
+          contractNumber: amcFormData.contractNumber || undefined,
+          documentUrl: amcFormData.documentUrl || undefined,
         }),
       });
 
@@ -194,17 +250,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           description: "AMC subscription created successfully",
         });
         setIsCreateAmcOpen(false);
-        setAmcFormData({
-          planName: equipment ? `${equipment.name} Maintenance Plan` : "",
-          planDescription: "",
-          duration: "MONTHLY",
-          serviceLimit: 1,
-          featuresJson: [],
-          totalAmount: 0,
-          startDate: "",
-          autoRenew: false,
-        });
-        setFeatureInput("");
+        resetAmcForm();
         fetchAmcSubscriptions();
       } else {
         toast({
@@ -217,6 +263,164 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
       toast({
         title: "Error",
         description: "Failed to create AMC subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditAmc = (amc: AMCSubscription) => {
+    setEditingAmc(amc);
+    setEditAmcData({
+      planName: amc.planName || "",
+      planDescription: amc.planDescription || "",
+      providerName: amc.providerName || "",
+      providerContact: amc.providerContact || "",
+      contractNumber: amc.contractNumber || "",
+      documentUrl: amc.documentUrl || "",
+      totalAmount: amc.totalAmount,
+      featuresJson: amc.featuresJson || [],
+    });
+    setEditFeatureInput("");
+    setIsEditAmcOpen(true);
+  };
+
+  const handleUpdateAmc = async () => {
+    if (!editingAmc) return;
+
+    try {
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc/${editingAmc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planName: editAmcData.planName || undefined,
+          planDescription: editAmcData.planDescription || undefined,
+          providerName: editAmcData.providerName || undefined,
+          providerContact: editAmcData.providerContact || undefined,
+          contractNumber: editAmcData.contractNumber || undefined,
+          documentUrl: editAmcData.documentUrl || undefined,
+          totalAmount: editAmcData.totalAmount,
+          featuresJson: editAmcData.featuresJson,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: "AMC subscription updated successfully",
+        });
+        setIsEditAmcOpen(false);
+        setEditingAmc(null);
+        fetchAmcSubscriptions();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update AMC subscription",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update AMC subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentUpload = async (
+    file: File,
+    onSuccess: (url: string) => void
+  ) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "amc-documents");
+
+      const response = await fetch("/api/upload-document", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        onSuccess(data.url);
+        toast({ title: "Success", description: "Document uploaded" });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to upload document",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const openLogService = (amcId: string) => {
+    setLogServiceAmcId(amcId);
+    setLogServiceData({
+      serviceDate: new Date().toISOString().split("T")[0],
+      serviceType: "",
+      notes: "",
+    });
+    setIsLogServiceOpen(true);
+  };
+
+  const handleLogService = async () => {
+    if (!logServiceAmcId) return;
+
+    if (!logServiceData.serviceDate || !logServiceData.serviceType) {
+      toast({
+        title: "Error",
+        description: "Service date and type are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc/${logServiceAmcId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceDate: new Date(logServiceData.serviceDate).toISOString(),
+          serviceType: logServiceData.serviceType,
+          notes: logServiceData.notes || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: "Success",
+          description: "Service logged successfully",
+        });
+        setIsLogServiceOpen(false);
+        setLogServiceAmcId(null);
+        fetchAmcSubscriptions();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to log service",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log service",
         variant: "destructive",
       });
     }
@@ -396,7 +600,8 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const warrantyStatus = getWarrantyStatus(equipment.warrantyEndDate);
-  const activeAmc = amcSubscriptions.find(amc => amc.status === "ACTIVE");
+  const activeAmcs = amcSubscriptions.filter(amc => amc.status === "ACTIVE");
+  const activeAmc = activeAmcs.length > 0 ? activeAmcs[0] : null;
   const photoUrls = Array.isArray(equipment.photoUrls) ? equipment.photoUrls : [];
 
   return (
@@ -456,7 +661,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">AMC Status</p>
-                <p className="text-xl font-bold">{activeAmc ? "Active" : "None"}</p>
+                <p className="text-xl font-bold">{activeAmcs.length > 0 ? `${activeAmcs.length} Active` : "None"}</p>
               </div>
             </div>
           </CardContent>
@@ -577,27 +782,46 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                   <Shield className="h-5 w-5" />
                   AMC Subscriptions
                 </CardTitle>
-                <Dialog open={isCreateAmcOpen} onOpenChange={setIsCreateAmcOpen}>
+                {canManage && <Dialog open={isCreateAmcOpen} onOpenChange={setIsCreateAmcOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <Plus className="mr-2 h-4 w-4" />
-                      Create AMC
+                      Add External AMC
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
                     <DialogHeader>
-                      <DialogTitle>Create AMC Subscription</DialogTitle>
+                      <DialogTitle>Add External AMC</DialogTitle>
                       <DialogDescription>
-                        Create a maintenance contract for this equipment
+                        Track an AMC contract from a third-party provider for this equipment
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
+                      {/* Provider Details */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Provider Name *</Label>
+                          <Input
+                            value={amcFormData.providerName}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, providerName: e.target.value })}
+                            placeholder="e.g., Voltas, Blue Star"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Provider Contact</Label>
+                          <Input
+                            value={amcFormData.providerContact}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, providerContact: e.target.value })}
+                            placeholder="Phone or email"
+                          />
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <Label>Plan Name *</Label>
                         <Input
                           value={amcFormData.planName}
                           onChange={(e) => setAmcFormData({ ...amcFormData, planName: e.target.value })}
-                          placeholder="e.g., Annual Maintenance"
+                          placeholder="e.g., Annual Maintenance Plan"
                         />
                       </div>
                       <div className="space-y-2">
@@ -605,9 +829,56 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                         <Textarea
                           value={amcFormData.planDescription}
                           onChange={(e) => setAmcFormData({ ...amcFormData, planDescription: e.target.value })}
-                          placeholder="Describe what's included..."
+                          placeholder="Describe what's included in this AMC..."
                           rows={2}
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Contract Number</Label>
+                        <Input
+                          value={amcFormData.contractNumber}
+                          onChange={(e) => setAmcFormData({ ...amcFormData, contractNumber: e.target.value })}
+                          placeholder="e.g., AMC-2026-001"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Upload Document</Label>
+                        {amcFormData.documentUrl ? (
+                          <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <a href={amcFormData.documentUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate flex-1">
+                              {amcFormData.documentUrl.split("/").pop()}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setAmcFormData({ ...amcFormData, documentUrl: "" })}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-md cursor-pointer hover:border-primary/50 transition">
+                            {isUploading ? (
+                              <><Loader2 className="h-4 w-4 animate-spin" /><span className="text-sm text-muted-foreground">Uploading...</span></>
+                            ) : (
+                              <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Click to upload (PDF, Image - max 10MB)</span></>
+                            )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png,.webp"
+                              disabled={isUploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleDocumentUpload(file, (url) => setAmcFormData({ ...amcFormData, documentUrl: url }));
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -628,25 +899,25 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>Service Limit *</Label>
+                          <Label>Service Limit</Label>
                           <Input
                             type="number"
-                            min="1"
+                            min="0"
                             value={amcFormData.serviceLimit}
-                            onChange={(e) => setAmcFormData({ ...amcFormData, serviceLimit: parseInt(e.target.value) || 1 })}
+                            onChange={(e) => setAmcFormData({ ...amcFormData, serviceLimit: parseInt(e.target.value) || 0 })}
+                            placeholder="0 for unlimited"
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Amount (₹) *</Label>
+                          <Label>Amount (₹)</Label>
                           <Input
                             type="number"
                             min="0"
-                            step="0.01"
                             value={amcFormData.totalAmount}
-                            onChange={(e) => setAmcFormData({ ...amcFormData, totalAmount: parseFloat(e.target.value) || 0 })}
-                            placeholder="0.00"
+                            onChange={(e) => setAmcFormData({ ...amcFormData, totalAmount: parseInt(e.target.value) || 0 })}
+                            placeholder="0"
                           />
                         </div>
                         <div className="space-y-2">
@@ -659,12 +930,12 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Features</Label>
+                        <Label>Features / Coverage</Label>
                         <div className="flex gap-2">
                           <Input
                             value={featureInput}
                             onChange={(e) => setFeatureInput(e.target.value)}
-                            placeholder="Add a feature"
+                            placeholder="Add a feature or coverage item"
                             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddFeature())}
                           />
                           <Button type="button" onClick={handleAddFeature} size="icon">
@@ -684,25 +955,15 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="autoRenew"
-                          checked={amcFormData.autoRenew}
-                          onChange={(e) => setAmcFormData({ ...amcFormData, autoRenew: e.target.checked })}
-                          className="rounded"
-                        />
-                        <Label htmlFor="autoRenew" className="text-sm">Enable auto-renewal</Label>
-                      </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setIsCreateAmcOpen(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateAmc}>Create AMC</Button>
+                      <Button onClick={handleCreateAmc}>Add External AMC</Button>
                     </DialogFooter>
                   </DialogContent>
-                </Dialog>
+                </Dialog>}
               </div>
             </CardHeader>
             <CardContent>
@@ -710,23 +971,66 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-4">
                   {amcSubscriptions.map((amc) => {
                     const daysRemaining = Math.ceil((new Date(amc.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                    const usagePercent = (amc.servicesUsed / amc.serviceLimit) * 100;
+                    const usagePercent = amc.serviceLimit > 0 ? (amc.servicesUsed / amc.serviceLimit) * 100 : 0;
+                    const isExternal = amc.source === "EXTERNAL";
                     return (
                       <div
                         key={amc.id}
-                        className={`border rounded-lg p-4 ${amc.status === "ACTIVE" ? "border-l-4 border-l-green-500" : ""}`}
+                        className={`border rounded-lg p-4 ${amc.status === "ACTIVE" ? `border-l-4 ${isExternal ? "border-l-blue-500" : "border-l-green-500"}` : ""}`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="font-semibold">{amc.planName || "Custom Plan"}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold">{amc.planName || "Custom Plan"}</p>
+                              <Badge variant={isExternal ? "secondary" : "default"} className="text-xs">
+                                {isExternal ? (
+                                  <><Building2 className="h-3 w-3 mr-1" />External</>
+                                ) : (
+                                  <><Shield className="h-3 w-3 mr-1" />KNI Platform</>
+                                )}
+                              </Badge>
+                            </div>
                             {amc.planDescription && (
                               <p className="text-sm text-muted-foreground">{amc.planDescription}</p>
                             )}
                           </div>
-                          <Badge variant={amc.status === "ACTIVE" ? "success" : amc.status === "EXPIRED" ? "destructive" : "secondary"}>
-                            {amc.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {isExternal && canManage && amc.status === "ACTIVE" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEditAmc(amc)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Badge variant={amc.status === "ACTIVE" ? "success" : amc.status === "EXPIRED" ? "destructive" : "secondary"}>
+                              {amc.status}
+                            </Badge>
+                          </div>
                         </div>
+
+                        {/* External provider info */}
+                        {isExternal && amc.providerName && (
+                          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md text-sm">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              <span><span className="text-muted-foreground">Provider:</span> <span className="font-medium">{amc.providerName}</span></span>
+                              {amc.providerContact && (
+                                <span><span className="text-muted-foreground">Contact:</span> {amc.providerContact}</span>
+                              )}
+                              {amc.contractNumber && (
+                                <span><span className="text-muted-foreground">Contract #:</span> <span className="font-mono">{amc.contractNumber}</span></span>
+                              )}
+                              {amc.documentUrl && (
+                                <a href={amc.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" />View Document
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
                           <div>
                             <p className="text-muted-foreground">Duration</p>
@@ -740,45 +1044,72 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                             <p className="text-muted-foreground">Period</p>
                             <p className="font-medium">{formatDate(amc.startDate)} - {formatDate(amc.endDate)}</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">Auto-Renew</p>
-                            <p className="font-medium">{amc.autoRenew ? "Yes" : "No"}</p>
-                          </div>
+                          {!isExternal && (
+                            <div>
+                              <p className="text-muted-foreground">Auto-Renew</p>
+                              <p className="font-medium">{amc.autoRenew ? "Yes" : "No"}</p>
+                            </div>
+                          )}
                         </div>
                         {amc.status === "ACTIVE" && (
                           <>
-                            <div className="mb-3">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="text-muted-foreground">Service Usage</span>
-                                <span className="font-medium">{amc.servicesUsed} / {amc.serviceLimit}</span>
+                            {amc.serviceLimit > 0 && (
+                              <div className="mb-3">
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span className="text-muted-foreground">Service Usage</span>
+                                  <span className="font-medium">{amc.servicesUsed} / {amc.serviceLimit}</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full ${usagePercent >= 100 ? "bg-destructive" : usagePercent >= 80 ? "bg-yellow-500" : "bg-green-500"}`}
+                                    style={{ width: `${Math.min(100, usagePercent)}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {amc.serviceLimit - amc.servicesUsed} services remaining • {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
+                                </p>
                               </div>
-                              <div className="w-full bg-muted rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full ${usagePercent >= 100 ? "bg-destructive" : usagePercent >= 80 ? "bg-yellow-500" : "bg-green-500"}`}
-                                  style={{ width: `${Math.min(100, usagePercent)}%` }}
-                                />
+                            )}
+                            {amc.serviceLimit === 0 && (
+                              <div className="mb-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Unlimited services • {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {amc.serviceLimit - amc.servicesUsed} services remaining • {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleToggleAutoRenew(amc.id, amc.autoRenew)}
-                              >
-                                {amc.autoRenew ? "Disable Auto-Renew" : "Enable Auto-Renew"}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleCancelAmc(amc.id)}
-                              >
-                                Cancel AMC
-                              </Button>
-                            </div>
+                            )}
+                            {canManage && (
+                              <div className="flex flex-wrap gap-2">
+                                {isExternal && (amc.serviceLimit === 0 || amc.servicesUsed < amc.serviceLimit) && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => openLogService(amc.id)}
+                                  >
+                                    <Plus className="mr-1 h-3 w-3" />
+                                    Log Service
+                                  </Button>
+                                )}
+                                {!isExternal && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleToggleAutoRenew(amc.id, amc.autoRenew)}
+                                  >
+                                    {amc.autoRenew ? "Disable Auto-Renew" : "Enable Auto-Renew"}
+                                  </Button>
+                                )}
+                                {userRole === "OWNER" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => handleCancelAmc(amc.id)}
+                                  >
+                                    Cancel AMC
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                           </>
                         )}
                         {amc.featuresJson && amc.featuresJson.length > 0 && (
@@ -794,6 +1125,23 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                             </div>
                           </div>
                         )}
+                        {/* Service Usage History */}
+                        {isExternal && amc.usageLogs && amc.usageLogs.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-sm font-medium mb-2">Service History</p>
+                            <div className="space-y-2">
+                              {amc.usageLogs.map((log) => (
+                                <div key={log.id} className="flex items-start justify-between text-sm p-2 bg-muted/50 rounded">
+                                  <div>
+                                    <p className="font-medium">{log.serviceType}</p>
+                                    {log.notes && <p className="text-xs text-muted-foreground">{log.notes}</p>}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{formatDate(log.serviceDate)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -802,7 +1150,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <div className="text-center py-8 text-muted-foreground">
                   <Shield className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>No AMC subscriptions yet</p>
-                  <p className="text-sm mt-1">Create a maintenance plan to protect this equipment</p>
+                  <p className="text-sm mt-1">Add an external AMC to track third-party maintenance contracts</p>
                 </div>
               )}
             </CardContent>
@@ -962,6 +1310,221 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
             <Button onClick={handleServiceBooking}>
               Request Service
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit External AMC Dialog */}
+      <Dialog open={isEditAmcOpen} onOpenChange={setIsEditAmcOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
+          <DialogHeader>
+            <DialogTitle>Edit AMC Details</DialogTitle>
+            <DialogDescription>
+              Update the details of this external AMC subscription
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Plan Name</Label>
+              <Input
+                value={editAmcData.planName}
+                onChange={(e) => setEditAmcData({ ...editAmcData, planName: e.target.value })}
+                placeholder="Plan name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={editAmcData.planDescription}
+                onChange={(e) => setEditAmcData({ ...editAmcData, planDescription: e.target.value })}
+                placeholder="Plan description"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Provider Name</Label>
+                <Input
+                  value={editAmcData.providerName}
+                  onChange={(e) => setEditAmcData({ ...editAmcData, providerName: e.target.value })}
+                  placeholder="Provider name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Provider Contact</Label>
+                <Input
+                  value={editAmcData.providerContact}
+                  onChange={(e) => setEditAmcData({ ...editAmcData, providerContact: e.target.value })}
+                  placeholder="Phone or email"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Contract Number</Label>
+                <Input
+                  value={editAmcData.contractNumber}
+                  onChange={(e) => setEditAmcData({ ...editAmcData, contractNumber: e.target.value })}
+                  placeholder="Contract #"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Amount (₹)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editAmcData.totalAmount}
+                  onChange={(e) => setEditAmcData({ ...editAmcData, totalAmount: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Upload Document</Label>
+              {editAmcData.documentUrl ? (
+                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <a href={editAmcData.documentUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate flex-1">
+                    {editAmcData.documentUrl.split("/").pop()}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setEditAmcData({ ...editAmcData, documentUrl: "" })}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-md cursor-pointer hover:border-primary/50 transition">
+                  {isUploading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /><span className="text-sm text-muted-foreground">Uploading...</span></>
+                  ) : (
+                    <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Click to upload (PDF, Image - max 10MB)</span></>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    disabled={isUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleDocumentUpload(file, (url) => setEditAmcData({ ...editAmcData, documentUrl: url }));
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Features</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={editFeatureInput}
+                  onChange={(e) => setEditFeatureInput(e.target.value)}
+                  placeholder="Add a feature"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (editFeatureInput.trim()) {
+                        setEditAmcData({ ...editAmcData, featuresJson: [...editAmcData.featuresJson, editFeatureInput.trim()] });
+                        setEditFeatureInput("");
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={() => {
+                    if (editFeatureInput.trim()) {
+                      setEditAmcData({ ...editAmcData, featuresJson: [...editAmcData.featuresJson, editFeatureInput.trim()] });
+                      setEditFeatureInput("");
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {editAmcData.featuresJson.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {editAmcData.featuresJson.map((feature, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {feature}
+                      <button
+                        onClick={() => setEditAmcData({ ...editAmcData, featuresJson: editAmcData.featuresJson.filter((_, i) => i !== index) })}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditAmcOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateAmc}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Service Dialog */}
+      <Dialog open={isLogServiceOpen} onOpenChange={setIsLogServiceOpen}>
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
+          <DialogHeader>
+            <DialogTitle>Log Service Usage</DialogTitle>
+            <DialogDescription>
+              Record a service that was performed under this AMC
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Service Date *</Label>
+              <Input
+                type="date"
+                value={logServiceData.serviceDate}
+                onChange={(e) => setLogServiceData({ ...logServiceData, serviceDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Service Type *</Label>
+              <Select
+                value={logServiceData.serviceType}
+                onValueChange={(value) => setLogServiceData({ ...logServiceData, serviceType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select service type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Preventive Maintenance">Preventive Maintenance</SelectItem>
+                  <SelectItem value="Breakdown Repair">Breakdown Repair</SelectItem>
+                  <SelectItem value="Routine Inspection">Routine Inspection</SelectItem>
+                  <SelectItem value="Parts Replacement">Parts Replacement</SelectItem>
+                  <SelectItem value="Deep Cleaning">Deep Cleaning</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={logServiceData.notes}
+                onChange={(e) => setLogServiceData({ ...logServiceData, notes: e.target.value })}
+                placeholder="What was done during this service..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLogServiceOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleLogService}>Log Service</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

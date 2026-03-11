@@ -58,6 +58,7 @@ interface VendorProduct {
   vendorId: string;
   productId: string;
   price: number;
+  priceOnRequest: boolean;
   description: string | null;
   stockQuantity: number;
   deliveryTime: string | null;
@@ -78,6 +79,7 @@ const DELIVERY_OPTIONS = [
   { value: "2-3 days", label: "2-3 days" },
   { value: "3-5 days", label: "3-5 days" },
   { value: "1 week", label: "1 week" },
+  { value: "__custom__", label: "Custom (enter your own)" },
 ];
 
 export default function MyStoreProductsPage() {
@@ -92,6 +94,7 @@ export default function MyStoreProductsPage() {
   const [selectedAdminProduct, setSelectedAdminProduct] = useState<AdminProduct | null>(null);
   const [availableSearch, setAvailableSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isCustomDelivery, setIsCustomDelivery] = useState(false);
 
   const [formData, setFormData] = useState({
     price: "",
@@ -99,6 +102,7 @@ export default function MyStoreProductsPage() {
     stockQuantity: "",
     deliveryTime: "",
     isActive: true,
+    priceOnRequest: false,
   });
 
   const { toast } = useToast();
@@ -157,7 +161,9 @@ export default function MyStoreProductsPage() {
       stockQuantity: "",
       deliveryTime: "",
       isActive: true,
+      priceOnRequest: false,
     });
+    setIsCustomDelivery(false);
     setSelectedAdminProduct(null);
   };
 
@@ -183,6 +189,7 @@ export default function MyStoreProductsPage() {
           stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
           deliveryTime: formData.deliveryTime || undefined,
           isActive: formData.isActive,
+          priceOnRequest: formData.priceOnRequest,
         }),
       });
       const data = await response.json();
@@ -215,6 +222,7 @@ export default function MyStoreProductsPage() {
           stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
           deliveryTime: formData.deliveryTime || null,
           isActive: formData.isActive,
+          priceOnRequest: formData.priceOnRequest,
         }),
       });
       const data = await response.json();
@@ -254,14 +262,20 @@ export default function MyStoreProductsPage() {
     }
   };
 
+  const PRESET_VALUES = DELIVERY_OPTIONS.filter(o => o.value !== "__custom__").map(o => o.value);
+
   const openEditDialog = (product: VendorProduct) => {
     setSelectedProduct(product);
+    const dt = product.deliveryTime || "";
+    const isCustom = dt !== "" && !PRESET_VALUES.includes(dt);
+    setIsCustomDelivery(isCustom);
     setFormData({
       price: product.price.toString(),
       description: product.description || "",
       stockQuantity: product.stockQuantity.toString(),
-      deliveryTime: product.deliveryTime || "",
+      deliveryTime: dt,
       isActive: product.isActive,
+      priceOnRequest: product.priceOnRequest,
     });
     setIsEditOpen(true);
   };
@@ -403,8 +417,16 @@ export default function MyStoreProductsPage() {
                   <Label htmlFor="deliveryTime">Delivery Time</Label>
                   <ClientOnly>
                     <Select
-                      value={formData.deliveryTime}
-                      onValueChange={(value) => setFormData({ ...formData, deliveryTime: value })}
+                      value={isCustomDelivery ? "__custom__" : (formData.deliveryTime || undefined)}
+                      onValueChange={(value) => {
+                        if (value === "__custom__") {
+                          setIsCustomDelivery(true);
+                          setFormData({ ...formData, deliveryTime: "" });
+                        } else {
+                          setIsCustomDelivery(false);
+                          setFormData({ ...formData, deliveryTime: value });
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select delivery time" />
@@ -418,6 +440,14 @@ export default function MyStoreProductsPage() {
                       </SelectContent>
                     </Select>
                   </ClientOnly>
+                  {isCustomDelivery && (
+                    <Input
+                      placeholder="e.g., 4-6 hours, 10 days, etc."
+                      value={formData.deliveryTime}
+                      onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description (optional)</Label>
@@ -438,6 +468,16 @@ export default function MyStoreProductsPage() {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   <Label htmlFor="isActive">Active (visible in marketplace)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="priceOnRequest"
+                    checked={formData.priceOnRequest}
+                    onChange={(e) => setFormData({ ...formData, priceOnRequest: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="priceOnRequest">Price on Request (hide price, owners must request)</Label>
                 </div>
               </div>
             )}
@@ -531,7 +571,11 @@ export default function MyStoreProductsPage() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm">
-                    {formatPrice(product.price)}
+                    {product.priceOnRequest ? (
+                      <Badge variant="outline" className="text-xs">On Request</Badge>
+                    ) : (
+                      formatPrice(product.price)
+                    )}
                   </TableCell>
                   <TableCell className="px-2 sm:px-4 text-xs sm:text-sm">
                     {product.stockQuantity}
@@ -635,8 +679,19 @@ export default function MyStoreProductsPage() {
                 <Label htmlFor="edit-deliveryTime">Delivery Time</Label>
                 <ClientOnly>
                   <Select
-                    value={formData.deliveryTime || "__none__"}
-                    onValueChange={(value) => setFormData({ ...formData, deliveryTime: value === "__none__" ? "" : value })}
+                    value={isCustomDelivery ? "__custom__" : (formData.deliveryTime || "__none__")}
+                    onValueChange={(value) => {
+                      if (value === "__none__") {
+                        setIsCustomDelivery(false);
+                        setFormData({ ...formData, deliveryTime: "" });
+                      } else if (value === "__custom__") {
+                        setIsCustomDelivery(true);
+                        setFormData({ ...formData, deliveryTime: "" });
+                      } else {
+                        setIsCustomDelivery(false);
+                        setFormData({ ...formData, deliveryTime: value });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select delivery time" />
@@ -651,6 +706,14 @@ export default function MyStoreProductsPage() {
                     </SelectContent>
                   </Select>
                 </ClientOnly>
+                {isCustomDelivery && (
+                  <Input
+                    placeholder="e.g., 4-6 hours, 10 days, etc."
+                    value={formData.deliveryTime}
+                    onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                    className="mt-2"
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-description">Description</Label>
@@ -670,6 +733,16 @@ export default function MyStoreProductsPage() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <Label htmlFor="edit-isActive">Active (visible in marketplace)</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-priceOnRequest"
+                  checked={formData.priceOnRequest}
+                  onChange={(e) => setFormData({ ...formData, priceOnRequest: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="edit-priceOnRequest">Price on Request (hide price, owners must request)</Label>
               </div>
             </div>
           )}

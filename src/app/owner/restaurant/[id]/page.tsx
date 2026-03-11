@@ -28,6 +28,7 @@ interface Restaurant {
   address: string;
   city: string;
   pincode: string | null;
+  outletType: string | null;
   restaurantImageUrl: string | null;
   fssaiNumber: string | null;
   fssaiCertificateUrl: string | null;
@@ -220,6 +221,12 @@ export default function RestaurantDetailPage({
                 <p className="text-sm text-muted-foreground">City</p>
                 <p className="font-medium">{restaurant.city}</p>
               </div>
+              {restaurant.outletType && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Outlet Type</p>
+                  <Badge variant="outline" className="mt-1">{restaurant.outletType.replace(/_/g, ' ')}</Badge>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Created</p>
                 <p className="font-medium">

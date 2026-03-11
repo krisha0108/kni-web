@@ -205,6 +205,12 @@ enum EngineerRatingCategory {
   PROBLEM_SOLVING
 }
 
+enum PriceUnlockStatus {
+  PENDING
+  UNLOCKED
+  DECLINED
+}
+
 // ========================================
 // A) AUTH
 // ========================================
@@ -282,6 +288,7 @@ model User {
   marketplaceCarts              MarketplaceCart[]            @relation("MarketplaceCarts")
   ownerPayments                 MarketplacePayment[]         @relation("OwnerPayments")
   vendorPayments                MarketplacePayment[]         @relation("VendorPayments")
+  priceUnlockRequests           PriceUnlockRequest[]         @relation("OwnerPriceUnlocks")
 
   @@index([email])
   @@index([role])
@@ -430,7 +437,7 @@ model ServiceItem {
   subCategoryId String?
   name          String
   description   String?
-  price         Int // in paise (1 INR = 100 paise)
+  price         Int // in rupees
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -453,7 +460,7 @@ model PartItem {
   name          String
   description   String?
   imageUrl      String?
-  price         Int // in paise
+  price         Int // in rupees
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -486,6 +493,7 @@ model Restaurant {
   restaurantImageUrl  String?
   fssaiNumber         String?
   fssaiCertificateUrl String?
+  outletType          String?
   status              RestaurantStatus @default(PENDING)
   rejectionReason     String?
   createdAt           DateTime         @default(now())
@@ -513,6 +521,7 @@ model Restaurant {
   supportTickets    SupportTicket[]
   amcRequests       AMCRequest[]
   amcContracts      AMCContract[]
+  priceUnlockRequests PriceUnlockRequest[]
 
   @@index([ownerId])
   @@index([status])
@@ -691,7 +700,7 @@ model EngineerAssignment {
   respondedAt      DateTime?
   completedAt      DateTime?
   rejectionReason  String?                  @db.Text // Mandatory when status is REJECTED
-  commissionAmount Int?                     // Commission in paise (earned when completed)
+  commissionAmount Int?                     // Commission in rupees (earned when completed)
   commissionRate   Int                      @default(20) // Commission percentage (default 20%)
   servicePin           String?              // 4-digit PIN for start/complete verification
   servicePinExpiresAt  DateTime?            // PIN expires in 10 minutes
@@ -733,7 +742,7 @@ model JobPartUsed {
   workLogId    String
   partItemId   String
   qty          Int
-  priceSnapshot Int     // Price at time of use (in paise)
+  priceSnapshot Int     // Price at time of use (in rupees)
   createdAt    DateTime @default(now())
 
   workLog  EngineerWorkLog @relation(fields: [workLogId], references: [id], onDelete: Cascade)
@@ -841,7 +850,7 @@ model VendorProduct {
   unit          String?
   imageUrl      String?
   // End legacy fields
-  price         Int       // in paise (vendor sets this)
+  price         Int       // in rupees (vendor sets this)
   minOrderQty   Int       @default(1)  // Minimum order quantity
   description   String?   @db.Text  // Vendor can customize description
   stockQuantity Int       @default(0)
@@ -852,16 +861,43 @@ model VendorProduct {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
+  priceOnRequest    Boolean   @default(false) // KNI Official Store only - hide price, show "Price on Request"
+
   vendor            User                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   product           MarketplaceProduct?      @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems        MarketplaceOrderItem[]
   cartItems         MarketplaceCartItem[]
+  priceUnlockRequests PriceUnlockRequest[]
 
   @@index([vendorId])
   @@index([productId])
   @@index([isActive])
   @@index([isAvailable])
   @@index([categoryId])
+}
+
+model PriceUnlockRequest {
+  id              String            @id @default(cuid())
+  ownerId         String
+  restaurantId    String
+  vendorProductId String
+  quantity        Int?              // Owner can mention required quantity
+  message         String?           @db.Text // Owner's message to admin
+  status          PriceUnlockStatus @default(PENDING)
+  unlockedPrice   Int?              // Custom price set by admin (in rupees)
+  validUntil      DateTime?         // Price expiry date
+  adminNote       String?           @db.Text // Admin's note to owner
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  owner       User          @relation("OwnerPriceUnlocks", fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurant  Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  product     VendorProduct @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, vendorProductId])
+  @@index([vendorProductId])
+  @@index([status])
+  @@index([restaurantId])
 }
 
 model MarketplaceOrder {
@@ -901,7 +937,7 @@ model MarketplacePayment {
   ownerId          String
   vendorId         String
   restaurantId     String
-  totalAmount      Int                      // in paise
+  totalAmount      Int                      // in rupees
   items            Json                     // [{productId, qty, priceSnapshot, name}]
   deliveryAddress  String?                  @db.Text
   notes            String?                  @db.Text
@@ -1024,7 +1060,7 @@ model Payout {
   id           String       @id @default(cuid())
   assignmentId String       @unique
   engineerId   String
-  amount       Int // Payout amount in paise
+  amount       Int // Payout amount in rupees
   status       PayoutStatus @default(PENDING)
   paidAt       DateTime?
   paymentNote  String?      @db.Text // Admin notes about payment
@@ -1053,6 +1089,7 @@ enum EquipmentStatus {
 enum AMCDuration {
   MONTHLY
   QUARTERLY
+  HALF_YEARLY
   YEARLY
 }
 
@@ -1060,6 +1097,11 @@ enum AMCSubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+}
+
+enum AMCSource {
+  INTERNAL
+  EXTERNAL
 }
 
 enum StockMovementType {
@@ -1163,7 +1205,13 @@ model AMCSubscription {
   status          AMCSubscriptionStatus @default(ACTIVE)
   autoRenew       Boolean               @default(false)
   servicesUsed    Int                   @default(0)
-  totalAmount     Int // Cost in paise (owner can set their own pricing)
+  totalAmount     Int // Cost in rupees (owner can set their own pricing)
+  // Source tracking
+  source          AMCSource             @default(INTERNAL)
+  providerName    String?               // External provider name (e.g., "Voltas", "Blue Star")
+  providerContact String?               // External provider phone/email
+  contractNumber  String?               // External contract/reference number
+  documentUrl     String?               @db.Text // URL to uploaded contract document
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   cancelledAt     DateTime?
@@ -1180,6 +1228,7 @@ model AMCSubscription {
   @@index([planId])
   @@index([status])
   @@index([endDate])
+  @@index([source])
 }
 
 model AMCServiceUse {
@@ -1302,7 +1351,7 @@ model AMCProposal {
   exclusions          Json?      @default("[]")
   sparePartsPolicy    String?    @db.Text
 
-  // Pricing (in paise)
+  // Pricing (in rupees)
   monthlyPrice    Int
   quarterlyPrice  Int?
   annualPrice     Int?
@@ -1356,7 +1405,7 @@ model AMCContract {
   startDate      DateTime
   endDate        DateTime
   billingCycle   String      // MONTHLY / QUARTERLY / ANNUAL
-  amountPerCycle Int         // in paise
+  amountPerCycle Int         // in rupees
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1446,7 +1495,7 @@ model AMCBreakdownRequest {
   status          BreakdownStatus @default(REQUESTED)
   assignedVisitId String?
   resolvedAt      DateTime?
-  chargeAmount    Int?        // in paise, if chargeable
+  chargeAmount    Int?        // in rupees, if chargeable
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1554,7 +1603,7 @@ model Expense {
   ownerId         String
   restaurantId    String
   category        ExpenseCategory
-  amount          Int // in paise
+  amount          Int // in rupees
   expenseDate     DateTime
   description     String
   receiptImageUrl String?
@@ -1596,7 +1645,7 @@ model CashbookEntry {
   ownerId      String
   restaurantId String
   entryType    CashbookEntryType
-  amount       Int                // in paise
+  amount       Int                // in rupees
   paymentMode  PaymentMode        @default(CASH)
   category     String?            // Optional categorization
   description  String             @db.Text
@@ -1631,7 +1680,7 @@ model VendorLedger {
   vendorPhone    String?
   vendorGST      String?
   entryType      LedgerEntryType
-  amount         Int              // in paise
+  amount         Int              // in rupees
   paymentMode    PaymentMode?     // Only for PAYMENT entries
   description    String           @db.Text
   billNumber     String?
@@ -1680,8 +1729,8 @@ model Staff {
   status       StaffStatus  @default(ACTIVE)
   joiningDate  DateTime
   leavingDate  DateTime?
-  monthlySalary Int?        // in paise (for fixed salary)
-  dailyWage    Int?         // in paise (for daily wage workers)
+  monthlySalary Int?        // in rupees (for fixed salary)
+  dailyWage    Int?         // in rupees (for daily wage workers)
   address      String?      @db.Text
   aadharNumber String?
   panNumber    String?
@@ -1746,11 +1795,11 @@ model StaffSalary {
   restaurantId    String
   month           Int          // 1-12
   year            Int
-  basicSalary     Int          // in paise
-  allowances      Int          @default(0) // in paise
-  deductions      Int          @default(0) // in paise (advances, penalties)
-  totalPayable    Int          // in paise (basic + allowances - deductions)
-  totalPaid       Int          @default(0) // in paise
+  basicSalary     Int          // in rupees
+  allowances      Int          @default(0) // in rupees
+  deductions      Int          @default(0) // in rupees (advances, penalties)
+  totalPayable    Int          // in rupees (basic + allowances - deductions)
+  totalPaid       Int          @default(0) // in rupees
   status          SalaryStatus @default(PENDING)
   daysWorked      Int?
   totalDays       Int?
@@ -1935,7 +1984,7 @@ model KhatabookTransaction {
   entityType     String // "BOOKING", "ORDER", "EXPENSE", "PAYOUT", "AMC"
   entityId       String // ID of the booking/order/expense/payout
   khatabookId    String? // Khatabook's transaction ID after sync
-  amount         Int // Amount in paise
+  amount         Int // Amount in rupees
   description    String   @db.Text
   customerName   String?
   date           DateTime

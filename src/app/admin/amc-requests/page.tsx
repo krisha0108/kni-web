@@ -111,7 +111,7 @@ const statusLabels: Record<string, string> = {
 const planLabels: Record<string, string> = { BASIC: "Basic", STANDARD: "Standard", PREMIUM: "Premium" };
 const planColors: Record<string, string> = { BASIC: "bg-green-100 text-green-800", STANDARD: "bg-blue-100 text-blue-800", PREMIUM: "bg-purple-100 text-purple-800" };
 const frequencyLabels: Record<string, string> = { MONTHLY: "Monthly", BI_MONTHLY: "Bi-Monthly", QUARTERLY: "Quarterly" };
-const kitchenLabels: Record<string, string> = { CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine", HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering" };
+const kitchenLabels: Record<string, string> = { CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine", HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering", HOSPITAL: "Hospital", INDUSTRIES: "Industries", INSTITUTE: "Institute" };
 
 export default function AdminAMCRequestsPage() {
   const [mounted, setMounted] = useState(false);

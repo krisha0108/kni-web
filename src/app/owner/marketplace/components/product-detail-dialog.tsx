@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Minus, Store, Package } from "lucide-react";
+import { Plus, Minus, Store, Package, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "../types";
 
@@ -20,6 +20,7 @@ interface ProductDetailDialogProps {
   onAddToCart: (product: Product) => void;
   onUpdateQuantity: (productId: string, delta: number) => void;
   canCreate?: boolean;
+  onRequestPrice?: (product: Product) => void;
 }
 
 export function ProductDetailDialog({
@@ -30,6 +31,7 @@ export function ProductDetailDialog({
   onAddToCart,
   onUpdateQuantity,
   canCreate = true,
+  onRequestPrice,
 }: ProductDetailDialogProps) {
   if (!product) return null;
 
@@ -88,38 +90,101 @@ export function ProductDetailDialog({
             </span>
           </p>
 
+          {/* Delivery Time */}
+          {product.deliveryTime && (
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Delivery:</span>
+              <span className="font-medium">{product.deliveryTime}</span>
+            </div>
+          )}
+
           {/* Price & Cart Controls */}
           <div className="flex items-center justify-between pt-2 border-t">
-            <span className="text-2xl font-bold">{formatPrice(product.price)}</span>
-            {canCreate && (cartQuantity > 0 ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => onUpdateQuantity(product.id, -1)}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="w-8 text-center font-medium">{cartQuantity}</span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => onUpdateQuantity(product.id, 1)}
-                  disabled={cartQuantity >= product.stockQuantity}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+            {product.priceOnRequest && !product.canPurchase ? (
+              <>
+                <div>
+                  {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired ? (
+                    <span className="text-2xl font-bold">{formatPrice(product.priceUnlock.unlockedPrice)}</span>
+                  ) : (
+                    <Badge variant="outline">Price on Request</Badge>
+                  )}
+                </div>
+                {canCreate && (
+                  <>
+                    {!product.priceUnlock ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => onRequestPrice?.(product)}
+                      >
+                        Request Price
+                      </Button>
+                    ) : product.priceUnlock.status === "PENDING" ? (
+                      <Badge variant="secondary">Price Requested</Badge>
+                    ) : product.priceUnlock.status === "DECLINED" ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive">Declined</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onRequestPrice?.(product)}
+                        >
+                          Re-request
+                        </Button>
+                      </div>
+                    ) : product.priceUnlock.isExpired ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-orange-600">Expired</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onRequestPrice?.(product)}
+                        >
+                          Re-request
+                        </Button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </>
             ) : (
-              <Button
-                onClick={() => onAddToCart(product)}
-                disabled={product.stockQuantity === 0}
-              >
-                Add to Cart
-              </Button>
-            ))}
+              <>
+                <span className="text-2xl font-bold">
+                  {product.priceUnlock?.unlockedPrice
+                    ? formatPrice(product.priceUnlock.unlockedPrice)
+                    : formatPrice(product.price)}
+                </span>
+                {canCreate && (cartQuantity > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => onUpdateQuantity(product.id, -1)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center font-medium">{cartQuantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => onUpdateQuantity(product.id, 1)}
+                      disabled={cartQuantity >= product.stockQuantity}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => onAddToCart(product)}
+                    disabled={product.stockQuantity === 0}
+                  >
+                    Add to Cart
+                  </Button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

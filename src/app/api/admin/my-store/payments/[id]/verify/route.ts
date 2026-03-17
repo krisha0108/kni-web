@@ -192,6 +192,20 @@ export async function POST(
       linkUrl: "/owner/marketplace/orders",
     }).catch(console.error);
 
+    // Check for low stock after order (admin store)
+    for (const item of items) {
+      const product = await db.vendorProduct.findUnique({ where: { id: item.productId }, select: { id: true, name: true, stockQuantity: true } });
+      if (product && product.stockQuantity <= 10) {
+        createNotification({
+          userId: session.id,
+          title: "Low Stock Alert",
+          message: `"${product.name}" has only ${product.stockQuantity} units left in KNI Official Store.`,
+          type: "SYSTEM",
+          linkUrl: "/admin/my-store/products",
+        }).catch(console.error);
+      }
+    }
+
     return NextResponse.json({ ok: true, data: order });
   } catch (error) {
     console.error("Admin verify marketplace payment error:", error);

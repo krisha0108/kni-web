@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,27 +125,47 @@ export default function BookingDetailPage() {
   const userRole = selectedRestaurant?.role;
   const canUpdate = userRole === "OWNER" || userRole === "MANAGER";
 
-  const fetchBooking = async () => {
+  const fetchBooking = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const response = await fetch("/api/owner/bookings/" + bookingId);
       const data = await response.json();
       if (data.ok) {
         setBooking(data.data);
       } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-        router.push("/owner/bookings");
+        if (!silent) {
+          toast({ title: "Error", description: data.error, variant: "destructive" });
+          router.push("/owner/bookings");
+        }
       }
     } catch {
-      toast({ title: "Error", description: "Failed to load booking", variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Error", description: "Failed to load booking", variant: "destructive" });
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchBooking();
   }, [bookingId]);
+
+  // Auto-refresh polling every 30 seconds for non-terminal booking statuses
+  const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED"];
+  const isPollingActive = booking && !TERMINAL_STATUSES.includes(booking.status);
+
+  useEffect(() => {
+    if (!isPollingActive) return;
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchBooking(true);
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [isPollingActive, bookingId]);
 
   const openRatingDialog = (assignment: any) => {
     setAssignmentToRate(assignment);
@@ -199,9 +219,20 @@ export default function BookingDetailPage() {
           <h1 className="text-3xl font-bold">Booking Details</h1>
           <p className="text-muted-foreground font-mono">{booking.id}</p>
         </div>
-        <Badge variant={statusColors[booking.status]} className="text-sm py-1 px-3">
-          {getStatusLabel(booking.status)}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusColors[booking.status]} className="text-sm py-1 px-3">
+            {getStatusLabel(booking.status)}
+          </Badge>
+          {isPollingActive && (
+            <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              Live
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -117,12 +117,15 @@ export default function OwnerSupportPage() {
   }, [selectedRestaurant, statusFilter]);
 
   const fetchTickets = async () => {
+    if (!selectedRestaurant?.restaurantId) {
+      setTickets([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
-      if (selectedRestaurant) {
-        params.append("restaurantId", selectedRestaurant.restaurantId);
-      }
+      params.append("restaurantId", selectedRestaurant.restaurantId);
       if (statusFilter !== "all") {
         params.append("status", statusFilter);
       }

@@ -4,6 +4,7 @@ import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/res
 import { db } from "@/server/db";
 import { createVendorRating } from "@/server/ratings/service";
 import { z } from "zod";
+import { createNotification } from "@/server/notifications/service";
 
 const vendorRatingSchema = z.object({
   overallRating: z.number().min(1).max(5),
@@ -79,6 +80,16 @@ export async function POST(
       restaurantId: order.restaurantId,
       ...validation.data,
     });
+
+    // Notify vendor about new rating
+    createNotification({
+      userId: order.vendorId,
+      title: "New Rating Received",
+      message: `You received a ${validation.data.overallRating}/5 rating for order #${orderId.slice(0, 8)}.`,
+      type: "ORDER",
+      linkUrl: "/vendor/orders",
+      data: { type: "rating" },
+    }).catch(console.error);
 
     return NextResponse.json({
       ok: true,

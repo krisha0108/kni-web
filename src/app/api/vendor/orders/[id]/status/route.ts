@@ -6,6 +6,7 @@ import { MarketplaceOrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { cancellationReasonSchema } from "@/lib/validations/rejection";
 import { calculateCommission } from "@/lib/commission";
+import { createNotification } from "@/server/notifications/service";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -222,6 +223,36 @@ export async function PATCH(
     } catch (emailError) {
       // Log email error but don't fail the request
       console.error("Failed to send status update email:", emailError);
+    }
+
+    // Send in-app notification for status changes
+    if (newStatus === "DELIVERED") {
+      createNotification({
+        userId: result.ownerId,
+        title: "Order Delivered!",
+        message: `Your order from ${result.vendor.name} has been delivered to ${result.restaurant.name}.`,
+        type: "ORDER",
+        linkUrl: "/owner/marketplace/orders",
+        data: { type: "order", orderId: orderId },
+      }).catch(console.error);
+    } else if (newStatus === "CONFIRMED") {
+      createNotification({
+        userId: result.ownerId,
+        title: "Order Confirmed",
+        message: `Your order from ${result.vendor.name} has been confirmed and is being prepared.`,
+        type: "ORDER",
+        linkUrl: "/owner/marketplace/orders",
+        data: { type: "order", orderId: orderId },
+      }).catch(console.error);
+    } else if (newStatus === "SHIPPED") {
+      createNotification({
+        userId: result.ownerId,
+        title: "Order Shipped",
+        message: `Your order from ${result.vendor.name} has been shipped.`,
+        type: "ORDER",
+        linkUrl: "/owner/marketplace/orders",
+        data: { type: "order", orderId: orderId },
+      }).catch(console.error);
     }
 
     return NextResponse.json({

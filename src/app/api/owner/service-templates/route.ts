@@ -31,67 +31,17 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Return sample templates if none found
+      // No templates found — return empty array
       return NextResponse.json({
         ok: true,
-        data: [
-          {
-            id: "t1",
-            name: "Routine Maintenance",
-            description: "Standard equipment check and maintenance service",
-            estimatedPrice: 150000,
-          },
-          {
-            id: "t2",
-            name: "Deep Cleaning",
-            description: "Thorough cleaning of equipment components",
-            estimatedPrice: 250000,
-          },
-          {
-            id: "t3",
-            name: "Emergency Repair",
-            description: "Urgent repair service with priority response",
-            estimatedPrice: 350000,
-          },
-          {
-            id: "t4",
-            name: "Installation Service",
-            description: "Professional equipment installation",
-            estimatedPrice: 500000,
-          },
-          {
-            id: "t5",
-            name: "Preventive Maintenance",
-            description: "Scheduled maintenance to prevent breakdowns",
-            estimatedPrice: 200000,
-          },
-        ],
+        data: [],
       });
     } catch (dbError) {
-      // Return sample data if database query fails
-      return NextResponse.json({
-        ok: true,
-        data: [
-          {
-            id: "t1",
-            name: "Routine Maintenance",
-            description: "Standard equipment check and maintenance service",
-            estimatedPrice: 150000,
-          },
-          {
-            id: "t2",
-            name: "Deep Cleaning",
-            description: "Thorough cleaning of equipment components",
-            estimatedPrice: 250000,
-          },
-          {
-            id: "t3",
-            name: "Emergency Repair",
-            description: "Urgent repair service with priority response",
-            estimatedPrice: 350000,
-          },
-        ],
-      });
+      console.error("Database error fetching service templates:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch service templates" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

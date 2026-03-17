@@ -237,7 +237,7 @@ export default function OwnerCartPage() {
                   <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 sm:p-3 rounded-lg border">
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-xs sm:text-sm truncate\">{payment.vendor.name}</span>
+                        <span className="font-medium text-xs sm:text-sm truncate">{payment.vendor.name}</span>
                         {payment.status === "PENDING" ? (
                           <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 text-xs shrink-0">
                             <Clock className="mr-1 h-3 w-3" />
@@ -459,6 +459,7 @@ export default function OwnerCartPage() {
         cartQuantity={selectedProduct ? getCartItemQuantity(selectedProduct.id) : 0}
         onAddToCart={addToCart}
         onUpdateQuantity={updateCartQuantity}
+        getCartItemQuantity={getCartItemQuantity}
         canCreate
       />
     </div>

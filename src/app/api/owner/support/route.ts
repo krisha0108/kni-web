@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
+import { createNotificationForRole } from "@/server/notifications/service";
 
 const createTicketSchema = z.object({
   restaurantId: z.string().optional(),
@@ -129,6 +130,15 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notify admins about new support ticket
+    createNotificationForRole(
+      "ADMIN",
+      "New Support Ticket",
+      `${session.name} created a support ticket: "${body.title}"`,
+      "SYSTEM",
+      `/admin/support/${ticket.id}`
+    ).catch(console.error);
 
     return NextResponse.json({ ok: true, data: ticket });
   } catch (error) {

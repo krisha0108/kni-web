@@ -36,7 +36,11 @@ export async function GET(request: NextRequest) {
         data: bookings,
       });
     } catch (dbError) {
-      return NextResponse.json({ ok: true, data: [] });
+      console.error("Database error fetching service requests:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch service requests" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {
@@ -115,19 +119,11 @@ export async function POST(request: NextRequest) {
         message: "Service request created successfully",
       });
     } catch (dbError: any) {
-      console.error("Database error:", dbError);
-
-      // Return success with mock data if database fails
-      return NextResponse.json({
-        ok: true,
-        data: {
-          id: `sr-${Date.now()}`,
-          restaurantId,
-          status: "PENDING",
-          createdAt: new Date().toISOString(),
-        },
-        message: "Service request submitted (demo mode)",
-      });
+      console.error("Database error creating service request:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to create service request" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

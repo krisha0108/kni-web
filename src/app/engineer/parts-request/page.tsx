@@ -273,6 +273,11 @@ export default function PartsRequestPage() {
       }
     } catch (error) {
       console.error("Failed to fetch parts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load parts catalog",
+        variant: "destructive",
+      });
     }
   };
 

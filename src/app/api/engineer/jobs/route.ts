@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineerMobile } from "@/server/auth/rbac";
+import { EngineerAssignmentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await requireEngineerMobile(request);
 
+    // W-B: Parse optional status filter from query params
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+
+    const where: { engineerId: string; status?: EngineerAssignmentStatus } = { engineerId: session.id };
+    if (status && Object.values(EngineerAssignmentStatus).includes(status as EngineerAssignmentStatus)) {
+      where.status = status as EngineerAssignmentStatus;
+    }
+
     const assignments = await db.engineerAssignment.findMany({
-      where: { engineerId: session.id },
+      where,
       include: {
         booking: {
           include: {

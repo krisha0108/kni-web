@@ -31,59 +31,17 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // If no notifications found, return sample data
+      // No notifications found — return empty array
       return NextResponse.json({
         ok: true,
-        data: [
-          {
-            id: "1",
-            title: "Booking Confirmed",
-            message: "Your service booking has been confirmed for tomorrow at 10:00 AM",
-            type: "BOOKING",
-            isRead: false,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            title: "Payment Received",
-            message: "Payment of ₹2,500 has been successfully processed",
-            type: "PAYMENT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-          },
-          {
-            id: "3",
-            title: "Service Completed",
-            message: "Your equipment maintenance has been completed successfully",
-            type: "SUCCESS",
-            isRead: true,
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-          },
-        ],
+        data: [],
       });
     } catch (dbError) {
-      // Return sample data if database query fails
-      return NextResponse.json({
-        ok: true,
-        data: [
-          {
-            id: "1",
-            title: "Booking Confirmed",
-            message: "Your service booking has been confirmed for tomorrow at 10:00 AM",
-            type: "BOOKING",
-            isRead: false,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            title: "Payment Received",
-            message: "Payment of ₹2,500 has been successfully processed",
-            type: "PAYMENT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-          },
-        ],
-      });
+      console.error("Database error fetching notifications:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch notifications" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

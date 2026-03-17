@@ -15,6 +15,7 @@ import { Bell, LogOut, User, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RestaurantSwitcher } from "@/components/restaurant-switcher";
+import { GlobalSearch } from "@/components/global-search";
 
 interface TopbarProps {
   user: {
@@ -72,6 +73,7 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
       )}
 
       <div className="flex items-center gap-2 sm:gap-4">
+        {user.role === "OWNER" && <GlobalSearch />}
         <NotificationBell />
 
         <DropdownMenu>

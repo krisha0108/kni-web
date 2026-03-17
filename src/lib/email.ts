@@ -815,6 +815,59 @@ export async function sendPasswordResetCode(
   });
 }
 
+// 12. Launch Pad Inquiry Response Email
+export async function sendLaunchPadResponseEmail(
+  to: string,
+  inquiryPersonName: string,
+  businessType: string,
+  subject: string,
+  messageBody: string,
+  senderName: string,
+  portalUrl?: string,
+): Promise<void> {
+  const content = `
+    <h2>${subject}</h2>
+    <p>Hello ${inquiryPersonName},</p>
+
+    <p>Thank you for your interest in starting your <strong>${businessType.replace(/_/g, " ").toLowerCase()}</strong> business with KNI!</p>
+
+    <div class="info-box">
+      ${messageBody.split("\n").map((line: string) => `<p>${line}</p>`).join("")}
+    </div>
+
+    ${portalUrl ? `
+    <div class="divider"></div>
+    <div style="text-align: center; margin: 20px 0;">
+      <p>You can view your inquiry details and reply directly:</p>
+      <a href="${portalUrl}" style="display: inline-block; padding: 14px 32px; background: #EF3A3A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">View & Reply to Your Inquiry</a>
+    </div>
+    ` : ""}
+
+    <div class="divider"></div>
+
+    <h3>What KNI Can Help You With:</h3>
+    <ul>
+      <li><strong>Kitchen Design & Layout</strong> — Optimized for your business type</li>
+      <li><strong>Equipment Sourcing</strong> — Quality commercial equipment at best prices</li>
+      <li><strong>AMC & Maintenance</strong> — Keep your kitchen running smoothly</li>
+      <li><strong>Manpower Sourcing</strong> — Trained kitchen professionals</li>
+    </ul>
+
+    <a href="${APP_URL}/landing/launchpad.html" class="button">Visit Launch Pad</a>
+
+    <div class="divider"></div>
+
+    <p>If you have any questions, feel free to reply to this email or call us directly.</p>
+    <p>Best regards,<br>${senderName}<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `${subject} - KNI Launch Pad`,
+    html: emailTemplate(content, "KNI Launch Pad"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -827,4 +880,5 @@ export default {
   sendOrderStatusUpdateEmail,
   sendEmailVerificationCode,
   sendPasswordResetCode,
+  sendLaunchPadResponseEmail,
 };

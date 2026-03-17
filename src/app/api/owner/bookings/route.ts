@@ -4,6 +4,7 @@ import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 import { sendBookingConfirmationEmail } from "@/lib/email";
+import { createNotification, createNotificationForRole } from "@/server/notifications/service";
 
 const itemSchema = z.object({
   itemType: z.enum(["SERVICE", "PART"]),
@@ -336,6 +337,25 @@ export async function POST(request: NextRequest) {
     ).catch((error) => {
       console.error("Failed to send booking confirmation email:", error);
     });
+
+    // Notify admins about new booking
+    createNotificationForRole(
+      "ADMIN",
+      "New Booking - Payment Pending",
+      `${session.name} created a booking for ${restaurant.name}. Amount: ₹${finalAmount.toLocaleString('en-IN')}`,
+      "BOOKING",
+      `/admin/bookings/${booking.id}`
+    ).catch(console.error);
+
+    // Confirm to owner
+    createNotification({
+      userId: session.id,
+      title: "Booking Created",
+      message: `Your booking for ${restaurant.name} has been created. Please upload payment proof.`,
+      type: "BOOKING",
+      linkUrl: `/owner/bookings/${booking.id}`,
+      data: { type: "booking", bookingId: booking.id },
+    }).catch(console.error);
 
     return NextResponse.json({ ok: true, data: booking });
   } catch (error) {

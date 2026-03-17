@@ -32,6 +32,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, data: cities });
     }
 
+    if (type === "city-lookup") {
+      const cityName = searchParams.get("cityName");
+      if (!cityName) {
+        return NextResponse.json(
+          { ok: false, error: "cityName is required" },
+          { status: 400 }
+        );
+      }
+      const city = await db.serviceCity.findFirst({
+        where: { name: cityName, isActive: true },
+        select: { id: true, name: true, stateId: true },
+      });
+      return NextResponse.json({ ok: true, data: city });
+    }
+
     if (type === "areas") {
       if (!cityId) {
         return NextResponse.json(

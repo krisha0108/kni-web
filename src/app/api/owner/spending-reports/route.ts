@@ -86,38 +86,11 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      // If database query fails, return sample data
-      return NextResponse.json({
-        ok: true,
-        data: {
-          totalSpending: 125000,
-          previousPeriodSpending: 115000,
-          categoryBreakdown: [
-            { category: "Services", amount: 45000, percentage: 36 },
-            { category: "Parts", amount: 30000, percentage: 24 },
-            { category: "AMC", amount: 25000, percentage: 20 },
-            { category: "Marketplace", amount: 15000, percentage: 12 },
-            { category: "Other", amount: 10000, percentage: 8 },
-          ],
-          monthlyTrend: [
-            { month: "Jan", amount: 18000 },
-            { month: "Feb", amount: 22000 },
-            { month: "Mar", amount: 19000 },
-            { month: "Apr", amount: 25000 },
-            { month: "May", amount: 21000 },
-            { month: "Jun", amount: 20000 },
-          ],
-          topExpenses: [
-            { id: "1", description: "Deep Cleaning Service", category: "Services", amount: 15000, date: new Date().toISOString() },
-            { id: "2", description: "Compressor Repair", category: "Parts", amount: 12000, date: new Date().toISOString() },
-            { id: "3", description: "Annual AMC Renewal", category: "AMC", amount: 25000, date: new Date().toISOString() },
-          ],
-          serviceSpending: 45000,
-          partsSpending: 30000,
-          amcSpending: 25000,
-          marketplaceSpending: 15000,
-        },
-      });
+      console.error("Database error fetching spending reports:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch spending reports" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

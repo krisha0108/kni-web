@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineer } from "@/server/auth/rbac";
+import { requireEngineerMobile } from "@/server/auth/rbac";
 import { notifyOwnerServiceCompleted, createNotificationForRole } from "@/server/notifications/service";
 import { Role, NotificationType } from "@prisma/client";
 import { calculateCommission } from "@/lib/commission";
@@ -11,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineer();
+    const session = await requireEngineerMobile(request);
     const { id } = await params;
 
     // Verify assignment belongs to this engineer and is accepted
@@ -31,6 +31,8 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    const engProfile = await db.engineerProfile.findUnique({ where: { userId: session.id } });
 
     if (assignment.status !== "ACCEPTED") {
       return NextResponse.json(
@@ -64,13 +66,14 @@ export async function POST(
       );
     }
 
-    // Calculate commission based on booking total amount
-    const commissionAmount = calculateCommission(
-      assignment.booking.totalAmount,
-      assignment.commissionRate
-    );
+    // Calculate commission based on booking total amount and payout method
+    const isSalaryBased = engProfile?.payoutMethod === "SALARY";
+    const commissionAmount = isSalaryBased
+      ? 0
+      : calculateCommission(assignment.booking.totalAmount, assignment.commissionRate);
 
-    await db.$transaction([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transactionOps: any[] = [
       db.engineerAssignment.update({
         where: { id },
         data: {
@@ -90,15 +93,23 @@ export async function POST(
           proofImageUrls: proofImageUrls,
         },
       }),
-      db.payout.create({
-        data: {
-          assignmentId: id,
-          engineerId: assignment.engineerId,
-          amount: commissionAmount,
-          status: "PENDING",
-        },
-      }),
-    ]);
+    ];
+
+    // Only create payout for commission-based engineers
+    if (!isSalaryBased) {
+      transactionOps.push(
+        db.payout.create({
+          data: {
+            assignmentId: id,
+            engineerId: assignment.engineerId,
+            amount: commissionAmount,
+            status: "PENDING",
+          },
+        })
+      );
+    }
+
+    await db.$transaction(transactionOps);
 
     // Notify owner
     await notifyOwnerServiceCompleted(

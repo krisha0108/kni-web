@@ -60,36 +60,41 @@ export async function POST(
       );
     }
 
-    // Check if service limit reached (0 = unlimited)
-    if (subscription.serviceLimit > 0 && subscription.servicesUsed >= subscription.serviceLimit) {
-      return NextResponse.json(
-        { ok: false, error: "Service limit reached for this AMC" },
-        { status: 400 }
-      );
-    }
-
     // Create service use log and increment servicesUsed in a transaction
-    const [serviceUse] = await db.$transaction([
-      db.aMCServiceUse.create({
+    // Service limit check is inside the transaction to prevent race conditions
+    const serviceUse = await db.$transaction(async (tx) => {
+      const current = await tx.aMCSubscription.findUnique({
+        where: { id: amcId },
+        select: { servicesUsed: true, serviceLimit: true },
+      });
+
+      if (current && current.serviceLimit > 0 && current.servicesUsed >= current.serviceLimit) {
+        throw new Error("Service limit reached for this AMC");
+      }
+
+      const log = await tx.aMCServiceUse.create({
         data: {
           subscriptionId: amcId,
           serviceDate: new Date(validation.data.serviceDate),
           serviceType: validation.data.serviceType,
           notes: validation.data.notes || null,
         },
-      }),
-      db.aMCSubscription.update({
+      });
+
+      await tx.aMCSubscription.update({
         where: { id: amcId },
         data: { servicesUsed: { increment: 1 } },
-      }),
-    ]);
+      });
+
+      return log;
+    });
 
     return NextResponse.json({ ok: true, data: serviceUse });
   } catch (error) {
     console.error("Log AMC service error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : error instanceof Error && error.message.includes("Service limit reached") ? 400 : 500 }
     );
   }
 }

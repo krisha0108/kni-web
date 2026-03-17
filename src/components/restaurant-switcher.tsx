@@ -40,7 +40,7 @@ export function RestaurantSwitcher() {
         if (restaurant) selectRestaurant(restaurant);
       }}
     >
-      <SelectTrigger className="w-[140px] sm:w-[200px] lg:w-[240px] h-9">
+      <SelectTrigger data-tour="restaurant-selector" className="w-[140px] sm:w-[200px] lg:w-[240px] h-9">
         <div className="flex items-center gap-2 overflow-hidden">
           <Building2 className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
           <SelectValue placeholder="Select restaurant" className="truncate" />

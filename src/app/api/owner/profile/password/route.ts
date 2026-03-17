@@ -60,11 +60,11 @@ export async function PUT(request: NextRequest) {
         message: "Password changed successfully",
       });
     } catch (dbError) {
-      console.error("Database error:", dbError);
-      return NextResponse.json({
-        ok: true,
-        message: "Password changed (demo mode)",
-      });
+      console.error("Database error changing password:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to change password" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

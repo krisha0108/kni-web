@@ -42,34 +42,62 @@ export async function PATCH(
 
     if (action === "payment") {
       const validated = recordPaymentSchema.parse(body);
-      const newTotalPaid = existing.totalPaid + validated.amountPaid;
 
-      if (newTotalPaid > existing.totalPayable) {
+      // Pre-check: reject if payment would obviously exceed total payable
+      if (existing.totalPaid + validated.amountPaid > existing.totalPayable) {
         return NextResponse.json(
           { ok: false, error: "Payment amount exceeds total payable" },
           { status: 400 }
         );
       }
 
-      const newStatus = newTotalPaid >= existing.totalPayable ? "PAID" : "PARTIALLY_PAID";
-
-      const updated = await db.staffSalary.update({
-        where: { id },
-        data: {
-          totalPaid: newTotalPaid,
-          status: newStatus,
-        },
-        include: {
-          staff: {
-            select: {
-              id: true,
-              name: true,
-              designation: true,
-              staffType: true,
+      // Use a transaction with atomic increment to prevent race conditions
+      const updated = await db.$transaction(async (tx) => {
+        const record = await tx.staffSalary.update({
+          where: { id },
+          data: {
+            totalPaid: { increment: validated.amountPaid },
+          },
+          include: {
+            staff: {
+              select: {
+                id: true,
+                name: true,
+                designation: true,
+                staffType: true,
+              },
             },
           },
-        },
+        });
+
+        // Verify the increment didn't exceed totalPayable
+        if (record.totalPaid > record.totalPayable) {
+          throw new Error("Payment amount exceeds total payable");
+        }
+
+        // Update status based on actual new totalPaid
+        const newStatus = record.totalPaid >= record.totalPayable ? "PAID" : "PARTIALLY_PAID";
+        if (record.status !== newStatus) {
+          return tx.staffSalary.update({
+            where: { id },
+            data: { status: newStatus },
+            include: {
+              staff: {
+                select: {
+                  id: true,
+                  name: true,
+                  designation: true,
+                  staffType: true,
+                },
+              },
+            },
+          });
+        }
+
+        return { ...record, status: newStatus };
       });
+
+      const newStatus = updated.totalPaid >= updated.totalPayable ? "PAID" : "PARTIALLY_PAID";
 
       return NextResponse.json({
         ok: true,

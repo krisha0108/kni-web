@@ -428,6 +428,7 @@ export default function OwnerMarketplacePage() {
         cartQuantity={selectedProduct ? getCartItemQuantity(selectedProduct.id) : 0}
         onAddToCart={addToCart}
         onUpdateQuantity={updateCartQuantity}
+        getCartItemQuantity={getCartItemQuantity}
         canCreate={canCreate}
         onRequestPrice={(product) => {
           setIsProductDetailOpen(false);

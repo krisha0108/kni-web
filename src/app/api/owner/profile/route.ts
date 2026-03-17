@@ -37,19 +37,11 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      // Return sample data if database fails
-      return NextResponse.json({
-        ok: true,
-        data: {
-          id: session.id,
-          name: session.name || "Owner User",
-          email: session.email || "owner@example.com",
-          phone: "",
-          role: "OWNER",
-          first_name: (session.name || "").split(" ")[0] || "Owner",
-          last_name: (session.name || "").split(" ").slice(1).join(" ") || "",
-        },
-      });
+      console.error("Database error fetching profile:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch profile" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {
@@ -109,18 +101,11 @@ export async function PUT(request: NextRequest) {
         message: "Profile updated successfully",
       });
     } catch (dbError) {
-      console.error("Database error:", dbError);
-      // Return success for demo mode
-      return NextResponse.json({
-        ok: true,
-        data: {
-          id: session.id,
-          name: name || `${first_name || ""} ${last_name || ""}`.trim(),
-          email,
-          phone,
-        },
-        message: "Profile updated (demo mode)",
-      });
+      console.error("Database error updating profile:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to update profile" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

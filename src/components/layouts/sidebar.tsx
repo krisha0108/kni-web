@@ -45,6 +45,7 @@ import {
   AlertTriangle,
   ChevronDown,
   QrCode,
+  Rocket,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -109,7 +110,7 @@ export function Sidebar({ items, title, mobile = false }: SidebarProps) {
   };
 
   return (
-    <div className={cn(
+    <div data-tour="sidebar" className={cn(
       "flex flex-col w-64 border-r bg-card",
       mobile ? "h-full" : "hidden lg:flex lg:fixed lg:inset-y-0"
     )}>
@@ -289,6 +290,10 @@ export const adminSidebarItems: SidebarEntry[] = [
       { title: "AMC Breakdowns", href: "/admin/amc-breakdowns", icon: AlertTriangle },
     ],
   },
+
+  // ── Lead Management ──
+  { sectionTitle: "Lead Management" },
+  { title: "Launch Pad", href: "/admin/launchpad", icon: Rocket },
 
   // ── Others ──
   { sectionTitle: "Others" },

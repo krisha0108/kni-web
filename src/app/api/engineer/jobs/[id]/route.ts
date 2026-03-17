@@ -161,6 +161,7 @@ export async function POST(
     let completionNote: string | undefined;
     let proofImageUrls: string[] = [];
     let partsUsed: Array<{ partItemId: string; qty: number; priceSnapshot: number }> = [];
+    let partsUsedNames: string[] = []; // W3: Frontend-supplied part names (includes custom parts)
     let timeSpentSeconds: number | undefined;
     let workNotes: string | undefined;
 
@@ -185,6 +186,14 @@ export async function POST(
             { ok: false, error: "Invalid partsUsed format" },
             { status: 400 }
           );
+        }
+      }
+      const partsUsedNamesStr = formData.get("partsUsedNames") as string | null;
+      if (partsUsedNamesStr) {
+        try {
+          partsUsedNames = JSON.parse(partsUsedNamesStr);
+        } catch (e) {
+          // Ignore parse error
         }
       }
       const proofImageUrlsStr = formData.get("proofImageUrls") as string | null;
@@ -219,6 +228,7 @@ export async function POST(
       completionNote = body.completionNote;
       workNotes = body.workNotes;
       partsUsed = body.partsUsed || [];
+      partsUsedNames = Array.isArray(body.partsUsedNames) ? body.partsUsedNames : [];
       timeSpentSeconds = body.timeSpentSeconds;
       // Accept proofImageUrls as array from JSON
       if (Array.isArray(body.proofImageUrls)) {
@@ -340,12 +350,23 @@ export async function POST(
       }
 
       if (assignment.servicePin !== pin) {
-        await db.engineerAssignment.update({
+        const updated = await db.engineerAssignment.update({
           where: { id },
           data: { servicePinAttempts: { increment: 1 } },
+          select: { servicePinAttempts: true },
         });
+        if (updated.servicePinAttempts >= 5) {
+          await db.engineerAssignment.update({
+            where: { id },
+            data: { servicePin: null, servicePinExpiresAt: null, servicePinPurpose: null, servicePinAttempts: 0 },
+          });
+          return NextResponse.json(
+            { ok: false, error: "Too many wrong attempts. Please request a new PIN." },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
-          { ok: false, error: "Incorrect PIN. Please try again.", attemptsLeft: 5 - assignment.servicePinAttempts - 1 },
+          { ok: false, error: "Incorrect PIN. Please try again.", attemptsLeft: 5 - updated.servicePinAttempts },
           { status: 400 }
         );
       }
@@ -384,8 +405,8 @@ export async function POST(
           throw new Error("Booking not found");
         }
 
-        // Extract part names for display (before creating JobPartUsed records)
-        const partsUsedNames = partsUsed.map((p) => p.partItemId);
+        // W3: Use frontend-supplied part names (includes custom parts), fallback to partItemIds
+        const resolvedPartsUsedNames = partsUsedNames.length > 0 ? partsUsedNames : partsUsed.map((p) => p.partItemId);
 
         // Check if work log already exists (from starting work)
         const existingWorkLog = await tx.engineerWorkLog.findUnique({
@@ -402,7 +423,7 @@ export async function POST(
               workNotes: workNotes || null,
               proofImageUrls: proofImageUrls.length > 0 ? proofImageUrls : undefined,
               timeSpentSeconds: timeSpentSeconds || null,
-              partsUsedNames: partsUsedNames.length > 0 ? partsUsedNames : undefined,
+              partsUsedNames: resolvedPartsUsedNames.length > 0 ? resolvedPartsUsedNames : undefined,
               completedAt: new Date(),
             },
           });
@@ -415,7 +436,7 @@ export async function POST(
               workNotes: workNotes || null,
               proofImageUrls: proofImageUrls.length > 0 ? proofImageUrls : undefined,
               timeSpentSeconds: timeSpentSeconds || null,
-              partsUsedNames: partsUsedNames.length > 0 ? partsUsedNames : undefined,
+              partsUsedNames: resolvedPartsUsedNames.length > 0 ? resolvedPartsUsedNames : undefined,
               completedAt: new Date(),
             },
           });

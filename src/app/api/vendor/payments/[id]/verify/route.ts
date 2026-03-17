@@ -190,6 +190,31 @@ export async function POST(
       return newOrder;
     });
 
+    // Check for low stock after order
+    for (const item of items) {
+      const product = await db.vendorProduct.findUnique({ where: { id: item.productId }, select: { id: true, name: true, stockQuantity: true, vendorId: true } });
+      if (product && product.stockQuantity <= 10) {
+        createNotification({
+          userId: product.vendorId,
+          title: "Low Stock Alert",
+          message: `"${product.name}" has only ${product.stockQuantity} units left.`,
+          type: "SYSTEM",
+          linkUrl: "/vendor/products",
+          data: { type: "stock" },
+        }).catch(console.error);
+      }
+    }
+
+    // Notify vendor about new order
+    createNotification({
+      userId: payment.vendorId,
+      title: "New Order Received",
+      message: `New order from ${payment.owner.name} for ${payment.restaurant.name}. Amount: ₹${payment.totalAmount.toLocaleString('en-IN')}`,
+      type: "ORDER",
+      linkUrl: "/vendor/orders",
+      data: { type: "order" },
+    }).catch(console.error);
+
     // Notify owner
     createNotification({
       userId: payment.ownerId,

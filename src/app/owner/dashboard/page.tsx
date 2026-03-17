@@ -19,10 +19,22 @@ import {
   TrendingDown,
   Wrench,
   FileText,
-  AlertCircle
+  AlertCircle,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Store,
+  Settings2,
 } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { formatPrice } from "@/lib/utils";
+import { OnboardingTour } from "@/components/onboarding-tour";
+
+interface RevenueAnalyticsData {
+  monthlyTrend: Array<{ month: string; revenue: number; expenses: number; profit: number }>;
+  topSpendingCategories: Array<{ category: string; amount: number; count: number }>;
+  equipmentMaintenanceCost: Array<{ equipmentName: string; totalCost: number; serviceCount: number }>;
+  vendorSpendingComparison: Array<{ vendorName: string; totalSpent: number; orderCount: number }>;
+}
 
 interface AnalyticsData {
   summary: {
@@ -49,13 +61,16 @@ interface AnalyticsData {
 
 export default function OwnerDashboardPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [revenueData, setRevenueData] = useState<RevenueAnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRevenueLoading, setIsRevenueLoading] = useState(true);
   const [period, setPeriod] = useState("30");
   const { selectedRestaurant } = useRestaurant();
 
   useEffect(() => {
     if (selectedRestaurant) {
       fetchAnalytics();
+      fetchRevenueAnalytics();
     }
   }, [selectedRestaurant, period]);
 
@@ -75,6 +90,25 @@ export default function OwnerDashboardPage() {
       console.error("Failed to fetch analytics:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRevenueAnalytics = async () => {
+    if (!selectedRestaurant) return;
+
+    try {
+      setIsRevenueLoading(true);
+      const response = await fetch(
+        `/api/owner/analytics/revenue?restaurantId=${selectedRestaurant.restaurantId}&period=${period}`
+      );
+      const data = await response.json();
+      if (data.ok) {
+        setRevenueData(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch revenue analytics:", error);
+    } finally {
+      setIsRevenueLoading(false);
     }
   };
 
@@ -130,7 +164,8 @@ export default function OwnerDashboardPage() {
   const isProfit = netRevenue >= 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="dashboard-content">
+      <OnboardingTour />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Dashboard</h1>
@@ -363,6 +398,206 @@ export default function OwnerDashboardPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+      </div>
+
+      {/* ===== Enhanced Revenue Analytics ===== */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 pt-4 border-t">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          <h2 className="text-lg sm:text-xl font-semibold">Revenue Analytics</h2>
+        </div>
+
+        {isRevenueLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-muted-foreground">Loading revenue analytics...</p>
+          </div>
+        ) : !revenueData ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No revenue data available</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Monthly Revenue Trend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Monthly Revenue Trend
+                </CardTitle>
+                <CardDescription>Revenue vs Expenses over the last 6 months</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {revenueData.monthlyTrend.length > 0 ? (
+                  <div className="space-y-3">
+                    {(() => {
+                      const maxVal = Math.max(
+                        ...revenueData.monthlyTrend.flatMap((m) => [m.revenue, m.expenses]),
+                        1
+                      );
+                      return revenueData.monthlyTrend.map((item) => (
+                        <div key={item.month} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium w-10">{item.month}</span>
+                            <span className={`text-xs font-medium ${item.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              {item.profit >= 0 ? "+" : "-"}{formatPrice(Math.abs(item.profit))}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-16 shrink-0">Revenue</span>
+                            <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                              <div
+                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                style={{ width: `${(item.revenue / maxVal) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-20 text-right shrink-0">
+                              {formatPrice(item.revenue)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-16 shrink-0">Expenses</span>
+                            <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                              <div
+                                className="h-full bg-red-400 rounded-full transition-all duration-500"
+                                style={{ width: `${(item.expenses / maxVal) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-20 text-right shrink-0">
+                              {formatPrice(item.expenses)}
+                            </span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No data for this period</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Two-column grid for categories and equipment */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Top Spending Categories */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PieChartIcon className="h-4 w-4" />
+                    Top Spending Categories
+                  </CardTitle>
+                  <CardDescription>Where your money is going</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {revenueData.topSpendingCategories.length > 0 ? (
+                    <div className="space-y-3">
+                      {(() => {
+                        const maxAmount = Math.max(
+                          ...revenueData.topSpendingCategories.map((c) => c.amount),
+                          1
+                        );
+                        const colors = ["bg-blue-500", "bg-purple-500", "bg-amber-500", "bg-teal-500", "bg-pink-500"];
+                        return revenueData.topSpendingCategories.map((item, index) => (
+                          <div key={item.category} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{item.category}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">{item.count} entries</Badge>
+                                <span className="text-sm font-semibold">{formatPrice(item.amount)}</span>
+                              </div>
+                            </div>
+                            <div className="bg-muted rounded-full h-3 overflow-hidden">
+                              <div
+                                className={`h-full ${colors[index % colors.length]} rounded-full transition-all duration-500`}
+                                style={{ width: `${(item.amount / maxAmount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No expense data available</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Equipment Maintenance Cost */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    Equipment Maintenance Cost
+                  </CardTitle>
+                  <CardDescription>Top 5 equipment by maintenance spend</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {revenueData.equipmentMaintenanceCost.length > 0 ? (
+                    <div className="space-y-3">
+                      {revenueData.equipmentMaintenanceCost.map((item, index) => (
+                        <div
+                          key={item.equipmentName + index}
+                          className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 text-orange-600 text-xs font-bold shrink-0">
+                              {index + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{item.equipmentName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.serviceCount} service{item.serviceCount !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-semibold text-sm shrink-0 ml-2">{formatPrice(item.totalCost)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No maintenance data available</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Vendor Spending */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="h-4 w-4" />
+                  Vendor Spending
+                </CardTitle>
+                <CardDescription>Top 5 vendors by amount spent</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {revenueData.vendorSpendingComparison.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {revenueData.vendorSpendingComparison.map((item, index) => (
+                      <div
+                        key={item.vendorName + index}
+                        className="flex flex-col items-center p-4 rounded-lg border bg-card text-center"
+                      >
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100 text-blue-600 text-sm font-bold mb-2">
+                          {item.vendorName.charAt(0).toUpperCase()}
+                        </div>
+                        <p className="font-medium text-sm truncate w-full">{item.vendorName}</p>
+                        <p className="text-lg font-bold mt-1">{formatPrice(item.totalSpent)}</p>
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          {item.orderCount} order{item.orderCount !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No vendor order data available</p>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     </div>

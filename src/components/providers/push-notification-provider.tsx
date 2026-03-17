@@ -103,11 +103,14 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
           duration: 5000,
         });
 
-        // Play notification sound (optional)
-        const audio = new Audio("/notification.mp3");
-        audio.play().catch((error) => {
-          console.log("Could not play notification sound:", error);
-        });
+        // Play notification sound (optional — only if file exists)
+        try {
+          const audio = new Audio("/notification.mp3");
+          audio.addEventListener("canplaythrough", () => audio.play().catch(() => {}));
+          audio.addEventListener("error", () => {}); // Silently ignore missing file
+        } catch {
+          // Sound file not available, skip
+        }
       });
 
       return unsubscribe;

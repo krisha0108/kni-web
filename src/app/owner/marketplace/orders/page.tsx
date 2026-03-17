@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatPrice } from "@/lib/utils";
-import { Package, Store, MapPin, Calendar, Phone, Building2, Star, CreditCard, Clock, CheckCircle2, XCircle, Image as ImageIcon, Truck, ShoppingCart, ClipboardCheck, Cog, Ban, Upload } from "lucide-react";
+import { Package, Store, MapPin, Calendar, Phone, Building2, Star, CreditCard, Clock, CheckCircle2, XCircle, Image as ImageIcon, Truck, ShoppingCart, ClipboardCheck, Cog, Ban, Upload, FileDown } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { VendorRatingDialog } from "@/components/ratings/vendor-rating-dialog";
 
@@ -160,6 +160,27 @@ export default function OwnerMarketplaceOrdersPage() {
       fetchOrders();
       fetchPayments();
     }
+  }, [selectedRestaurant]);
+
+  // Auto-refresh orders and payments every 60 seconds when tab is visible
+  useEffect(() => {
+    if (!selectedRestaurant) return;
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        // Silent refresh - don't show loading spinners
+        fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}`)
+          .then(res => res.json())
+          .then(data => { if (data.ok) setOrders(data.data || []); })
+          .catch(() => {});
+        fetch(`/api/owner/marketplace/payments?restaurantId=${selectedRestaurant.restaurantId}`)
+          .then(res => res.json())
+          .then(data => { if (data.ok) setPayments(data.data || []); })
+          .catch(() => {});
+      }
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [selectedRestaurant]);
 
   const openOrderDetails = (order: Order) => {
@@ -731,6 +752,17 @@ export default function OwnerMarketplaceOrdersPage() {
           })()}
 
           <DialogFooter>
+            {["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(selectedOrder?.status || "") && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.open(`/api/owner/marketplace/orders/${selectedOrder?.id}/invoice`, "_blank");
+                }}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Invoice
+              </Button>
+            )}
             {selectedOrder?.status === "DELIVERED" && canCreate && (
               <Button
                 variant="default"

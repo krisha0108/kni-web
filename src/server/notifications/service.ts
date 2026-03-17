@@ -17,6 +17,8 @@ export interface CreateNotificationInput {
   message: string;
   type?: NotificationType;
   linkUrl?: string;
+  /** Extra key-value data for mobile deep-linking (type, bookingId, orderId, etc.) */
+  data?: Record<string, string>;
 }
 
 export async function createNotification(input: CreateNotificationInput) {
@@ -37,6 +39,7 @@ export async function createNotification(input: CreateNotificationInput) {
     body: input.message,
     linkUrl: input.linkUrl,
     notificationId: notification.id,
+    data: input.data,
   }).catch((error) => {
     console.error("Failed to send push notification:", error);
   });
@@ -58,7 +61,7 @@ export async function createNotificationForRole(
 
   if (users.length === 0) return [];
 
-  return db.notification.createMany({
+  const result = await db.notification.createMany({
     data: users.map((user) => ({
       userId: user.id,
       title,
@@ -67,6 +70,19 @@ export async function createNotificationForRole(
       linkUrl: linkUrl || null,
     })),
   });
+
+  // Send push notifications to all users with this role (non-blocking)
+  sendPushNotificationToMultipleUsers(
+    users.map((u) => u.id),
+    title,
+    message,
+    undefined,
+    linkUrl
+  ).catch((error) => {
+    console.error("Failed to send role-based push notifications:", error);
+  });
+
+  return result;
 }
 
 export async function getNotifications(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
+import { createNotification } from "@/server/notifications/service";
 
 const markPaidSchema = z.object({
   paymentNote: z.string().optional(),
@@ -64,6 +65,16 @@ export async function PATCH(
         },
       },
     });
+
+    // Notify engineer about payout
+    createNotification({
+      userId: updatedPayout.engineer.id,
+      title: "Payout Processed!",
+      message: `Your payout of ₹${updatedPayout.amount.toLocaleString('en-IN')} has been processed.${paymentNote ? ` Note: ${paymentNote}` : ''}`,
+      type: "PAYMENT",
+      linkUrl: "/engineer/earnings",
+      data: { type: "payout" },
+    }).catch(console.error);
 
     return NextResponse.json({ ok: true, data: updatedPayout });
   } catch (error) {

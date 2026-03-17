@@ -274,7 +274,7 @@ export default function AdminBookingDetailPage() {
   }
 
   const canVerifyPayment = booking.status === "PAYMENT_UPLOADED" && booking.paymentProof;
-  const canAssignEngineer = booking.status === "PAYMENT_VERIFIED" || booking.status === "ENGINEER_ASSIGNED";
+  const canAssignEngineer = booking.status === "PAYMENT_VERIFIED" || booking.status === "ENGINEER_ASSIGNED" || booking.status === "REJECTED_BY_ENGINEER";
 
   return (
     <div className="space-y-6">

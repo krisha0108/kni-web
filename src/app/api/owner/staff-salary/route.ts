@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     };
 
     if (staffId) where.staffId = staffId;
-    if (month) where.month = parseInt(month);
-    if (year) where.year = parseInt(year);
+    if (month) { const m = parseInt(month, 10); if (!isNaN(m)) where.month = m; }
+    if (year) { const y = parseInt(year, 10); if (!isNaN(y)) where.year = y; }
     if (status) where.status = status;
 
     const salaryRecords = await db.staffSalary.findMany({

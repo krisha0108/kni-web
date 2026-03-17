@@ -128,23 +128,11 @@ export async function POST(request: NextRequest) {
       terms,
     } = body;
 
-    // For now, return success without creating
-    // TODO: Create proper AMC management
-    return NextResponse.json({
-      ok: true,
-      data: {
-        id: "temp-" + Date.now(),
-        equipment_name,
-        vendor_name,
-        contract_number,
-        start_date,
-        end_date,
-        amount,
-        service_visits_included,
-        terms,
-      },
-      message: "AMC feature will be fully available soon",
-    });
+    // TODO: Create proper AMC management via this legacy endpoint
+    return NextResponse.json(
+      { ok: false, error: "AMC creation via this endpoint is not yet available. Use the equipment AMC flow instead." },
+      { status: 501 }
+    );
   } catch (error: any) {
     console.error("Create AMC error:", error);
     return NextResponse.json(

@@ -98,14 +98,14 @@ export default function EngineerCompletedPage() {
                 
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    {job.booking.restaurant.name}
+                    {job.booking?.restaurant?.name ?? "—"}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
-                    {job.booking.restaurant.address}
+                    {job.booking?.restaurant?.address ?? "—"}
                   </TableCell>
-                  
-                  <TableCell>{formatDate(job.booking.preferredDate)}</TableCell>
-                  <TableCell>{formatPrice(job.booking.totalAmount)}</TableCell>
+
+                  <TableCell>{formatDate(job.booking?.preferredDate)}</TableCell>
+                  <TableCell>{formatPrice(job.booking?.totalAmount ?? 0)}</TableCell>
                   <TableCell>{formatDate(job.completedAt)}</TableCell>
                   <TableCell>
                     <Button
@@ -147,13 +147,13 @@ export default function EngineerCompletedPage() {
         </div>
         <div className="border rounded-lg p-4">
           <div className="text-2xl font-bold">
-            {jobs.length > 0 ? formatPrice(jobs.reduce((sum, job) => sum + job.booking.totalAmount, 0)) : formatPrice(0)}
+            {jobs.length > 0 ? formatPrice(jobs.reduce((sum, job) => sum + (job.booking?.totalAmount ?? 0), 0)) : formatPrice(0)}
           </div>
           <div className="text-sm text-muted-foreground">Total Earnings</div>
         </div>
         <div className="border rounded-lg p-4">
           <div className="text-2xl font-bold">
-            {jobs.length > 0 ? Math.round(jobs.reduce((sum, job) => sum + job.booking.totalAmount, 0) / jobs.length) : 0}
+            {jobs.length > 0 ? formatPrice(jobs.reduce((sum, job) => sum + (job.booking?.totalAmount ?? 0), 0) / jobs.length) : formatPrice(0)}
           </div>
           <div className="text-sm text-muted-foreground">Avg per Job</div>
         </div>

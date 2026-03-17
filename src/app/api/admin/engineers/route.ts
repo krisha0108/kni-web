@@ -6,19 +6,32 @@ import bcrypt from "bcrypt";
 import { sendEngineerWelcomeEmail } from "@/lib/email";
 
 // Validation schema for engineer creation
-const createEngineerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  city: z.string().optional(),
-  skills: z.string().optional(),
-});
+const createEngineerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
+    city: z.string().optional(),
+    skills: z.string().optional(),
+    payoutMethod: z.enum(["COMMISSION", "SALARY"]).optional().default("COMMISSION"),
+    commissionRate: z.number().int().min(1).max(100).optional().default(20),
+    monthlySalary: z.number().int().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.payoutMethod === "SALARY" && !data.monthlySalary) {
+        return false;
+      }
+      return true;
+    },
+    { message: "monthlySalary is required when payoutMethod is SALARY", path: ["monthlySalary"] }
+  );
 
 export async function GET() {
   try {
@@ -35,6 +48,13 @@ export async function GET() {
         phone: true,
         isActive: true,
         createdAt: true,
+        engineerProfile: {
+          select: {
+            payoutMethod: true,
+            commissionRate: true,
+            monthlySalary: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     });
@@ -63,7 +83,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, phone, password, city, skills } = validation.data;
+    const { name, email, phone, password, city, skills, payoutMethod, commissionRate, monthlySalary } = validation.data;
 
     // Check if email already exists
     const existingUser = await db.user.findUnique({
@@ -93,6 +113,9 @@ export async function POST(req: NextRequest) {
           create: {
             city: city || null,
             skills: skills || null,
+            payoutMethod,
+            commissionRate,
+            monthlySalary: monthlySalary ?? null,
           },
         },
       },

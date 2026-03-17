@@ -64,28 +64,11 @@ export async function GET(request: NextRequest) {
         })),
       });
     } catch (dbError) {
-      // Return sample data if database fails
-      return NextResponse.json({
-        ok: true,
-        data: [
-          {
-            id: "1",
-            planName: "Standard Care",
-            planDescription: "Comprehensive maintenance",
-            equipmentId: "eq1",
-            equipmentName: "Commercial Oven",
-            restaurantName: "My Restaurant",
-            duration: "QUARTERLY",
-            status: "ACTIVE",
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-            servicesUsed: 2,
-            serviceLimit: 6,
-            totalAmount: 400000,
-            autoRenew: true,
-          },
-        ],
-      });
+      console.error("Database error fetching AMC subscriptions:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch AMC subscriptions" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {
@@ -183,17 +166,11 @@ export async function POST(request: NextRequest) {
         message: "AMC subscription created successfully",
       });
     } catch (dbError) {
-      console.error("Database error:", dbError);
-      return NextResponse.json({
-        ok: true,
-        data: {
-          id: `amc-${Date.now()}`,
-          equipmentId,
-          planName,
-          status: "ACTIVE",
-        },
-        message: "AMC subscription created (demo mode)",
-      });
+      console.error("Database error creating AMC subscription:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to create AMC subscription" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

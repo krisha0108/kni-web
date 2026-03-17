@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
+import { createNotification, createNotificationForRole } from "@/server/notifications/service";
 
 const createThreadSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -146,6 +147,16 @@ export async function POST(
       where: { id },
       data: { updatedAt: new Date() },
     });
+
+    // Notify: if owner replied → notify admins; if admin → notify ticket owner
+    const ticketForNotify = await db.supportTicket.findUnique({ where: { id }, select: { ownerId: true, title: true } });
+    if (ticketForNotify) {
+      if (session.role === "ADMIN") {
+        createNotification({ userId: ticketForNotify.ownerId, title: "Support Reply", message: `Admin replied to your ticket: "${ticketForNotify.title}"`, type: "SYSTEM", linkUrl: `/owner/support`, data: { type: "support", ticketId: id } }).catch(console.error);
+      } else {
+        createNotificationForRole("ADMIN", "Support Reply", `${session.name} replied to ticket: "${ticketForNotify.title}"`, "SYSTEM", `/admin/support/${id}`).catch(console.error);
+      }
+    }
 
     return NextResponse.json({ ok: true, data: thread });
   } catch (error: any) {

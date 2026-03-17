@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Pencil } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface Engineer {
@@ -24,6 +24,11 @@ interface Engineer {
   phone: string;
   isActive: boolean;
   createdAt: string;
+  engineerProfile: {
+    payoutMethod: string;
+    commissionRate: number;
+    monthlySalary: number | null;
+  } | null;
 }
 
 export default function AdminEngineersPage() {
@@ -109,21 +114,22 @@ export default function AdminEngineersPage() {
                 <TableHead className="px-2 sm:px-4 hidden md:table-cell">Email</TableHead>
                 <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Phone</TableHead>
                 <TableHead className="px-2 sm:px-4">Status</TableHead>
+                <TableHead className="px-2 sm:px-4 hidden md:table-cell">Payout</TableHead>
                 <TableHead className="px-2 sm:px-4 hidden md:table-cell">Registered</TableHead>
-                <TableHead className="px-2 sm:px-4 w-[100px] sm:w-[120px]">Actions</TableHead>
+                <TableHead className="px-2 sm:px-4 w-[100px] sm:w-[160px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : engineers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No engineers found
                   </TableCell>
                 </TableRow>
@@ -144,18 +150,35 @@ export default function AdminEngineersPage() {
                         {engineer.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell px-2 sm:px-4">
+                      {engineer.engineerProfile?.payoutMethod === "SALARY" ? (
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">Salary ₹{(engineer.engineerProfile.monthlySalary || 0).toLocaleString('en-IN')}/mo</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">Commission {engineer.engineerProfile?.commissionRate || 20}%</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden md:table-cell px-2 sm:px-4 text-xs sm:text-sm">
                       {formatDate(engineer.createdAt)}
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">
-                      <Button
-                        size="sm"
-                        variant={engineer.isActive ? "destructive" : "default"}
-                        onClick={() => toggleStatus(engineer.id, engineer.isActive)}
-                        className="text-xs sm:text-sm h-8"
-                      >
-                        {engineer.isActive ? "Deactivate" : "Activate"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(`/admin/engineers/${engineer.id}/edit`)}
+                          className="text-xs sm:text-sm h-8"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={engineer.isActive ? "destructive" : "default"}
+                          onClick={() => toggleStatus(engineer.id, engineer.isActive)}
+                          className="text-xs sm:text-sm h-8"
+                        >
+                          {engineer.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

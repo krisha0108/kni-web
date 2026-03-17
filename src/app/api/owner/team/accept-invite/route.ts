@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { acceptInviteSchema } from "@/server/validators/team";
 import bcrypt from "bcryptjs";
+import { createNotification } from "@/server/notifications/service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,6 +87,19 @@ export async function POST(request: NextRequest) {
         inviteExpiresAt: null,
       },
     });
+
+    // Notify the restaurant owner that team member accepted
+    const restaurantForNotify = await db.restaurant.findUnique({ where: { id: membership.restaurantId }, select: { ownerId: true, name: true } });
+    if (restaurantForNotify?.ownerId) {
+      createNotification({
+        userId: restaurantForNotify.ownerId,
+        title: "Team Member Joined",
+        message: `${membership.user.name} has accepted the invitation to join ${restaurantForNotify.name}.`,
+        type: "SYSTEM",
+        linkUrl: "/owner/team",
+        data: { type: "team" },
+      }).catch(console.error);
+    }
 
     return NextResponse.json({
       ok: true,

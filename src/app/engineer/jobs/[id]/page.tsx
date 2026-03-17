@@ -145,6 +145,7 @@ export default function EngineerJobDetailPage() {
   const [timeSpent, setTimeSpent] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const pinForCompleteRef = useRef("");
 
   // Parts state - now stores objects with id and name
   const [usedParts, setUsedParts] = useState<PartUsed[]>([]);
@@ -176,6 +177,14 @@ export default function EngineerJobDetailPage() {
           if (data.data.workLog.timeSpentSeconds) {
             setTimeSpent(data.data.workLog.timeSpentSeconds);
           }
+          // W2: Auto-resume timer if job is IN_PROGRESS with startedAt but no completedAt
+          if (
+            data.data.status === "IN_PROGRESS" &&
+            data.data.workLog.startedAt &&
+            !data.data.workLog.completedAt
+          ) {
+            setIsTimerRunning(true);
+          }
           // partsUsed from backend is array of part names/IDs
           // We convert them back to PartUsed objects if possible
           if (data.data.workLog.partsUsedNames && Array.isArray(data.data.workLog.partsUsedNames)) {
@@ -201,6 +210,26 @@ export default function EngineerJobDetailPage() {
   useEffect(() => {
     fetchJob();
   }, [jobId]);
+
+  // Auto-refresh polling every 30 seconds for active job statuses
+  const ACTIVE_JOB_STATUSES = ["PENDING", "ACCEPTED", "IN_PROGRESS"];
+  const isJobPollingActive = job && ACTIVE_JOB_STATUSES.includes(job.status);
+
+  useEffect(() => {
+    if (!isJobPollingActive) return;
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        // Silent re-fetch (don't reset loading state)
+        fetch("/api/engineer/jobs/" + jobId)
+          .then(res => res.json())
+          .then(data => { if (data.ok) setJob(data.data); })
+          .catch(() => {});
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [isJobPollingActive, jobId]);
 
   // Timer effect
   useEffect(() => {
@@ -284,7 +313,8 @@ export default function EngineerJobDetailPage() {
         setIsStartingWork(false);
       }
     } else {
-      // COMPLETE - close PIN modal and open complete dialog with PIN stored
+      // COMPLETE - save PIN before clearing, then close PIN modal and open complete dialog
+      pinForCompleteRef.current = pinValue;
       setIsPinModalOpen(false);
       setIsCompleteOpen(true);
     }
@@ -344,11 +374,12 @@ export default function EngineerJobDetailPage() {
 
     setIsCompleting(true);
     try {
-      // Build completion note with time and parts info
+      // W6: Build completion note - conditionally include workNotes
       const partNames = usedParts.map((p) => p.name).join(", ");
-      const completionNote = `${workNotes}\n\nTime Spent: ${formatTime(timeSpent)}${usedParts.length > 0 ? `\nParts Used: ${partNames}` : ""}`;
+      const notesPart = workNotes.trim() ? workNotes.trim() + '\n\n' : '';
+      const completionNote = `${notesPart}Time Spent: ${formatTime(timeSpent)}${usedParts.length > 0 ? `\nParts Used: ${partNames}` : ""}`;
 
-      // Filter to only include parts with valid UUIDs (not custom parts)
+      // W3: Filter to only include parts with valid UUIDs (not custom parts) for JobPartUsed records
       const validParts = usedParts
         .filter((part) => !part.id.startsWith("custom-"))
         .map((part) => ({
@@ -357,15 +388,19 @@ export default function EngineerJobDetailPage() {
           priceSnapshot: part.price || 0,
         }));
 
+      // W3: Send ALL part names (including custom) as strings for workLog display
+      const allPartNames = usedParts.map((p) => p.name);
+
       const response = await fetch("/api/engineer/jobs/" + jobId, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "complete",
-          pin: pinValue,
+          pin: pinForCompleteRef.current, // W1: Use saved PIN from ref
           completionNote: completionNote.trim(),
           proofImageUrls,
           partsUsed: validParts,
+          partsUsedNames: allPartNames, // W3: All part names including custom
           timeSpentSeconds: timeSpent,
           workNotes: workNotes,
         }),
@@ -379,6 +414,7 @@ export default function EngineerJobDetailPage() {
         setProofImageUrls([]);
         setUsedParts([]);
         setTimeSpent(0);
+        pinForCompleteRef.current = ""; // W1: Clear saved PIN
         fetchJob();
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
@@ -422,12 +458,23 @@ export default function EngineerJobDetailPage() {
           <h1 className="text-3xl font-bold">Job Details</h1>
           <p className="text-muted-foreground">{job.booking.restaurant.name}</p>
         </div>
-        <Badge
-          variant={isCompleted ? "success" : isAccepted ? "default" : "warning"}
-          className="text-sm py-1 px-3"
-        >
-          {job.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={isCompleted ? "success" : isAccepted ? "default" : "warning"}
+            className="text-sm py-1 px-3"
+          >
+            {job.status}
+          </Badge>
+          {isJobPollingActive && (
+            <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              Live
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Quick Tools - Only visible when job is accepted and work can be done */}
@@ -1073,18 +1120,36 @@ export default function EngineerJobDetailPage() {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsCompleteOpen(false)} disabled={isCompleting}>
+            <Button variant="outline" onClick={() => { setIsCompleteOpen(false); pinForCompleteRef.current = ""; }} disabled={isCompleting}>
               Cancel
             </Button>
             <Button
-              onClick={handleComplete}
-              disabled={isCompleting || proofImageUrls.length === 0 || timeSpent === 0}
+              onClick={() => {
+                if (!pinForCompleteRef.current) {
+                  // No PIN yet — close dialog, request PIN, PIN flow will re-open dialog with PIN
+                  setIsCompleteOpen(false);
+                  handleRequestPin("COMPLETE");
+                } else {
+                  handleComplete();
+                }
+              }}
+              disabled={isCompleting || proofImageUrls.length === 0 || timeSpent === 0 || isRequestingPin}
               className="w-full sm:w-auto"
             >
               {isCompleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Completing...
+                </>
+              ) : isRequestingPin ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Requesting PIN...
+                </>
+              ) : !pinForCompleteRef.current ? (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Request PIN & Complete
                 </>
               ) : (
                 <>

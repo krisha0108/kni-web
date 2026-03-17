@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20);
+    const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
     const result = await getNotifications(session.id, {

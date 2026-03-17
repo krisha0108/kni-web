@@ -4,6 +4,7 @@ import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/res
 import { db } from "@/server/db";
 import { createEngineerRating } from "@/server/ratings/service";
 import { z } from "zod";
+import { createNotification } from "@/server/notifications/service";
 
 const engineerRatingSchema = z.object({
   assignmentId: z.string(),
@@ -124,6 +125,16 @@ export async function POST(
       bookingId,
       ...ratingData,
     });
+
+    // Notify engineer about new rating
+    createNotification({
+      userId: assignment.engineerId,
+      title: "New Rating Received",
+      message: `You received a ${ratingData.overallRating}/5 rating for your service.`,
+      type: "BOOKING",
+      linkUrl: "/engineer/jobs",
+      data: { type: "rating" },
+    }).catch(console.error);
 
     return NextResponse.json({
       ok: true,

@@ -87,6 +87,11 @@ enum VendorRevenueModel {
   COMMISSION
 }
 
+enum PayoutMethod {
+  COMMISSION
+  SALARY
+}
+
 enum VendorCommissionCollectionStatus {
   REQUESTED
   PAYMENT_UPLOADED
@@ -289,6 +294,8 @@ model User {
   ownerPayments                 MarketplacePayment[]         @relation("OwnerPayments")
   vendorPayments                MarketplacePayment[]         @relation("VendorPayments")
   priceUnlockRequests           PriceUnlockRequest[]         @relation("OwnerPriceUnlocks")
+  salaryPayouts                 SalaryPayout[]
+  recentlyViewedProducts        RecentlyViewedProduct[]
 
   @@index([email])
   @@index([role])
@@ -358,9 +365,12 @@ model VendorCoverage {
 model EngineerProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
-  city      String?
-  skills    String?
-  createdAt DateTime @default(now())
+  city           String?
+  skills         String?
+  payoutMethod   PayoutMethod @default(COMMISSION)
+  commissionRate Int          @default(20)   // percentage, used when COMMISSION
+  monthlySalary  Int?                        // Rupees, used when SALARY
+  createdAt      DateTime     @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -868,6 +878,7 @@ model VendorProduct {
   orderItems        MarketplaceOrderItem[]
   cartItems         MarketplaceCartItem[]
   priceUnlockRequests PriceUnlockRequest[]
+  recentlyViewed      RecentlyViewedProduct[]
 
   @@index([vendorId])
   @@index([productId])
@@ -2496,4 +2507,166 @@ model VendorCommissionCollection {
   @@index([vendorId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ========================================
+// SALARY PAYOUTS (Monthly salary tracking for engineers)
+// ========================================
+
+model SalaryPayout {
+  id          String   @id @default(cuid())
+  engineerId  String
+  month       Int      // 1-12
+  year        Int      // e.g. 2026
+  amount      Int      // Rupees
+  status      String   @default("PENDING") // PENDING, PAID
+  paidAt      DateTime?
+  paymentNote String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  engineer User @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@unique([engineerId, month, year])
+  @@index([engineerId])
+  @@index([status])
+  @@index([year, month])
+}
+
+// ========================================
+// LAUNCH PAD INQUIRIES (Lead Generation)
+// ========================================
+
+enum BusinessType {
+  RESTAURANT
+  CAFE
+  CLOUD_KITCHEN
+  QSR
+  BAKERY
+  CATERING
+  OTHER
+}
+
+enum BudgetRange {
+  UNDER_5L
+  L5_TO_10L
+  L10_TO_25L
+  L25_TO_50L
+  L50_TO_1CR
+  ABOVE_1CR
+}
+
+enum LaunchTimeline {
+  IMMEDIATELY
+  WITHIN_1_MONTH
+  WITHIN_3_MONTHS
+  WITHIN_6_MONTHS
+  WITHIN_1_YEAR
+  JUST_EXPLORING
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+  ON_HOLD
+}
+
+enum InquiryPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InquiryActivityType {
+  EMAIL_SENT
+  CALL_LOGGED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  NOTE_ADDED
+  CUSTOMER_REPLY
+  INQUIRY_CREATED
+}
+
+model LaunchPadInquiry {
+  id              String          @id @default(cuid())
+  name            String
+  email           String
+  phone           String
+  city            String
+  businessType    BusinessType
+  businessName    String?
+  budgetRange     BudgetRange?
+  areaInSqFt      Int?
+  timeline        LaunchTimeline?
+  message         String?         @db.Text
+  servicesNeeded  String?         @db.Text  // comma-separated
+  source          String          @default("website")
+  status          InquiryStatus   @default(NEW)
+  priority        InquiryPriority @default(MEDIUM)
+  assignedTo      String?         // Plain text: person/team name
+  followUpDate    DateTime?
+  accessToken     String?         @unique  // Token for public portal access
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  threads         LaunchPadInquiryThread[]
+  activities      LaunchPadActivityLog[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([businessType])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model LaunchPadInquiryThread {
+  id        String   @id @default(cuid())
+  inquiryId String
+  inquiry   LaunchPadInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  message   String   @db.Text
+  subject   String?
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model LaunchPadActivityLog {
+  id          String              @id @default(cuid())
+  inquiryId   String
+  inquiry     LaunchPadInquiry    @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  type        InquiryActivityType
+  description String              @db.Text
+  metadata    String?             @db.Text  // JSON string for extra data (duration, old/new values, etc.)
+  performedBy String?             // Admin name or "Customer"
+  createdAt   DateTime            @default(now())
+
+  @@index([inquiryId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ========================================
+// RECENTLY VIEWED PRODUCTS
+// ========================================
+
+model RecentlyViewedProduct {
+  id            String   @id @default(cuid())
+  userId        String
+  vendorProductId String
+  viewedAt      DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorProduct VendorProduct  @relation(fields: [vendorProductId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vendorProductId])
+  @@index([userId, viewedAt])
+  @@index([vendorProductId])
 }

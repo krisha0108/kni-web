@@ -26,42 +26,11 @@ export async function GET(request: NextRequest) {
         })),
       });
     } catch (dbError) {
-      // Return sample data if database fails
-      return NextResponse.json({
-        ok: true,
-        data: [
-          {
-            id: "1",
-            name: "Basic Maintenance",
-            description: "Essential maintenance coverage for your equipment",
-            duration: "MONTHLY",
-            serviceLimit: 2,
-            price: 150000,
-            features: ["Monthly inspection", "Basic repairs", "Phone support"],
-            isActive: true,
-          },
-          {
-            id: "2",
-            name: "Standard Care",
-            description: "Comprehensive maintenance with priority support",
-            duration: "QUARTERLY",
-            serviceLimit: 6,
-            price: 400000,
-            features: ["Quarterly deep service", "Parts replacement", "24/7 support", "Priority scheduling"],
-            isActive: true,
-          },
-          {
-            id: "3",
-            name: "Premium Protection",
-            description: "Full coverage with unlimited services",
-            duration: "YEARLY",
-            serviceLimit: 24,
-            price: 1200000,
-            features: ["Unlimited services", "Free parts", "Dedicated technician", "Same-day response"],
-            isActive: true,
-          },
-        ],
-      });
+      console.error("Database error fetching AMC plans:", dbError);
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch AMC plans" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized") {

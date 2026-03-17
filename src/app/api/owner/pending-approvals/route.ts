@@ -136,7 +136,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, data: items });
     } catch (dbError) {
       console.error("Database error in pending-approvals:", dbError);
-      return NextResponse.json({ ok: true, data: [] });
+      return NextResponse.json(
+        { ok: false, error: "Failed to fetch pending approvals" },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     if (error.message === "Unauthorized" || error.message?.includes("Unauthorized")) {

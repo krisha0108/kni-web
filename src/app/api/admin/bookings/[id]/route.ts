@@ -117,7 +117,7 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (booking.status !== "PAYMENT_VERIFIED" && booking.status !== "ENGINEER_ASSIGNED") {
+      if (booking.status !== "PAYMENT_VERIFIED" && booking.status !== "ENGINEER_ASSIGNED" && booking.status !== "REJECTED_BY_ENGINEER") {
         return NextResponse.json(
           { ok: false, error: "Payment must be verified before assigning engineers" },
           { status: 400 }
@@ -161,17 +161,27 @@ export async function PATCH(
       const existingEngineerIds = existingAssignments.map((a) => a.engineerId);
       const newEngineerIds = engineerIds.filter((eId) => !existingEngineerIds.includes(eId));
 
+      // Fetch engineer profiles to determine commission rates
+      const engineerProfiles = await db.engineerProfile.findMany({
+        where: { userId: { in: newEngineerIds } },
+      });
+      const profileMap = new Map(engineerProfiles.map((p) => [p.userId, p]));
+
       // Create assignments for new engineers only
       const assignments = await Promise.all(
-        newEngineerIds.map((eId) =>
-          db.engineerAssignment.create({
+        newEngineerIds.map((eId) => {
+          const profile = profileMap.get(eId);
+          const commissionRate =
+            profile?.payoutMethod === "SALARY" ? 0 : (profile?.commissionRate ?? 20);
+          return db.engineerAssignment.create({
             data: {
               bookingId: id,
               engineerId: eId,
               status: "PENDING",
+              commissionRate,
             },
-          })
-        )
+          });
+        })
       );
 
       // Update booking status and slot times
@@ -332,7 +342,7 @@ export async function POST(
           { status: 400 }
         );
       }
-      if (booking.status !== "PAYMENT_VERIFIED") {
+      if (booking.status !== "PAYMENT_VERIFIED" && booking.status !== "ENGINEER_ASSIGNED" && booking.status !== "REJECTED_BY_ENGINEER") {
         return NextResponse.json(
           { ok: false, error: "Cannot assign engineer before payment verification" },
           { status: 400 }
@@ -347,11 +357,13 @@ export async function POST(
           { status: 404 }
         );
       }
+      const engProfile = await db.engineerProfile.findUnique({ where: { userId: engineerId } });
       const assignment = await db.engineerAssignment.create({
         data: {
           bookingId: id,
           engineerId,
           status: "PENDING",
+          commissionRate: engProfile?.payoutMethod === "SALARY" ? 0 : (engProfile?.commissionRate ?? 20),
         },
       });
       await db.serviceBooking.update({

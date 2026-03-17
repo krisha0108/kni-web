@@ -20,6 +20,9 @@ interface FormData {
   confirmPassword: string;
   city: string;
   skills: string;
+  payoutMethod: string;
+  commissionRate: string;
+  monthlySalary: string;
 }
 
 export default function CreateEngineerPage() {
@@ -31,6 +34,9 @@ export default function CreateEngineerPage() {
     confirmPassword: "",
     city: "",
     skills: "",
+    payoutMethod: "COMMISSION",
+    commissionRate: "20",
+    monthlySalary: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -115,6 +121,9 @@ export default function CreateEngineerPage() {
           password: formData.password,
           city: formData.city || undefined,
           skills: formData.skills || undefined,
+          payoutMethod: formData.payoutMethod,
+          commissionRate: parseInt(formData.commissionRate) || 20,
+          monthlySalary: formData.payoutMethod === "SALARY" && formData.monthlySalary ? parseInt(formData.monthlySalary) : undefined,
         }),
       });
 
@@ -281,6 +290,57 @@ export default function CreateEngineerPage() {
               <p className="text-sm text-muted-foreground">
                 Enter comma-separated skills and areas of expertise
               </p>
+            </div>
+
+            {/* Payout Configuration */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">Payout Configuration</h3>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Payout Method</Label>
+                  <Select
+                    value={formData.payoutMethod}
+                    onValueChange={(value) => setFormData({ ...formData, payoutMethod: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="COMMISSION">Commission Based</SelectItem>
+                      <SelectItem value="SALARY">Salary Based</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.payoutMethod === "COMMISSION" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="commissionRate">Commission Rate (%)</Label>
+                    <Input
+                      id="commissionRate"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={formData.commissionRate}
+                      onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
+                      placeholder="20"
+                    />
+                    <p className="text-sm text-muted-foreground">Percentage of job value earned as commission</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="monthlySalary">Monthly Salary (Rs)</Label>
+                    <Input
+                      id="monthlySalary"
+                      type="number"
+                      min="0"
+                      value={formData.monthlySalary}
+                      onChange={(e) => setFormData({ ...formData, monthlySalary: e.target.value })}
+                      placeholder="30000"
+                    />
+                    <p className="text-sm text-muted-foreground">Fixed monthly salary in Rupees</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Password Fields */}

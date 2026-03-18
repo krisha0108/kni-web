@@ -80,6 +80,21 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
               setToken(fcmToken);
             }
           }
+
+          // Auto-request permission on authenticated pages if not yet asked
+          if (Notification.permission === "default") {
+            console.log("Permission not yet requested, auto-requesting on authenticated page...");
+            // Small delay to let the page render first
+            setTimeout(async () => {
+              const fcmToken = await registerDeviceToken();
+              if (fcmToken) {
+                setToken(fcmToken);
+                setPermission("granted");
+              } else {
+                setPermission(Notification.permission);
+              }
+            }, 2000);
+          }
         })
         .catch((error) => {
           console.error("Service Worker registration failed:", error);

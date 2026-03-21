@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
+import { MarketplacePaymentStatus } from "@prisma/client";
 import { z } from "zod";
 
 const submitPaymentSchema = z.object({
@@ -184,8 +185,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
-    const status = request.nextUrl.searchParams.get("status");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -196,17 +200,23 @@ export async function GET(request: NextRequest) {
 
     await requireRestaurantAccess(session, restaurantId, "marketplace:read");
 
-    const payments = await db.marketplacePayment.findMany({
-      where: {
-        restaurantId,
-        ...(status ? { status: status as any } : {}),
-      },
+    const where = {
+      restaurantId,
+      ...(status ? { status: status as MarketplacePaymentStatus } : {}),
+    };
+
+    const [payments, total] = await Promise.all([
+      db.marketplacePayment.findMany({
+      where,
       include: {
         vendor: { select: { id: true, name: true } },
         restaurant: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
-    });
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+    }),
+      page > 0 ? db.marketplacePayment.count({ where }) : Promise.resolve(-1),
+    ]);
 
     // Resolve product names for items with missing names (legacy data)
     // Collect all productIds that have null/empty name
@@ -240,7 +250,10 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
-    return NextResponse.json({ ok: true, data: resolved });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: resolved, total, page, pageSize } : resolved,
+    });
   } catch (error) {
     console.error("Get marketplace payments error:", error);
     return NextResponse.json(

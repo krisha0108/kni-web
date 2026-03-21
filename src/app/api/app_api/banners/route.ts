@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { autoUpdateBannerStatuses } from "@/server/utils/auto-status-update";
+import { BannerStatus } from "@prisma/client";
 
 /**
  * GET /api/app_api/banners
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Query active banners from database
     const banners = await db.banner.findMany({
       where: {
-        status: status.toUpperCase() as any,
+        status: status.toUpperCase() as BannerStatus,
         OR: [
           { startDate: null, endDate: null },
           { startDate: { lte: now }, endDate: { gte: now } },

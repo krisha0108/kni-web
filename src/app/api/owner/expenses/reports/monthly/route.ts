@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { groupExpensesByCategory } from "@/lib/expense";
+import { ExpenseCategory } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate totals by category
     const categoryTotals = groupExpensesByCategory(
-      expenses.map((e) => ({ amount: e.amount, category: e.category as any }))
+      expenses.map((e) => ({ amount: e.amount, category: e.category as ExpenseCategory }))
     );
 
     // Calculate overall total

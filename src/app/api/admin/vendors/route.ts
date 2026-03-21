@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
 
     const where = status
-      ? { vendorProfile: { approvalStatus: status as any } }
+      ? { vendorProfile: { approvalStatus: status as VendorApprovalStatus } }
       : {};
 
     const vendors = await db.user.findMany({

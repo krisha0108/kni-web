@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const search = searchParams.get("search") || "";
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     const where: any = {};
     if (status && status !== "all") {
@@ -22,32 +24,36 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const requests = await db.vendorLocationRequest.findMany({
-      where,
-      include: {
-        vendor: {
-          select: { id: true, name: true, email: true },
-        },
-        area: {
-          select: {
-            id: true,
-            name: true,
-            city: {
-              select: {
-                id: true,
-                name: true,
-                state: { select: { id: true, name: true } },
+    const [requests, total] = await Promise.all([
+      db.vendorLocationRequest.findMany({
+        where,
+        include: {
+          vendor: {
+            select: { id: true, name: true, email: true },
+          },
+          area: {
+            select: {
+              id: true,
+              name: true,
+              city: {
+                select: {
+                  id: true,
+                  name: true,
+                  state: { select: { id: true, name: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.vendorLocationRequest.count({ where }) : Promise.resolve(-1),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: { items: requests },
+      data: page > 0 ? { items: requests, total, page, pageSize } : { items: requests },
     });
   } catch (error) {
     console.error("Get location requests error:", error);

@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { getExpenseCategoryLabel } from "@/lib/expense";
+import { ExpenseCategory } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     const csvRows = expenses.map((expense) => {
       const date = new Date(expense.expenseDate).toLocaleDateString();
       const restaurant = expense.restaurant.name;
-      const category = getExpenseCategoryLabel(expense.category as any);
+      const category = getExpenseCategoryLabel(expense.category as ExpenseCategory);
       const description = expense.description.replace(/"/g, '""'); // Escape quotes
       const amount = expense.amount.toFixed(2);
 

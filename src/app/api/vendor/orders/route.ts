@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireVendor } from "@/server/auth/rbac";
+import { MarketplaceOrderStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = {
       vendorId: session.id,
-      ...(status ? { status: status as any } : {}),
+      ...(status ? { status: status as MarketplaceOrderStatus } : {}),
     };
 
     const orders = await db.marketplaceOrder.findMany({

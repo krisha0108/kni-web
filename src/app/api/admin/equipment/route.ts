@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
+import { EquipmentStatus } from "@prisma/client";
 import { z } from "zod";
 
 const createEquipmentSchema = z.object({
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
         warrantyEndDate: data.warrantyEndDate ? new Date(data.warrantyEndDate) : null,
         serialNumber: data.serialNumber || null,
         installLocation: data.installLocation || null,
-        status: (data.status as any) || "AVAILABLE",
+        status: (data.status as EquipmentStatus) || "AVAILABLE",
         notes: data.notes || null,
         photoUrls: data.photoUrls || undefined,
       },

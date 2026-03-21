@@ -10,7 +10,10 @@ import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -21,22 +24,31 @@ export async function GET(request: NextRequest) {
 
     await requireRestaurantAccess(session, restaurantId, "amc:read");
 
-    const contracts = await db.aMCContract.findMany({
-      where: { restaurantId },
-      include: {
-        restaurant: { select: { id: true, name: true, city: true } },
-        scheduledVisits: {
-          select: { id: true, status: true, scheduledDate: true, completedDate: true },
-          orderBy: { scheduledDate: "asc" },
-        },
-        breakdownRequests: {
-          select: { id: true, status: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const where = { restaurantId };
 
-    return NextResponse.json({ ok: true, data: contracts });
+    const [contracts, total] = await Promise.all([
+      db.aMCContract.findMany({
+        where,
+        include: {
+          restaurant: { select: { id: true, name: true, city: true } },
+          scheduledVisits: {
+            select: { id: true, status: true, scheduledDate: true, completedDate: true },
+            orderBy: { scheduledDate: "asc" },
+          },
+          breakdownRequests: {
+            select: { id: true, status: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.aMCContract.count({ where }) : Promise.resolve(-1),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: contracts, total, page, pageSize } : contracts,
+    });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },

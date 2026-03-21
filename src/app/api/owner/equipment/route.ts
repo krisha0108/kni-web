@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { equipmentSchema } from "@/server/validators/equipment";
+import { EquipmentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const where: any = {
       restaurantId,
       deletedAt: null,
-      ...(status ? { status: status as any } : {}),
+      ...(status ? { status: status as EquipmentStatus } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(search ? {
         OR: [
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
         billImageUrl: validation.data.billImageUrl || null,
         warrantyCardUrl: validation.data.warrantyCardUrl || null,
         photoUrls: validation.data.photoUrls || [],
-        status: (validation.data.status as any) || "AVAILABLE",
+        status: (validation.data.status as EquipmentStatus) || "AVAILABLE",
         notes: validation.data.notes || null,
       },
       include: {

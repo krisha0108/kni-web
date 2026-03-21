@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireVendorMobile } from "@/server/auth/rbac";
+import { MarketplacePaymentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const payments = await db.marketplacePayment.findMany({
       where: {
         vendorId: session.id,
-        ...(status ? { status: status as any } : {}),
+        ...(status ? { status: status as MarketplacePaymentStatus } : {}),
       },
       include: {
         owner: { select: { id: true, name: true, phone: true } },

@@ -86,23 +86,34 @@ export async function POST(request: NextRequest) {
  * GET /api/admin/amc-proposals
  * List all proposals
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
-    const proposals = await db.aMCProposal.findMany({
-      include: {
-        request: {
-          include: {
-            owner: { select: { id: true, name: true, phone: true } },
-            restaurant: { select: { id: true, name: true, city: true } },
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+
+    const [proposals, total] = await Promise.all([
+      db.aMCProposal.findMany({
+        include: {
+          request: {
+            include: {
+              owner: { select: { id: true, name: true, phone: true } },
+              restaurant: { select: { id: true, name: true, city: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.aMCProposal.count() : Promise.resolve(-1),
+    ]);
 
-    return NextResponse.json({ ok: true, data: proposals });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: proposals, total, page, pageSize } : proposals,
+    });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },

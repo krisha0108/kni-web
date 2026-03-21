@@ -11,7 +11,10 @@ import { sendTeamInvitationEmail } from "@/lib/email/service";
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -23,29 +26,38 @@ export async function GET(request: NextRequest) {
     // Check if user has team:read permission
     await requireRestaurantAccess(session, restaurantId, "team:read");
 
-    const members = await db.restaurantMember.findMany({
-      where: { restaurantId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            isActive: true,
-          },
-        },
-        inviter: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { invitedAt: "desc" },
-    });
+    const where = { restaurantId };
 
-    return NextResponse.json({ ok: true, data: members });
+    const [members, total] = await Promise.all([
+      db.restaurantMember.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              isActive: true,
+            },
+          },
+          inviter: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { invitedAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.restaurantMember.count({ where }) : Promise.resolve(-1),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: members, total, page, pageSize } : members,
+    });
   } catch (error) {
     console.error("Get team members error:", error);
     return NextResponse.json(

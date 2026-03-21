@@ -19,8 +19,11 @@ const createStaffSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
-    const status = request.nextUrl.searchParams.get("status");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -39,24 +42,28 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
-    const staff = await db.staff.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            attendance: true,
-            salaryRecords: true,
+    const [staff, total] = await Promise.all([
+      db.staff.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              attendance: true,
+              salaryRecords: true,
+            },
           },
         },
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
+        orderBy: {
+          name: "asc",
+        },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.staff.count({ where }) : Promise.resolve(-1),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: staff,
+      data: page > 0 ? { items: staff, total, page, pageSize } : staff,
     });
   } catch (error: any) {
     return NextResponse.json(

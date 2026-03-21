@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Get restaurant error:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : undefined;
+    const errorCode = error instanceof Error && 'code' in error ? (error as Record<string, unknown>).code : undefined;
     console.error("Error details:", { message: errorMessage, code: errorCode });
     return NextResponse.json(
       { ok: false, error: errorMessage },

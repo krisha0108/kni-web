@@ -20,7 +20,10 @@ const createOrderSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -32,8 +35,11 @@ export async function GET(request: NextRequest) {
     // Check restaurant access with marketplace:read permission
     await requireRestaurantAccess(session, restaurantId, "marketplace:read");
 
-    const orders = await db.marketplaceOrder.findMany({
-      where: { restaurantId },
+    const where = { restaurantId };
+
+    const [orders, total] = await Promise.all([
+      db.marketplaceOrder.findMany({
+      where,
       include: {
         vendor: { select: { id: true, name: true } },
         restaurant: { select: { id: true, name: true } },
@@ -63,7 +69,10 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-    });
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+    }),
+      page > 0 ? db.marketplaceOrder.count({ where }) : Promise.resolve(-1),
+    ]);
 
     // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
     const resolved = orders.map((order) => ({
@@ -79,7 +88,10 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
-    return NextResponse.json({ ok: true, data: resolved });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: resolved, total, page, pageSize } : resolved,
+    });
   } catch (error) {
     console.error("Get marketplace orders error:", error);
     return NextResponse.json(

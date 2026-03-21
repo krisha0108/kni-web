@@ -28,7 +28,10 @@ const createBookingSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-    const restaurantId = request.nextUrl.searchParams.get("restaurantId");
+    const searchParams = request.nextUrl.searchParams;
+    const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -40,26 +43,35 @@ export async function GET(request: NextRequest) {
     // Check restaurant access with bookings:read permission
     await requireRestaurantAccess(session, restaurantId, "bookings:read");
 
-    const bookings = await db.serviceBooking.findMany({
-      where: { restaurantId },
-      include: {
-        restaurant: { select: { id: true, name: true } },
-        equipment: { select: { id: true, name: true } },
-        items: {
-          include: {
-            serviceItem: { select: { id: true, name: true } },
-            partItem: { select: { id: true, name: true } },
+    const where = { restaurantId };
+
+    const [bookings, total] = await Promise.all([
+      db.serviceBooking.findMany({
+        where,
+        include: {
+          restaurant: { select: { id: true, name: true } },
+          equipment: { select: { id: true, name: true } },
+          items: {
+            include: {
+              serviceItem: { select: { id: true, name: true } },
+              partItem: { select: { id: true, name: true } },
+            },
+          },
+          paymentProof: true,
+          engineerAssignments: {
+            include: { engineer: { select: { id: true, name: true } } },
           },
         },
-        paymentProof: true,
-        engineerAssignments: {
-          include: { engineer: { select: { id: true, name: true } } },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      page > 0 ? db.serviceBooking.count({ where }) : Promise.resolve(-1),
+    ]);
 
-    return NextResponse.json({ ok: true, data: bookings });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: bookings, total, page, pageSize } : bookings,
+    });
   } catch (error) {
     console.error("Get bookings error:", error);
     return NextResponse.json(
@@ -362,7 +374,7 @@ export async function POST(request: NextRequest) {
     console.error("Create booking error:", error);
     // Return more detailed error for debugging
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    const errorDetails = error instanceof Error && 'code' in error ? (error as any).code : undefined;
+    const errorDetails = error instanceof Error && 'code' in error ? (error as Record<string, unknown>).code : undefined;
     console.error("Error details:", { message: errorMessage, code: errorDetails, stack: error instanceof Error ? error.stack : undefined });
     return NextResponse.json(
       { ok: false, error: errorMessage, code: errorDetails },

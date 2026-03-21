@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { stockMovementSchema } from "@/server/validators/warehouse";
 import { calculateNewBalance } from "@/lib/warehouse";
+import { StockMovementType } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = {
       ...(inventoryId ? { inventoryId } : {}),
-      ...(movementType ? { movementType: movementType as any } : {}),
+      ...(movementType ? { movementType: movementType as StockMovementType } : {}),
     };
 
     const [movements, total] = await Promise.all([
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Calculate new balance
     const newBalance = calculateNewBalance(
       inventory.currentStock,
-      validation.data.movementType as any,
+      validation.data.movementType as StockMovementType,
       validation.data.quantity
     );
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
       db.stockMovement.create({
         data: {
           inventoryId: validation.data.inventoryId,
-          movementType: validation.data.movementType as any,
+          movementType: validation.data.movementType as StockMovementType,
           quantity: validation.data.quantity,
           balanceAfter: newBalance,
           bookingId: validation.data.bookingId || null,

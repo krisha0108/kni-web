@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { expenseSchema } from "@/server/validators/expense";
+import { ExpenseCategory } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const where: any = {
       restaurantId,
       deletedAt: null,
-      ...(category ? { category: category as any } : {}),
+      ...(category ? { category: category as ExpenseCategory } : {}),
     };
 
     // Add date range filter
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
       data: {
         ownerId,
         restaurantId: validation.data.restaurantId,
-        category: validation.data.category as any,
+        category: validation.data.category as ExpenseCategory,
         amount: validation.data.amount,
         expenseDate: new Date(validation.data.expenseDate),
         description: validation.data.description,

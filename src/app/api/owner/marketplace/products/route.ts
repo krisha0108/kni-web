@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const categoryId = searchParams.get("categoryId");
     const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -44,8 +46,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
 
     // Fetch vendor products with product info from MarketplaceProduct
-    const vendorProducts = await db.vendorProduct.findMany({
-      where: {
+    const vpWhere: any = {
         isActive: true,
         deletedAt: null,
         // Filter by product info from MarketplaceProduct
@@ -110,7 +111,11 @@ export async function GET(request: NextRequest) {
             },
           ],
         },
-      },
+      };
+
+    const [vendorProducts, vpTotal] = await Promise.all([
+      db.vendorProduct.findMany({
+      where: vpWhere,
       include: {
         // Include admin product info
         product: {
@@ -130,7 +135,10 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-    });
+      ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+    }),
+      page > 0 ? db.vendorProduct.count({ where: vpWhere }) : Promise.resolve(-1),
+    ]);
 
     // Batch-fetch active price unlocks for this owner (for price-on-request products)
     const priceOnRequestProductIds = vendorProducts
@@ -226,7 +234,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ ok: true, data: productsForCustomer });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: productsForCustomer, total: vpTotal, page, pageSize } : productsForCustomer,
+    });
   } catch (error) {
     console.error("Get marketplace products error:", error);
     return NextResponse.json(

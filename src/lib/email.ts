@@ -832,7 +832,7 @@ export async function sendLaunchPadResponseEmail(
     <p>Thank you for your interest in starting your <strong>${businessType.replace(/_/g, " ").toLowerCase()}</strong> business with KNI!</p>
 
     <div class="info-box">
-      ${messageBody.split("\n").map((line: string) => `<p>${line}</p>`).join("")}
+      ${messageBody.split("\n").map((line: string) => `<p>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`).join("")}
     </div>
 
     ${portalUrl ? `

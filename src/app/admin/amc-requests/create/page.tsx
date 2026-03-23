@@ -192,7 +192,9 @@ export default function AdminCreateAMCRequestPage() {
       .then((data) => {
         if (data.ok) setOwnerRestaurants(data.data || []);
       })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load owner's restaurants", variant: "destructive" });
+      });
   }, [selectedOwner]);
 
   // --- Fetch restaurant's existing equipment when restaurant selected ---
@@ -208,7 +210,9 @@ export default function AdminCreateAMCRequestPage() {
       .then((data) => {
         if (data.ok) setExistingEquipment(data.data || []);
       })
-      .catch(() => {})
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load equipment", variant: "destructive" });
+      })
       .finally(() => setIsLoadingEquipment(false));
   }, [selectedRestaurant]);
 
@@ -236,7 +240,9 @@ export default function AdminCreateAMCRequestPage() {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to check active AMC status", variant: "destructive" });
+      })
       .finally(() => setCheckingAMC(false));
   }, [selectedRestaurant, selectedOwner]);
 
@@ -247,7 +253,9 @@ export default function AdminCreateAMCRequestPage() {
       .then((data) => {
         if (data.ok) setCategories(data.data || []);
       })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load categories", variant: "destructive" });
+      });
   }, []);
 
   // --- Fetch states ---
@@ -255,7 +263,9 @@ export default function AdminCreateAMCRequestPage() {
     fetch("/api/public/locations?type=states")
       .then((res) => res.json())
       .then((data) => { if (data.ok) setStates(data.data || []); })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+      });
   }, []);
 
   // --- Fetch cities when state selected ---
@@ -264,7 +274,9 @@ export default function AdminCreateAMCRequestPage() {
       fetch(`/api/public/locations?type=cities&stateId=${selectedStateId}`)
         .then((res) => res.json())
         .then((data) => { if (data.ok) setCities(data.data || []); })
-        .catch(() => {});
+        .catch(() => {
+          toast({ title: "Error", description: "Failed to load cities", variant: "destructive" });
+        });
     } else {
       setCities([]);
     }

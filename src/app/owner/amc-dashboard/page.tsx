@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
+import { useToast } from "@/hooks/use-toast";
 
 interface UpcomingVisit {
   status: string;
@@ -43,6 +44,7 @@ export default function OwnerAMCDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { selectedRestaurant } = useRestaurant();
+  const { toast } = useToast();
 
   const userRole = selectedRestaurant?.role;
   const canCreate = userRole === "OWNER" || userRole === "MANAGER";
@@ -53,7 +55,9 @@ export default function OwnerAMCDashboardPage() {
     fetch(`/api/owner/amc-dashboard?restaurantId=${selectedRestaurant.restaurantId}`)
       .then((r) => r.json())
       .then((d) => d.ok && setData(d.data))
-      .catch(() => {})
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load AMC dashboard data", variant: "destructive" });
+      })
       .finally(() => setIsLoading(false));
   }, [selectedRestaurant]);
 

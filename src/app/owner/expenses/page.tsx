@@ -48,6 +48,8 @@ export default function OwnerExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
@@ -65,7 +67,7 @@ export default function OwnerExpensesPage() {
     if (selectedRestaurant) {
       fetchExpenses();
     }
-  }, [selectedRestaurant, categoryFilter, startDate, endDate]);
+  }, [selectedRestaurant, categoryFilter, startDate, endDate, page]);
 
   // Update formData.restaurantId when selectedRestaurant changes
   useEffect(() => {
@@ -84,11 +86,17 @@ export default function OwnerExpensesPage() {
       if (categoryFilter !== "all") params.append("category", categoryFilter);
       if (startDate) params.append("startDate", new Date(startDate).toISOString());
       if (endDate) params.append("endDate", new Date(endDate).toISOString());
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/owner/expenses?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setExpenses(data.data.expenses || []);
+        const items = data.data?.expenses || data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setExpenses(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       } else {
         toast({
           title: "Error",
@@ -418,7 +426,7 @@ export default function OwnerExpensesPage() {
         <div className="flex items-center gap-2">
           <Label className="text-sm">Category:</Label>
           <ClientOnly>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -439,7 +447,7 @@ export default function OwnerExpensesPage() {
           <Input
             type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
             className="w-full sm:w-[150px]"
           />
         </div>
@@ -449,7 +457,7 @@ export default function OwnerExpensesPage() {
           <Input
             type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
             className="w-full sm:w-[150px]"
           />
         </div>
@@ -536,12 +544,29 @@ export default function OwnerExpensesPage() {
             )}
           </TableBody>
         </Table>
-                  
-                
-              
-          
-              
-        
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Edit Dialog */}

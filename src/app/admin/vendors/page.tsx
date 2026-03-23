@@ -65,6 +65,8 @@ export default function AdminVendorsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -92,7 +94,9 @@ export default function AdminVendorsPage() {
       .then((data) => {
         if (data.ok) setPendingSubRequests(data.data.length);
       })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load pending subscription requests", variant: "destructive" });
+      });
   }, []);
 
   const openDetailDialog = (vendor: Vendor) => {
@@ -106,11 +110,17 @@ export default function AdminVendorsPage() {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/vendors?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setVendors(data.data.items || data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setVendors(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch vendors", variant: "destructive" });
@@ -121,7 +131,7 @@ export default function AdminVendorsPage() {
 
   useEffect(() => {
     fetchVendors();
-  }, [search, statusFilter]);
+  }, [search, statusFilter, page]);
 
   const openApproveDialog = (vendorId: string) => {
     setApproveVendorId(vendorId);
@@ -353,12 +363,12 @@ export default function AdminVendorsPage() {
           <Input
             placeholder="Search vendors..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
         <ClientOnly>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -532,6 +542,29 @@ export default function AdminVendorsPage() {
               </TableBody>
           </Table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Vendor Details Dialog */}

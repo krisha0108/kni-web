@@ -239,7 +239,7 @@ export default function PriceRequestsPage() {
                       <TableCell className="px-2 sm:px-4">
                         <div className="flex items-center gap-2">
                           {req.productImage ? (
-                            <img src={req.productImage} alt={req.productName} className="h-8 w-8 rounded object-cover flex-shrink-0" />
+                            <img src={req.productImage} alt={req.productName} className="h-8 w-8 rounded object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                           ) : (
                             <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
                               <Package className="h-4 w-4 text-muted-foreground" />
@@ -312,7 +312,7 @@ export default function PriceRequestsPage() {
                 {/* Product info */}
                 <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                   {selectedRequest.productImage ? (
-                    <img src={selectedRequest.productImage} alt={selectedRequest.productName} className="h-12 w-12 rounded object-cover" />
+                    <img src={selectedRequest.productImage} alt={selectedRequest.productName} className="h-12 w-12 rounded object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
                     <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
                       <Package className="h-6 w-6 text-muted-foreground" />

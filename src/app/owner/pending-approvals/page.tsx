@@ -71,51 +71,13 @@ export default function PendingApprovalsPage() {
       if (data.ok) {
         setItems(data.data || []);
       } else {
-        // Generate sample data if API returns error
-        setItems([
-          {
-            id: "1",
-            type: "RESTAURANT",
-            title: "Restaurant Registration",
-            description: "Your restaurant 'Spice Garden' is pending approval",
-            status: "PENDING",
-            createdAt: new Date().toISOString(),
-            metadata: { restaurantName: "Spice Garden" },
-          },
-          {
-            id: "2",
-            type: "TEAM_INVITE",
-            title: "Team Invitation Sent",
-            description: "Waiting for john@example.com to accept invitation",
-            status: "PENDING",
-            createdAt: new Date().toISOString(),
-            metadata: { memberEmail: "john@example.com" },
-          },
-        ]);
+        setItems([]);
+        toast({ title: "Error", description: data.error || "Failed to load pending approvals", variant: "destructive" });
       }
     } catch (error) {
       console.error("Failed to fetch pending items:", error);
-      // Use sample data as fallback
-      setItems([
-        {
-          id: "1",
-          type: "RESTAURANT",
-          title: "Restaurant Registration",
-          description: "Your restaurant 'Spice Garden' is pending approval",
-          status: "PENDING",
-          createdAt: new Date().toISOString(),
-          metadata: { restaurantName: "Spice Garden" },
-        },
-        {
-          id: "2",
-          type: "TEAM_INVITE",
-          title: "Team Invitation Sent",
-          description: "Waiting for john@example.com to accept invitation",
-          status: "PENDING",
-          createdAt: new Date().toISOString(),
-          metadata: { memberEmail: "john@example.com" },
-        },
-      ]);
+      setItems([]);
+      toast({ title: "Error", description: "Failed to load pending approvals", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

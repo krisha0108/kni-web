@@ -80,6 +80,8 @@ const collectionStatusColors: Record<
 export default function AdminVendorCommissionsPage() {
   const [vendors, setVendors] = useState<CommissionVendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [collectingVendorId, setCollectingVendorId] = useState<string | null>(
     null
   );
@@ -98,10 +100,17 @@ export default function AdminVendorCommissionsPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/admin/vendor-commissions");
+      const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/vendor-commissions?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setVendors(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setVendors(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       } else {
         toast({
           title: "Error",
@@ -122,7 +131,7 @@ export default function AdminVendorCommissionsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
 
   const allCollections = useMemo<FlatCollection[]>(() => {
     return vendors
@@ -363,14 +372,29 @@ export default function AdminVendorCommissionsPage() {
                 )}
               </TableBody>
             </Table>
-                      
-                      
-                      
-                    
-                  
-              
-                  
-            
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="flex items-center px-4 text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

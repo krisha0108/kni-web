@@ -203,9 +203,6 @@ export async function POST(request: NextRequest) {
     const orderItems = items.map((item) => {
       const product = productMap.get(item.productId);
       if (!product) throw new Error("Product not found: " + item.productId);
-      if (product.stockQuantity < item.qty) {
-        throw new Error(`Insufficient stock for "${product.product?.name || product.name || "product"}". Available: ${product.stockQuantity}, Requested: ${item.qty}`);
-      }
 
       // Use unlocked price for price-on-request products
       let itemPrice = product.price;
@@ -228,8 +225,16 @@ export async function POST(request: NextRequest) {
     // Use transaction to create order and vendor ledger entry atomically
     const ownerId = await getRestaurantOwnerId(restaurantId);
     const order = await db.$transaction(async (tx) => {
-      // Decrement stock for each ordered item
+      // Check stock and decrement inside transaction (race-condition safe)
       for (const item of items) {
+        const product = await tx.vendorProduct.findUnique({
+          where: { id: item.productId },
+          select: { stockQuantity: true, name: true, product: { select: { name: true } } },
+        });
+        if (!product || product.stockQuantity < item.qty) {
+          const name = product?.product?.name || product?.name || "product";
+          throw new Error(`Insufficient stock for "${name}". Available: ${product?.stockQuantity ?? 0}, Requested: ${item.qty}`);
+        }
         await tx.vendorProduct.update({
           where: { id: item.productId },
           data: { stockQuantity: { decrement: item.qty } },

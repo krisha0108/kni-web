@@ -68,6 +68,8 @@ export default function AdminVendorSubscriptionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   // Set Price Dialog
@@ -92,11 +94,18 @@ export default function AdminVendorSubscriptionsPage() {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const res = await fetch(`/api/admin/vendor-subscriptions${params}`);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const res = await fetch(`/api/admin/vendor-subscriptions?${params.toString()}`);
       const data = await res.json();
       if (data.ok) {
-        setRequests(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setRequests(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch requests", variant: "destructive" });
@@ -107,7 +116,7 @@ export default function AdminVendorSubscriptionsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   const filteredRequests = requests.filter((r) => {
     if (!search) return true;
@@ -247,11 +256,11 @@ export default function AdminVendorSubscriptionsPage() {
             <Input
               placeholder="Search by vendor name or email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -375,9 +384,29 @@ export default function AdminVendorSubscriptionsPage() {
                 ))}
               </TableBody>
             </Table>
-                    
-              
-                  
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="flex items-center px-4 text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

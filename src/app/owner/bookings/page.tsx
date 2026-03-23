@@ -82,6 +82,8 @@ export default function OwnerBookingsPage() {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterMinAmount, setFilterMinAmount] = useState("");
@@ -94,10 +96,18 @@ export default function OwnerBookingsPage() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/owner/bookings?restaurantId=${selectedRestaurant.restaurantId}`);
+      const params = new URLSearchParams();
+      params.set("restaurantId", selectedRestaurant.restaurantId);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch(`/api/owner/bookings?${params.toString()}`);
       const data = await response.json();
       if (data.ok) {
-        setBookings(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setBookings(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       } else {
         toast({
           title: "Error",
@@ -120,7 +130,7 @@ export default function OwnerBookingsPage() {
     if (selectedRestaurant) {
       fetchBookings();
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -547,13 +557,29 @@ export default function OwnerBookingsPage() {
               ))}
             </TableBody>
           </Table>
-                  
-                  
-                  
-                
-                
-                
-          
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
         </div>
       )}
     </div>

@@ -58,8 +58,11 @@ export default function WarehouseInventoryPage() {
   });
 
   useEffect(() => {
-    fetchInventories();
+    const timer = setTimeout(() => {
+      fetchInventories();
+    }, 300);
     fetchPartItems();
+    return () => clearTimeout(timer);
   }, [search, lowStockFilter]);
 
   const fetchInventories = async () => {

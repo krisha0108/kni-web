@@ -91,6 +91,8 @@ export default function OwnerSupportPage() {
   const [threads, setThreads] = useState<TicketThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [ticketImageUrl, setTicketImageUrl] = useState("");
@@ -114,7 +116,7 @@ export default function OwnerSupportPage() {
 
   useEffect(() => {
     fetchTickets();
-  }, [selectedRestaurant, statusFilter]);
+  }, [selectedRestaurant, statusFilter, page]);
 
   const fetchTickets = async () => {
     if (!selectedRestaurant?.restaurantId) {
@@ -129,11 +131,17 @@ export default function OwnerSupportPage() {
       if (statusFilter !== "all") {
         params.append("status", statusFilter);
       }
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/owner/support?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setTickets(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setTickets(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       } else {
         toast({
           title: "Error",
@@ -528,7 +536,7 @@ export default function OwnerSupportPage() {
           const config = getStatusConfig(status.value);
           const Icon = config.icon;
           return (
-            <Card key={status.value} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(status.value)}>
+            <Card key={status.value} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setStatusFilter(status.value); setPage(1); }}>
               <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
                 <div className="flex flex-col items-center gap-2">
                   <div className={`p-2 rounded-lg ${status.value === statusFilter ? 'bg-primary/10' : 'bg-muted'}`}>
@@ -558,7 +566,7 @@ export default function OwnerSupportPage() {
                 className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -662,13 +670,31 @@ export default function OwnerSupportPage() {
                 })}
               </TableBody>
             </Table>
-                      
-                      
-                      
-                    
-              
-                  
-            
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4 text-sm">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -33,6 +33,8 @@ export default function AdminAMCVisitsPage() {
   const [engineers, setEngineers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [assignEngineerId, setAssignEngineerId] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
@@ -43,12 +45,20 @@ export default function AdminAMCVisitsPage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
       const [visitsRes, engRes] = await Promise.all([
         fetch(`/api/admin/amc-visits?${params}`),
         fetch("/api/admin/engineers"),
       ]);
       const [visitsData, engData] = await Promise.all([visitsRes.json(), engRes.json()]);
-      if (visitsData.ok) setVisits(visitsData.data);
+      if (visitsData.ok) {
+        const items = visitsData.data?.items || visitsData.data;
+        const total = visitsData.data?.total || visitsData.total || 0;
+        const pSize = visitsData.data?.pageSize || 20;
+        setVisits(Array.isArray(items) ? items : []);
+        setTotalPages(visitsData.totalPages || Math.ceil(total / pSize) || 1);
+      }
       if (engData.ok) setEngineers(engData.data || []);
     } catch {
       toast({ title: "Error", description: "Failed to load", variant: "destructive" });
@@ -57,7 +67,7 @@ export default function AdminAMCVisitsPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [filterStatus]);
+  useEffect(() => { fetchData(); }, [filterStatus, page]);
 
   const handleAssign = async () => {
     if (!selectedVisit || !assignEngineerId) return;
@@ -94,7 +104,7 @@ export default function AdminAMCVisitsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4 items-center">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Statuses</SelectItem>
@@ -152,10 +162,29 @@ export default function AdminAMCVisitsPage() {
               ))}
             </TableBody>
           </Table>
-                  
-            
-                
-          
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4 text-sm">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

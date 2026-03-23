@@ -79,16 +79,8 @@ export default function EditOwnerProfilePage() {
         });
       }
     } catch (error) {
-      // Use sample data if fetch fails
-      setFormData({
-        firstName: "John",
-        lastName: "Doe",
-        email: "john@example.com",
-        phone: "+91 9876543210",
-        password: "",
-        restaurantName: "Sample Restaurant",
-        locations: "1",
-      });
+      console.error("Failed to load profile:", error);
+      toast({ title: "Error", description: "Failed to load profile data", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

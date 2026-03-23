@@ -88,7 +88,9 @@ export default function AMCRequestPage() {
           setEquipmentCategories(catData.data || []);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load restaurants and categories", variant: "destructive" });
+      })
       .finally(() => setIsLoading(false));
   }, []);
 

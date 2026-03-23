@@ -143,14 +143,26 @@ export default function VendorProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   useEffect(() => {
     if (isAddPriceOpen) {
       fetchAvailableProducts();
     }
-  }, [isAddPriceOpen, availableSearch]);
+  }, [isAddPriceOpen]);
+
+  useEffect(() => {
+    if (isAddPriceOpen) {
+      const timer = setTimeout(() => {
+        fetchAvailableProducts();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [availableSearch]);
 
   const resetForm = () => {
     setFormData({

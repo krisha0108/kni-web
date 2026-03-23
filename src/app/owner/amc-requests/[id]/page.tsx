@@ -177,7 +177,9 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
       fetch("/api/public/payment-settings")
         .then((r) => r.json())
         .then((d) => d.ok && setPaymentSettings(d.data))
-        .catch(() => {});
+        .catch(() => {
+          toast({ title: "Error", description: "Failed to load payment settings", variant: "destructive" });
+        });
     }
   }, [request?.status]);
 
@@ -725,7 +727,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
                 <p className="text-sm text-muted-foreground mt-1">Admin will verify your payment. You will be notified once verified.</p>
                 {request.payment.screenshotUrl && (
                   <div className="mt-3 border rounded-lg p-2 inline-block">
-                    <img src={request.payment.screenshotUrl} alt="Payment Screenshot" className="max-w-[200px] rounded" />
+                    <img src={request.payment.screenshotUrl} alt="Payment Screenshot" className="max-w-[200px] rounded" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   </div>
                 )}
               </div>

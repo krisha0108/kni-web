@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       const whereClause: any = {
         restaurantId,
         createdAt: { gte: startDate },
-        status: { in: ["COMPLETED", "PAID"] },
+        status: "COMPLETED",
       };
 
       // Fetch bookings data

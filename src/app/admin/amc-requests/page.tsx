@@ -119,6 +119,8 @@ export default function AdminAMCRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedRequest, setSelectedRequest] = useState<AMCRequest | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
@@ -145,9 +147,17 @@ export default function AdminAMCRequestsPage() {
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
       if (searchQuery) params.set("search", searchQuery);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
       const response = await fetch(`/api/admin/amc-requests?${params.toString()}`);
       const data = await response.json();
-      if (data.ok) setRequests(data.data);
+      if (data.ok) {
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setRequests(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to fetch AMC requests", variant: "destructive" });
     } finally {
@@ -166,7 +176,7 @@ export default function AdminAMCRequestsPage() {
   useEffect(() => {
     fetchRequests();
     fetchEngineers();
-  }, [filterStatus, searchQuery]);
+  }, [filterStatus, searchQuery, page]);
 
   if (!mounted) return null;
 
@@ -333,9 +343,9 @@ export default function AdminAMCRequestsPage() {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by restaurant, owner, or kitchen type..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+              <Input placeholder="Search by restaurant, owner, or kitchen type..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} className="pl-10" />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[220px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -416,12 +426,29 @@ export default function AdminAMCRequestsPage() {
               ))}
             </TableBody>
           </Table>
-                  
-                  
-                
-                
-                
-          
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4 text-sm">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -543,7 +570,7 @@ export default function AdminAMCRequestsPage() {
                     <div>
                       <p className="text-sm font-medium mb-2">Payment Screenshot:</p>
                       <div className="border rounded-lg p-2 bg-white">
-                        <img src={selectedRequest.payment.screenshotUrl} alt="Payment Screenshot" className="max-w-full max-h-[300px] object-contain mx-auto rounded" />
+                        <img src={selectedRequest.payment.screenshotUrl} alt="Payment Screenshot" className="max-w-full max-h-[300px] object-contain mx-auto rounded" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       </div>
                     </div>
                   )}

@@ -55,7 +55,9 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
           setFormData((prev) => ({ ...prev, preventiveVisits: visits }));
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load AMC request details", variant: "destructive" });
+      })
       .finally(() => setIsLoading(false));
   }, [requestId]);
 

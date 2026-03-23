@@ -224,7 +224,9 @@ export default function EngineerJobDetailPage() {
         fetch("/api/engineer/jobs/" + jobId)
           .then(res => res.json())
           .then(data => { if (data.ok) setJob(data.data); })
-          .catch(() => {});
+          .catch(() => {
+            toast({ title: "Error", description: "Failed to refresh job details", variant: "destructive" });
+          });
       }
     }, 30000);
 

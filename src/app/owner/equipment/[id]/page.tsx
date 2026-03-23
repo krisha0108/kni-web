@@ -721,7 +721,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                       className="relative aspect-video rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
                       onClick={() => setSelectedImage(equipment.billImageUrl)}
                     >
-                      <img src={equipment.billImageUrl} alt="Bill" className="w-full h-full object-cover" />
+                      <img src={equipment.billImageUrl} alt="Bill" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <FileText className="h-8 w-8 text-white" />
                       </div>
@@ -735,7 +735,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                       className="relative aspect-video rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
                       onClick={() => setSelectedImage(equipment.warrantyCardUrl)}
                     >
-                      <img src={equipment.warrantyCardUrl} alt="Warranty Card" className="w-full h-full object-cover" />
+                      <img src={equipment.warrantyCardUrl} alt="Warranty Card" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <Shield className="h-8 w-8 text-white" />
                       </div>
@@ -755,7 +755,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                         className="relative aspect-square rounded-lg border overflow-hidden cursor-pointer hover:opacity-80 transition"
                         onClick={() => setSelectedImage(url)}
                       >
-                        <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+                        <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
                           {index + 1}
                         </div>
@@ -1168,7 +1168,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 Full-size view of the image
               </DialogDescription>
             </DialogHeader>
-            <img src={selectedImage} alt="Preview" className="w-full h-auto" />
+            <img src={selectedImage} alt="Preview" className="w-full h-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           </DialogContent>
         </Dialog>
       )}

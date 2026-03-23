@@ -58,6 +58,8 @@ export default function AdminBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -67,11 +69,17 @@ export default function AdminBookingsPage() {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/bookings?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setBookings(data.data.items || data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || data.total || 0;
+        const pSize = data.data?.pageSize || 20;
+        setBookings(Array.isArray(items) ? items : []);
+        setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
       }
     } catch (error) {
       toast({
@@ -86,7 +94,7 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
-  }, [search, statusFilter]);
+  }, [search, statusFilter, page]);
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -142,12 +150,12 @@ export default function AdminBookingsPage() {
           <Input
             placeholder="Search by restaurant or owner..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
         <ClientOnly>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -264,16 +272,29 @@ export default function AdminBookingsPage() {
             )}
           </TableBody>
         </Table>
-                    
-                    
-                    
-                    
-                  
-              
-              
-              
-              
-        
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

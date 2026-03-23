@@ -50,7 +50,9 @@ export default function CreateEngineerPage() {
     fetch("/api/public/locations?type=states")
       .then((res) => res.json())
       .then((data) => { if (data.ok) setStates(data.data || []); })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+      });
   }, []);
 
   useEffect(() => {
@@ -58,7 +60,9 @@ export default function CreateEngineerPage() {
       fetch(`/api/public/locations?type=cities&stateId=${selectedStateId}`)
         .then((res) => res.json())
         .then((data) => { if (data.ok) setCities(data.data || []); })
-        .catch(() => {});
+        .catch(() => {
+          toast({ title: "Error", description: "Failed to load cities", variant: "destructive" });
+        });
     } else {
       setCities([]);
     }

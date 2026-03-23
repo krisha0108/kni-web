@@ -57,7 +57,9 @@ export default function EditRestaurantPage({
       .then((data) => {
         if (data.ok) setStates(data.data || []);
       })
-      .catch(() => {});
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+      });
   }, []);
 
   useEffect(() => {
@@ -67,7 +69,9 @@ export default function EditRestaurantPage({
         .then((data) => {
           if (data.ok) setCities(data.data || []);
         })
-        .catch(() => {});
+        .catch(() => {
+          toast({ title: "Error", description: "Failed to load cities", variant: "destructive" });
+        });
     } else {
       setCities([]);
     }

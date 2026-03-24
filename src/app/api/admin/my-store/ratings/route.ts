@@ -10,12 +10,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
+    // Find system vendor (KNI Store) to show its ratings
+    const systemVendor = await db.vendorProfile.findFirst({
+      where: { isSystemVendor: true },
+      select: { userId: true },
+    });
+
+    const where = {
+      isPublished: true,
+      ...(systemVendor ? { vendorId: systemVendor.userId } : {}),
+    };
+
     const [ratings, total] = await Promise.all([
       db.vendorRating.findMany({
-        where: {
-          vendorId: session.id,
-          isPublished: true,
-        },
+        where,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
@@ -25,12 +33,7 @@ export async function GET(request: NextRequest) {
           order: { select: { id: true, createdAt: true } },
         },
       }),
-      db.vendorRating.count({
-        where: {
-          vendorId: session.id,
-          isPublished: true,
-        },
-      }),
+      db.vendorRating.count({ where }),
     ]);
 
     return NextResponse.json({

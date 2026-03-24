@@ -76,7 +76,7 @@ export default function InventoryDetailPage({ params }: { params: Promise<{ id: 
       const data = await response.json();
       if (data.ok) {
         setInventory(data.data);
-        setThreshold(data.data.lowStockThreshold.toString());
+        setThreshold(data.data?.lowStockThreshold?.toString() || "10");
       } else {
         toast({
           title: "Error",

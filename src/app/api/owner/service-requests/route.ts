@@ -20,20 +20,26 @@ export async function GET(request: NextRequest) {
     await requireRestaurantAccess(session, restaurantId, "service:read");
 
     try {
-      const bookings = await db.serviceBooking.findMany({
-        where: {
-          restaurantId,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          restaurant: { select: { name: true } },
-        },
-      });
+      const page = parseInt(searchParams.get("page") || "0");
+      const pageSize = parseInt(searchParams.get("pageSize") || "50");
+      const where = { restaurantId };
+
+      const [bookings, total] = await Promise.all([
+        db.serviceBooking.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : { take: pageSize }),
+          include: {
+            restaurant: { select: { name: true } },
+          },
+        }),
+        db.serviceBooking.count({ where }),
+      ]);
 
       return NextResponse.json({
         ok: true,
-        data: bookings,
+        data: page > 0 ? { items: bookings, total, page, pageSize } : bookings,
+        total,
       });
     } catch (dbError) {
       console.error("Database error fetching service requests:", dbError);

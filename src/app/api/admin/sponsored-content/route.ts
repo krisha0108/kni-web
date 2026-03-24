@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
-    // Auto-update statuses based on dates before fetching
-    await autoUpdateSponsoredContentStatuses();
+    // Note: Auto-update runs via hourly cron job, not on every GET request
+    // This prevents overriding manual admin actions (activate/deactivate)
 
     const searchParams = request.nextUrl.searchParams;
     const isActive = searchParams.get("isActive");

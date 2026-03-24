@@ -67,11 +67,11 @@ export default function LoginPage() {
 
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${data.data.user.name}!`,
+        description: `Welcome back, ${data.data?.user?.name || "User"}!`,
         variant: "success",
       });
 
-      router.push(data.data.redirectUrl);
+      router.push(data.data?.redirectUrl || "/login");
     } catch {
       toast({
         title: "Error",

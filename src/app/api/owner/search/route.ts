@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             brand: true,
             status: true,
           },
-          take: 5,
+          take: 15,
           orderBy: { updatedAt: "desc" },
         }),
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
             totalAmount: true,
             restaurant: { select: { name: true } },
           },
-          take: 5,
+          take: 15,
           orderBy: { createdAt: "desc" },
         }),
 
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
             category: true,
             amount: true,
           },
-          take: 5,
+          take: 15,
           orderBy: { expenseDate: "desc" },
         }),
 
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
             designation: true,
             phone: true,
           },
-          take: 5,
+          take: 15,
           orderBy: { createdAt: "desc" },
         }),
 
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
             status: true,
             vendor: { select: { name: true } },
           },
-          take: 5,
+          take: 15,
           orderBy: { createdAt: "desc" },
         }),
 
@@ -149,12 +149,21 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
           },
-          take: 5,
+          take: 15,
         }),
       ]);
 
     return NextResponse.json({
       ok: true,
+      counts: {
+        equipment: equipment.length,
+        bookings: bookings.length,
+        expenses: expenses.length,
+        staff: staff.length,
+        orders: orders.length,
+        vendors: vendors.length,
+        total: equipment.length + bookings.length + expenses.length + staff.length + orders.length + vendors.length,
+      },
       data: {
         equipment: equipment.map((e) => ({
           id: e.id,

@@ -94,7 +94,7 @@ export default function AcceptInvitePage() {
 
       toast({
         title: "Success",
-        description: `You've joined ${data.data.restaurant.name}! Please login with your new password.`,
+        description: `You've joined ${data.data?.restaurant?.name || "the team"}! Please login with your new password.`,
       });
 
       router.push("/login");

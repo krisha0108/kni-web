@@ -7,34 +7,36 @@ export async function GET(request: NextRequest) {
     await requireOwnerMobile(request);
 
     try {
-      // Try to fetch service templates from database
-      const templates = await db.serviceItem.findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-        },
-        take: 20,
-      });
+      const searchParams = request.nextUrl.searchParams;
+      const page = parseInt(searchParams.get("page") || "0");
+      const pageSize = parseInt(searchParams.get("pageSize") || "50");
+      const where = { isActive: true };
 
-      if (templates.length > 0) {
-        return NextResponse.json({
-          ok: true,
-          data: templates.map((t) => ({
-            id: t.id,
-            name: t.name,
-            description: t.description || "",
-            estimatedPrice: t.price || 0,
-          })),
-        });
-      }
+      const [templates, total] = await Promise.all([
+        db.serviceItem.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+          },
+          ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : { take: pageSize }),
+        }),
+        db.serviceItem.count({ where }),
+      ]);
 
-      // No templates found — return empty array
+      const mapped = templates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description || "",
+        estimatedPrice: t.price || 0,
+      }));
+
       return NextResponse.json({
         ok: true,
-        data: [],
+        data: page > 0 ? { items: mapped, total, page, pageSize } : mapped,
+        total,
       });
     } catch (dbError) {
       console.error("Database error fetching service templates:", dbError);

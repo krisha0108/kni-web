@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/server/auth/session";
+import { NextRequest, NextResponse } from "next/server";
+import { getMobileSession } from "@/server/auth/mobile-session";
 import { getUnreadCount } from "@/server/notifications/service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getMobileSession(request);
     if (!session) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },

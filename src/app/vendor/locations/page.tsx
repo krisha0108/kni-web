@@ -96,6 +96,7 @@ export default function VendorLocationsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch states", error);
+      toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
     }
   };
 
@@ -108,6 +109,7 @@ export default function VendorLocationsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch cities", error);
+      toast({ title: "Error", description: "Failed to load cities", variant: "destructive" });
     }
   };
 
@@ -120,6 +122,7 @@ export default function VendorLocationsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch areas", error);
+      toast({ title: "Error", description: "Failed to load areas", variant: "destructive" });
     }
   };
 

@@ -89,9 +89,13 @@ export default function TemplatesPage() {
             router.push("/admin/content/banners");
             break;
           case "feed":
+            router.push("/admin/content/feeds");
+            break;
           case "guide":
+            router.push("/admin/content/guides");
+            break;
           case "sponsored":
-            router.push("/admin/content");
+            router.push("/admin/content/sponsored");
             break;
         }
       } else {

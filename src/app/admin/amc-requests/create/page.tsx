@@ -167,7 +167,7 @@ export default function AdminCreateAMCRequestPage() {
         const data = await res.json();
         if (data.ok) {
           setOwnerResults(
-            data.data.items.map((o: any) => ({ id: o.id, name: o.name, email: o.email, phone: o.phone }))
+            (data.data?.items || data.data || []).map((o: any) => ({ id: o.id, name: o.name, email: o.email, phone: o.phone }))
           );
         }
       } catch {

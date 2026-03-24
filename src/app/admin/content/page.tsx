@@ -50,8 +50,8 @@ export default function ContentManagementPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <MessageSquare className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/content">
-                  API Docs
+                <Link href="/admin/content/feeds">
+                  Manage
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -78,8 +78,8 @@ export default function ContentManagementPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <BookOpen className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/content">
-                  API Docs
+                <Link href="/admin/content/guides">
+                  Manage
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -106,8 +106,8 @@ export default function ContentManagementPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <Megaphone className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/content">
-                  API Docs
+                <Link href="/admin/content/sponsored">
+                  Manage
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -177,7 +177,7 @@ export default function ContentManagementPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full" variant="outline">
-              <Link href="/admin/content">
+              <Link href="/admin/content/schedule">
                 View Schedule
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

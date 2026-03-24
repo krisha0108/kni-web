@@ -8,33 +8,36 @@ export async function GET(request: NextRequest) {
 
     try {
       // Try to fetch real notifications
-      const notifications = await db.notification.findMany({
-        where: {
-          userId: session.id,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      });
+      const searchParams = request.nextUrl.searchParams;
+      const page = parseInt(searchParams.get("page") || "0");
+      const pageSize = parseInt(searchParams.get("pageSize") || "50");
 
-      if (notifications.length > 0) {
-        return NextResponse.json({
-          ok: true,
-          data: notifications.map((n: any) => ({
-            id: n.id,
-            title: n.title,
-            message: n.message || n.body,
-            type: n.type || "INFO",
-            isRead: n.isRead || n.read || false,
-            createdAt: n.createdAt?.toISOString() || new Date().toISOString(),
-            metadata: n.metadata || {},
-          })),
-        });
-      }
+      const where = { userId: session.id };
 
-      // No notifications found — return empty array
+      const [notifications, total] = await Promise.all([
+        db.notification.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : { take: pageSize }),
+        }),
+        db.notification.count({ where }),
+      ]);
+
+      const mapped = notifications.map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message || n.body,
+        type: n.type || "INFO",
+        isRead: n.isRead || n.read || false,
+        is_read: n.isRead || n.read || false,
+        createdAt: n.createdAt?.toISOString() || new Date().toISOString(),
+        metadata: n.metadata || {},
+      }));
+
       return NextResponse.json({
         ok: true,
-        data: [],
+        data: page > 0 ? { items: mapped, total, page, pageSize } : mapped,
+        total,
       });
     } catch (dbError) {
       console.error("Database error fetching notifications:", dbError);

@@ -11,31 +11,36 @@ export async function GET(request: NextRequest) {
     const session = await requireEngineerMobile(request);
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = Number(searchParams.get("limit")) || 10;
+    const page = parseInt(searchParams.get("page") || "0");
+    const pageSize = parseInt(searchParams.get("pageSize") || searchParams.get("limit") || "20");
 
-    const notifications = await db.notification.findMany({
-      where: {
-        userId: session.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limit,
-    });
+    const where = { userId: session.id };
+
+    const [notifications, total] = await Promise.all([
+      db.notification.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : { take: pageSize }),
+      }),
+      page > 0 ? db.notification.count({ where }) : Promise.resolve(-1),
+    ]);
+
+    const mapped = notifications.map((n) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      linkUrl: n.linkUrl,
+      isRead: n.isRead,
+      is_read: n.isRead,
+      created_at: n.createdAt.toISOString(),
+      createdAt: n.createdAt.toISOString(),
+    }));
 
     return NextResponse.json({
       success: true,
       ok: true,
-      data: notifications.map((n) => ({
-        id: n.id,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        linkUrl: n.linkUrl,
-        isRead: n.isRead,
-        created_at: n.createdAt.toISOString(),
-        createdAt: n.createdAt.toISOString(),
-      })),
+      data: page > 0 ? { items: mapped, total, page, pageSize } : mapped,
     });
   } catch (error) {
     console.error("Get engineer notifications error:", error);

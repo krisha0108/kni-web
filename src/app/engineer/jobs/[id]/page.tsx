@@ -180,14 +180,14 @@ export default function EngineerJobDetailPage() {
           // W2: Auto-resume timer if job is IN_PROGRESS with startedAt but no completedAt
           if (
             data.data.status === "IN_PROGRESS" &&
-            data.data.workLog.startedAt &&
-            !data.data.workLog.completedAt
+            data.data.workLog?.startedAt &&
+            !data.data.workLog?.completedAt
           ) {
             setIsTimerRunning(true);
           }
           // partsUsed from backend is array of part names/IDs
           // We convert them back to PartUsed objects if possible
-          if (data.data.workLog.partsUsedNames && Array.isArray(data.data.workLog.partsUsedNames)) {
+          if (data.data.workLog?.partsUsedNames && Array.isArray(data.data.workLog.partsUsedNames)) {
             const restoredParts: PartUsed[] = data.data.workLog.partsUsedNames.map((p: string) => ({
               id: p,
               name: p, // If it's a name, use it; if it's an ID, we'll display the ID

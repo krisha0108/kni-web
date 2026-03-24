@@ -228,7 +228,7 @@ export default function RegisterVendorPage() {
         variant: "success",
       });
 
-      router.push(data.data.redirectUrl);
+      router.push(data.data?.redirectUrl || "/login");
     } catch {
       toast({
         title: "Error",

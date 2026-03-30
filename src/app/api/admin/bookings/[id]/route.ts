@@ -49,6 +49,7 @@ export async function GET(
           },
         },
         paymentProof: true,
+        createdByAdmin: { select: { id: true, name: true } },
         engineerAssignments: {
           include: {
             engineer: { select: { id: true, name: true, email: true } },

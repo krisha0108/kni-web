@@ -57,6 +57,9 @@ interface Booking {
       subCategory?: { id: string; name: string };
     };
   }>;
+  isDirectBooking?: boolean;
+  adminNotes?: string;
+  createdByAdmin?: { id: string; name: string } | null;
   paymentProof?: { id: string; screenshotUrl: string; status: string };
   engineerAssignments?: Array<{
     id: string;
@@ -288,19 +291,38 @@ export default function AdminBookingDetailPage() {
           <h1 className="text-3xl font-bold">Booking Details</h1>
           <p className="text-muted-foreground font-mono">{booking.id}</p>
         </div>
-        <Badge
-          variant={
-            booking.status === "COMPLETED"
-              ? "success"
-              : booking.status === "CANCELLED"
-              ? "destructive"
-              : "default"
-          }
-          className="text-sm py-1 px-3"
-        >
-          {booking.status.replace(/_/g, " ")}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {booking.isDirectBooking && (
+            <Badge variant="secondary" className="text-sm py-1 px-3">
+              Direct Booking
+            </Badge>
+          )}
+          <Badge
+            variant={
+              booking.status === "COMPLETED"
+                ? "success"
+                : booking.status === "CANCELLED"
+                ? "destructive"
+                : "default"
+            }
+            className="text-sm py-1 px-3"
+          >
+            {booking.status.replace(/_/g, " ")}
+          </Badge>
+        </div>
       </div>
+
+      {/* Direct Booking Info */}
+      {booking.isDirectBooking && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+          <p className="text-sm font-medium text-blue-700">
+            Direct booking created by {booking.createdByAdmin?.name || "Admin"}
+          </p>
+          {booking.adminNotes && (
+            <p className="text-sm text-blue-600">Notes: {booking.adminNotes}</p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">

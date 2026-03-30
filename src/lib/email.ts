@@ -868,6 +868,52 @@ export async function sendLaunchPadResponseEmail(
   });
 }
 
+/**
+ * Send Service PIN email to owner
+ */
+export async function sendServicePinEmail(
+  to: string,
+  ownerName: string,
+  pin: string,
+  purpose: "START" | "COMPLETE",
+  engineerName: string,
+  bookingId: string
+): Promise<void> {
+  const actionText = purpose === "START" ? "start work on your equipment" : "mark the service as complete";
+
+  const content = `
+    <h2>Service PIN</h2>
+    <p>Hi ${ownerName},</p>
+    <p>Engineer <strong>${engineerName}</strong> wants to <strong>${actionText}</strong>.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; background: #f0f4ff; border: 2px solid #667eea; border-radius: 12px; padding: 20px 40px;">
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #6c757d;">Your Service PIN</p>
+        <p style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #667eea;">${pin}</p>
+      </div>
+    </div>
+
+    <div class="credentials">
+      <p><strong>⏰ This PIN expires in 10 minutes.</strong></p>
+      <p>Share this PIN with the engineer only when they are physically present at your location.</p>
+    </div>
+
+    <div class="info-box">
+      <p><strong>Booking ID:</strong> ${bookingId.slice(-8)}</p>
+      <p><strong>Engineer:</strong> ${engineerName}</p>
+      <p><strong>Action:</strong> ${purpose === "START" ? "Start Work" : "Complete Work"}</p>
+    </div>
+
+    <p>If you did not request this service, please contact us immediately.</p>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `Service PIN: ${pin} - Engineer ${engineerName} wants to ${actionText}`,
+    html: emailTemplate(content, "Service PIN"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -881,4 +927,5 @@ export default {
   sendEmailVerificationCode,
   sendPasswordResetCode,
   sendLaunchPadResponseEmail,
+  sendServicePinEmail,
 };

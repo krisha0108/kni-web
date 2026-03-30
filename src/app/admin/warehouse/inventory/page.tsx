@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Eye, Search, Download } from "lucide-react";
+import { Plus, Eye, Search, Download, PackagePlus } from "lucide-react";
 import { getStockStatus } from "@/lib/warehouse";
 import { formatPrice, formatDate } from "@/lib/utils";
 
@@ -57,6 +57,48 @@ export default function WarehouseInventoryPage() {
     lowStockThreshold: "10",
   });
 
+  // Quick Add Stock
+  const [quickStockOpen, setQuickStockOpen] = useState(false);
+  const [quickStockInventory, setQuickStockInventory] = useState<Inventory | null>(null);
+  const [quickStockQty, setQuickStockQty] = useState("");
+  const [quickStockNotes, setQuickStockNotes] = useState("");
+  const [isAddingStock, setIsAddingStock] = useState(false);
+
+  const handleQuickAddStock = async () => {
+    if (!quickStockInventory || !quickStockQty || parseInt(quickStockQty) <= 0) {
+      toast({ title: "Error", description: "Enter a valid quantity", variant: "destructive" });
+      return;
+    }
+    setIsAddingStock(true);
+    try {
+      const res = await fetch("/api/admin/warehouse/stock-movements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inventoryId: quickStockInventory.id,
+          movementType: "INWARD_PURCHASE",
+          quantity: parseInt(quickStockQty),
+          notes: quickStockNotes || `Quick stock add from inventory list`,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast({ title: "Success", description: `Added ${quickStockQty} units to ${quickStockInventory.partItem.name}` });
+        setQuickStockOpen(false);
+        setQuickStockQty("");
+        setQuickStockNotes("");
+        setQuickStockInventory(null);
+        fetchInventories();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to add stock", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to add stock", variant: "destructive" });
+    } finally {
+      setIsAddingStock(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchInventories();
@@ -90,10 +132,10 @@ export default function WarehouseInventoryPage() {
 
   const fetchPartItems = async () => {
     try {
-      const response = await fetch("/api/admin/parts");
+      const response = await fetch("/api/admin/parts?pageSize=200");
       const data = await response.json();
       if (data.ok) {
-        setPartItems(data.data.parts || []);
+        setPartItems(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Error fetching part items:", error);
@@ -355,15 +397,31 @@ export default function WarehouseInventoryPage() {
                     </TableCell>
                     
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          router.push(`/admin/warehouse/inventory/${inventory.id}`)
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Add Stock"
+                          onClick={() => {
+                            setQuickStockInventory(inventory);
+                            setQuickStockQty("");
+                            setQuickStockNotes("");
+                            setQuickStockOpen(true);
+                          }}
+                        >
+                          <PackagePlus className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="View Details"
+                          onClick={() =>
+                            router.push(`/admin/warehouse/inventory/${inventory.id}`)
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -382,6 +440,53 @@ export default function WarehouseInventoryPage() {
               
         
       </div>
+
+      {/* Quick Add Stock Dialog */}
+      <Dialog open={quickStockOpen} onOpenChange={setQuickStockOpen}>
+        <DialogContent className="max-w-sm w-[95vw] sm:w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackagePlus className="h-5 w-5 text-green-600" />
+              Add Stock
+            </DialogTitle>
+          </DialogHeader>
+          {quickStockInventory && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="font-medium">{quickStockInventory.partItem.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  Current stock: <span className="font-mono font-semibold">{quickStockInventory.currentStock}</span>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Quantity to Add *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={quickStockQty}
+                  onChange={(e) => setQuickStockQty(e.target.value)}
+                  placeholder="e.g. 50"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Input
+                  value={quickStockNotes}
+                  onChange={(e) => setQuickStockNotes(e.target.value)}
+                  placeholder="e.g. Purchased from supplier"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickStockOpen(false)}>Cancel</Button>
+            <Button onClick={handleQuickAddStock} disabled={isAddingStock || !quickStockQty}>
+              {isAddingStock ? "Adding..." : `Add ${quickStockQty || 0} Units`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

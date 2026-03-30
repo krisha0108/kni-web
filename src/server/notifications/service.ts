@@ -6,6 +6,7 @@ import {
   sendEngineerAssignedEmail,
   sendEngineerJobAssignmentEmail,
   sendWorkCompletedEmail,
+  sendServicePinEmail,
 } from "@/lib/email";
 import { sendPushNotification, sendPushNotificationToMultipleUsers } from "./fcm-service";
 import { sendSMS, sendSMSFromTemplate } from "@/server/sms/service";
@@ -727,12 +728,13 @@ export async function notifyOwnerServicePin(
     linkUrl: "/owner/bookings/" + bookingId,
   });
 
-  // Send SMS to owner (non-blocking)
+  // Fetch owner details for SMS and email
   const owner = await db.user.findUnique({
     where: { id: ownerId },
-    select: { phone: true },
+    select: { phone: true, email: true, name: true },
   });
 
+  // Send SMS to owner (non-blocking)
   if (owner?.phone) {
     sendSMS({
       phone: owner.phone,
@@ -743,5 +745,39 @@ export async function notifyOwnerServicePin(
     });
   }
 
+  // Send Email to owner (non-blocking)
+  if (owner?.email) {
+    sendServicePinEmail(
+      owner.email,
+      owner.name || "Owner",
+      pin,
+      purpose,
+      engineerName,
+      bookingId
+    ).catch((error) => {
+      console.error("Failed to send service PIN email:", error);
+    });
+  }
+
   return notification;
+}
+
+/**
+ * Check stock level after deduction and notify admins if low
+ */
+export async function checkAndNotifyLowStock(
+  partName: string,
+  currentStock: number,
+  threshold: number
+) {
+  if (currentStock < threshold) {
+    const severity = currentStock === 0 ? "OUT OF STOCK" : currentStock < threshold / 2 ? "CRITICAL" : "LOW";
+    createNotificationForRole(
+      "ADMIN",
+      `${severity}: ${partName}`,
+      `${partName} stock is ${severity.toLowerCase()} — ${currentStock} units remaining (threshold: ${threshold}).`,
+      NotificationType.SYSTEM,
+      "/admin/warehouse/alerts"
+    ).catch(console.error);
+  }
 }

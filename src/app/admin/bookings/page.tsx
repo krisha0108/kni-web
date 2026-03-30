@@ -35,6 +35,7 @@ interface Booking {
   createdAt: string;
   restaurant: { id: string; name: string };
   owner: { id: string; name: string };
+  isDirectBooking?: boolean;
   paymentProof?: { status: string };
   engineerAssignments?: Array<{ engineer?: { name: string }; status: string }>;
   items?: Array<{
@@ -58,6 +59,7 @@ export default function AdminBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [bookingType, setBookingType] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
@@ -69,6 +71,7 @@ export default function AdminBookingsPage() {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      if (bookingType && bookingType !== "all") params.append("bookingType", bookingType);
       params.set("page", page.toString());
       params.set("pageSize", "20");
 
@@ -94,7 +97,7 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, bookingType, page]);
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -168,6 +171,18 @@ export default function AdminBookingsPage() {
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="COMPLETED">Completed</SelectItem>
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </ClientOnly>
+        <ClientOnly>
+          <Select value={bookingType} onValueChange={(v) => { setBookingType(v); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="direct">Direct Booking</SelectItem>
+              <SelectItem value="normal">Normal Booking</SelectItem>
             </SelectContent>
           </Select>
         </ClientOnly>
@@ -246,9 +261,16 @@ export default function AdminBookingsPage() {
                     <TableCell className="whitespace-nowrap">{formatDate(booking.preferredDate)}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatPrice(booking.totalAmount)}</TableCell>
                     <TableCell>
-                      <Badge variant={statusColors[booking.status] || "default"} className="text-xs whitespace-nowrap">
-                        {getStatusLabel(booking.status)}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant={statusColors[booking.status] || "default"} className="text-xs whitespace-nowrap">
+                          {getStatusLabel(booking.status)}
+                        </Badge>
+                        {booking.isDirectBooking && (
+                          <Badge variant="outline" className="text-xs whitespace-nowrap">
+                            Direct
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     
                     <TableCell className="hidden md:table-cell">

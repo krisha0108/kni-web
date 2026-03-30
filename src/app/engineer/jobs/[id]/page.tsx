@@ -76,6 +76,8 @@ interface PartUsed {
   id: string;
   name: string;
   price?: number;
+  qty: number;
+  maxQty?: number;
 }
 
 interface Job {
@@ -158,6 +160,8 @@ export default function EngineerJobDetailPage() {
       id: item.partItem!.id,
       name: item.partItem!.name,
       price: item.partItem!.price || 0,
+      qty: item.quantity || 1,
+      maxQty: item.quantity || 1,
     })) || [];
 
   const fetchJob = async () => {
@@ -341,7 +345,7 @@ export default function EngineerJobDetailPage() {
   // Add part (from available parts list)
   const handleAddPart = (part: PartUsed) => {
     if (!usedParts.find((p) => p.id === part.id)) {
-      setUsedParts((prev) => [...prev, part]);
+      setUsedParts((prev) => [...prev, { ...part }]);
     }
   };
 
@@ -350,11 +354,19 @@ export default function EngineerJobDetailPage() {
     setUsedParts((prev) => prev.filter((p) => p.id !== partId));
   };
 
+  // Update part quantity
+  const handleUpdatePartQty = (partId: string, newQty: number) => {
+    if (newQty < 1) return;
+    setUsedParts((prev) =>
+      prev.map((p) => (p.id === partId ? { ...p, qty: newQty } : p))
+    );
+  };
+
   // Add custom part (no ID - will be stored as name only)
   const handleAddCustomPart = () => {
     const trimmed = customPart.trim();
     if (trimmed && !usedParts.find((p) => p.name === trimmed)) {
-      setUsedParts((prev) => [...prev, { id: `custom-${Date.now()}`, name: trimmed, price: 0 }]);
+      setUsedParts((prev) => [...prev, { id: `custom-${Date.now()}`, name: trimmed, price: 0, qty: 1 }]);
       setCustomPart("");
     }
   };
@@ -386,7 +398,7 @@ export default function EngineerJobDetailPage() {
         .filter((part) => !part.id.startsWith("custom-"))
         .map((part) => ({
           partItemId: part.id,
-          qty: 1,
+          qty: part.qty,
           priceSnapshot: part.price || 0,
         }));
 
@@ -909,42 +921,70 @@ export default function EngineerJobDetailPage() {
             {/* Available Parts */}
             {availableParts.length > 0 && (
               <div>
-                <Label className="text-sm text-muted-foreground">Available Parts</Label>
+                <Label className="text-sm text-muted-foreground">Available Parts (from booking)</Label>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   {availableParts.map((part) => {
                     const isSelected = usedParts.some((p) => p.id === part.id);
                     return (
-                      <Button
-                        key={part.id}
-                        variant={isSelected ? "default" : "outline"}
-                        className="justify-start"
-                        onClick={() =>
-                          isSelected
-                            ? handleRemovePart(part.id)
-                            : handleAddPart(part)
-                        }
-                      >
-                        {isSelected ? (
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                        ) : (
-                          <Plus className="mr-2 h-4 w-4" />
+                      <div key={part.id} className={`flex items-center justify-between p-3 rounded-lg border ${isSelected ? "bg-primary/10 border-primary" : "border-input"}`}>
+                        <button
+                          className="flex items-center gap-2 flex-1 text-left"
+                          onClick={() => isSelected ? handleRemovePart(part.id) : handleAddPart(part)}
+                        >
+                          {isSelected ? (
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                          ) : (
+                            <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                          )}
+                          <div>
+                            <span className="text-sm font-medium">{part.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">Ordered: {part.maxQty || 1}</span>
+                          </div>
+                        </button>
+                        {isSelected && (
+                          <div className="flex items-center gap-1 ml-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const current = usedParts.find((p) => p.id === part.id);
+                                if (current && current.qty > 1) handleUpdatePartQty(part.id, current.qty - 1);
+                              }}
+                            >
+                              <span className="text-sm font-bold">-</span>
+                            </Button>
+                            <span className="w-8 text-center text-sm font-semibold">
+                              {usedParts.find((p) => p.id === part.id)?.qty || 1}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                const current = usedParts.find((p) => p.id === part.id);
+                                if (current) handleUpdatePartQty(part.id, current.qty + 1);
+                              }}
+                            >
+                              <span className="text-sm font-bold">+</span>
+                            </Button>
+                          </div>
                         )}
-                        {part.name}
-                      </Button>
+                      </div>
                     );
                   })}
                 </div>
               </div>
             )}
 
-            {/* Selected Parts */}
+            {/* Selected Parts Summary */}
             {usedParts.length > 0 && (
               <div>
                 <Label className="text-sm text-muted-foreground">Selected Parts</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {usedParts.map((part) => (
                     <Badge key={part.id} variant="secondary" className="pl-2 pr-1 py-1">
-                      {part.name}
+                      {part.name} ×{part.qty}
                       <button
                         onClick={() => handleRemovePart(part.id)}
                         className="ml-1 hover:text-destructive"
@@ -1113,7 +1153,7 @@ export default function EngineerJobDetailPage() {
                 <div className="flex flex-wrap gap-1 mt-1">
                   {usedParts.map((part) => (
                     <Badge key={part.id} variant="outline" className="text-xs">
-                      {part.name}
+                      {part.name} ×{part.qty}
                     </Badge>
                   ))}
                 </div>

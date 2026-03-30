@@ -46,6 +46,7 @@ import {
   ChevronDown,
   QrCode,
   Rocket,
+  CalendarPlus,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -251,6 +252,7 @@ export const adminSidebarItems: SidebarEntry[] = [
   },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
   { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
+  { title: "Direct Booking", href: "/admin/direct-booking", icon: CalendarPlus },
 
   // ── Commerce ──
   { sectionTitle: "Commerce" },

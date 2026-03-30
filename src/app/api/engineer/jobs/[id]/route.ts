@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireEngineerMobile } from "@/server/auth/rbac";
-import { notifyOwnerJobCompleted, createNotificationForRole, createNotification } from "@/server/notifications/service";
+import { notifyOwnerJobCompleted, createNotificationForRole, createNotification, checkAndNotifyLowStock } from "@/server/notifications/service";
 import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
 import { rejectionReasonSchema } from "@/lib/validations/rejection";
@@ -464,6 +464,32 @@ export async function POST(
                 },
               });
               totalPartsCost += priceToUse * part.qty;
+
+              // Auto-deduct from warehouse inventory if tracked
+              const inventory = await tx.warehouseInventory.findUnique({
+                where: { partItemId: part.partItemId },
+              });
+              if (inventory) {
+                const newBalance = Math.max(0, inventory.currentStock - part.qty);
+                await tx.stockMovement.create({
+                  data: {
+                    inventoryId: inventory.id,
+                    movementType: "OUTWARD_USAGE",
+                    quantity: part.qty,
+                    balanceAfter: newBalance,
+                    bookingId: assignment.bookingId,
+                    notes: `Auto-deducted: Job completion by ${session.name}`,
+                    createdBy: session.id,
+                  },
+                });
+                await tx.warehouseInventory.update({
+                  where: { id: inventory.id },
+                  data: { currentStock: newBalance },
+                });
+
+                // Check and notify if stock is low (non-blocking, outside tx)
+                checkAndNotifyLowStock(partItem.name, newBalance, inventory.lowStockThreshold).catch(console.error);
+              }
             } else {
               console.warn(`Invalid partItemId: ${part.partItemId} - skipping`);
             }

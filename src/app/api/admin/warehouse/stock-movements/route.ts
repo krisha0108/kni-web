@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,

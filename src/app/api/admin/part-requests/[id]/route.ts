@@ -46,11 +46,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-// import { db } from "@/server/db";
-// import { requireAdmin } from "@/server/auth/rbac";
-// import { PartRequestStatus } from "@prisma/client";
-// import { createNotification } from "@/server/notifications/service";
-// import { NotificationType } from "@prisma/client";
+import { db } from "@/server/db";
+import { requireAdmin } from "@/server/auth/rbac";
+import { PartRequestStatus, NotificationType } from "@prisma/client";
+import { createNotification, checkAndNotifyLowStock } from "@/server/notifications/service";
 
 /**
  * GET /api/admin/part-requests/:id
@@ -61,18 +60,11 @@ import { NextRequest, NextResponse } from "next/server";
  * - Assignment info (job, restaurant address)
  * - Processing admin info (who approved/rejected)
  *
- * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return NextResponse.json(
-    { ok: false, error: "Parts request feature is currently disabled" },
-    { status: 503 }
-  );
-
-  /* DISABLED - Parts request flow
   try {
     await requireAdmin();
     const { id } = await params;
@@ -159,7 +151,6 @@ export async function GET(
       { status: 500 }
     );
   }
-  DISABLED - Parts request flow */
 }
 
 /**
@@ -182,18 +173,11 @@ export async function GET(
  * - Records adminId who processed the request
  * - Creates notification for engineer
  *
- * NOTE: Currently DISABLED - returns 503 Service Unavailable
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return NextResponse.json(
-    { ok: false, error: "Parts request feature is currently disabled" },
-    { status: 503 }
-  );
-
-  /* DISABLED - Parts request flow
   try {
     const session = await requireAdmin();
     const { id } = await params;
@@ -287,24 +271,58 @@ export async function PATCH(
         );
     }
 
-    const updatedRequest = await db.partRequest.update({
-      where: { id },
-      data: updateData,
-      include: {
-        partItem: {
-          select: {
-            id: true,
-            name: true,
+    // Use transaction for dispatch (needs stock deduction) or simple update for others
+    let updatedRequest;
+
+    if (action === "dispatch") {
+      updatedRequest = await db.$transaction(async (tx) => {
+        const updated = await tx.partRequest.update({
+          where: { id },
+          data: updateData,
+          include: {
+            partItem: { select: { id: true, name: true } },
+            engineer: { select: { id: true, name: true } },
           },
+        });
+
+        // Deduct stock from warehouse on dispatch
+        const inv = await tx.warehouseInventory.findUnique({
+          where: { partItemId: updated.partItem.id },
+        });
+
+        if (inv) {
+          const newBalance = Math.max(0, inv.currentStock - partRequest.quantity);
+          await tx.stockMovement.create({
+            data: {
+              inventoryId: inv.id,
+              movementType: "OUTWARD_USAGE",
+              quantity: partRequest.quantity,
+              balanceAfter: newBalance,
+              notes: `Dispatched for part request #${id} to ${partRequest.engineer.name}`,
+              createdBy: session.id,
+            },
+          });
+          await tx.warehouseInventory.update({
+            where: { id: inv.id },
+            data: { currentStock: newBalance },
+          });
+
+          // Check and notify if stock is low
+          checkAndNotifyLowStock(updated.partItem.name, newBalance, inv.lowStockThreshold).catch(console.error);
+        }
+
+        return updated;
+      });
+    } else {
+      updatedRequest = await db.partRequest.update({
+        where: { id },
+        data: updateData,
+        include: {
+          partItem: { select: { id: true, name: true } },
+          engineer: { select: { id: true, name: true } },
         },
-        engineer: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      });
+    }
 
     // Send notification to engineer
     if (notificationTitle && notificationBody) {
@@ -332,5 +350,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-  DISABLED - Parts request flow */
 }

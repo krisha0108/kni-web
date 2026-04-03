@@ -2,14 +2,21 @@
 const Razorpay = require("razorpay");
 import crypto from "crypto";
 
-if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  console.warn("WARNING: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set in .env");
-}
+// Lazy initialization — only create instance when actually needed (not at build time)
+let _razorpay: any = null;
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "",
-});
+function getRazorpay() {
+  if (!_razorpay) {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      throw new Error("Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env");
+    }
+    _razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return _razorpay;
+}
 
 /**
  * Create a Razorpay order
@@ -20,9 +27,8 @@ export async function createRazorpayOrder(
   receipt: string,
   notes?: Record<string, string>
 ) {
-  if (!process.env.RAZORPAY_KEY_ID) {
-    throw new Error("Razorpay is not configured. Please set RAZORPAY_KEY_ID in .env");
-  }
+  const razorpay = getRazorpay();
+
   // Ensure amount is a positive integer (rupees, not paise)
   const amount = Math.round(Math.abs(amountInRupees)) * 100;
   if (amount <= 0) {
@@ -57,4 +63,4 @@ export function verifyRazorpaySignature(
   return expectedSignature === signature;
 }
 
-export default razorpay;
+export default getRazorpay;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +21,18 @@ import {
   QrCode,
   Info,
   ArrowRight,
+  Smartphone,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { clearCart } from "@/lib/marketplace-cart";
 import type { VendorPaymentInfo } from "../types";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface CheckoutItem {
   product: { id: string; name: string; price: number };
@@ -45,6 +52,8 @@ interface CheckoutSession {
   deliveryNotes: string;
 }
 
+type PaymentMode = "razorpay" | "manual";
+
 export default function MarketplacePaymentPage() {
   const searchParams = useSearchParams();
   const vendorIdParam = searchParams.get("vendorId");
@@ -58,11 +67,18 @@ export default function MarketplacePaymentPage() {
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Payment mode: razorpay for admin store, manual for other vendors
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("razorpay");
+
   // Post-submission states
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "VERIFIED" | "REJECTED" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  // Razorpay success state
+  const [razorpaySuccess, setRazorpaySuccess] = useState(false);
+  const [razorpayOrderId, setRazorpayOrderId] = useState<string | null>(null);
 
   // Load checkout session from localStorage
   useEffect(() => {
@@ -85,7 +101,7 @@ export default function MarketplacePaymentPage() {
     }
   }, [vendorIdParam]);
 
-  // Fetch vendor payment info (QR + UPI)
+  // Fetch vendor payment info (QR + UPI + useRazorpay flag)
   useEffect(() => {
     if (!vendorIdParam) return;
     const fetchPaymentInfo = async () => {
@@ -95,6 +111,10 @@ export default function MarketplacePaymentPage() {
         const data = await response.json();
         if (data.ok) {
           setVendorPaymentInfo(data.data);
+          // If not admin store (no razorpay), default to manual
+          if (!data.data.useRazorpay) {
+            setPaymentMode("manual");
+          }
         } else {
           setVendorPaymentInfo(null);
         }
@@ -107,7 +127,7 @@ export default function MarketplacePaymentPage() {
     fetchPaymentInfo();
   }, [vendorIdParam]);
 
-  // Poll for payment status after submission (every 10 seconds, matching mobile)
+  // Poll for payment status after manual submission (every 10 seconds)
   const checkPaymentStatus = useCallback(async () => {
     if (!session || !paymentId) return;
     try {
@@ -139,7 +159,111 @@ export default function MarketplacePaymentPage() {
     ? session.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     : 0;
 
-  // Submit payment
+  // ==================== RAZORPAY PAYMENT ====================
+  const paymentInProgress = useRef(false);
+  const handleRazorpayPayment = async () => {
+    if (!session || paymentInProgress.current) return;
+    paymentInProgress.current = true;
+    setIsSubmitting(true);
+
+    try {
+      // 1. Create Razorpay order on server
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: totalAmount,
+          type: "MARKETPLACE",
+          referenceId: session.restaurantId,
+          notes: { vendorId: session.vendorId, restaurantId: session.restaurantId },
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error || "Failed to create order", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId, prefill } = orderData.data;
+
+      // 2. Open Razorpay checkout
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: "KNI Official Store",
+        description: `Order - ${session.items.length} items`,
+        order_id: orderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          // 3. Verify payment on server
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "MARKETPLACE",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                vendorId: session.vendorId,
+                restaurantId: session.restaurantId,
+                items: session.items.map((item) => ({
+                  productId: item.product?.id || item.productId,
+                  qty: item.quantity,
+                })),
+                deliveryAddress: session.deliveryAddress || undefined,
+                notes: session.deliveryNotes || undefined,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              localStorage.removeItem("marketplace_checkout_session");
+              try {
+                await clearCart(session.restaurantId, { vendorId: session.vendorId });
+              } catch { /* ignore */ }
+              setRazorpaySuccess(true);
+              setRazorpayOrderId(verifyData.data.orderId);
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsSubmitting(false);
+          paymentInProgress.current = false;
+        },
+        modal: {
+          ondismiss: () => {
+            setIsSubmitting(false);
+            paymentInProgress.current = false;
+          },
+        },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({
+          title: "Payment Failed",
+          description: response.error?.description || "Payment was not completed",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        paymentInProgress.current = false;
+      });
+      rzp.open();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to initiate payment", variant: "destructive" });
+      setIsSubmitting(false);
+      paymentInProgress.current = false;
+    }
+  };
+
+  // ==================== MANUAL (SCREENSHOT) PAYMENT ====================
   const handleSubmitPayment = async () => {
     if (!session || !screenshotUrl) return;
 
@@ -163,32 +287,19 @@ export default function MarketplacePaymentPage() {
 
       const data = await response.json();
       if (data.ok) {
-        // Clean up checkout session
         localStorage.removeItem("marketplace_checkout_session");
-
-        // Clear paid vendor's items from server-side cart
         try {
           await clearCart(session.restaurantId, { vendorId: session.vendorId });
-        } catch {
-          // Cart clear failed silently — not critical
-        }
+        } catch { /* ignore */ }
 
         setPaymentSubmitted(true);
         setPaymentId(data.data.id);
         setPaymentStatus("PENDING");
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to submit payment",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: data.error || "Failed to submit payment", variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to submit payment. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to submit payment. Please try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -211,7 +322,42 @@ export default function MarketplacePaymentPage() {
     );
   }
 
-  // ==================== PAYMENT STATUS SCREEN (after submission) ====================
+  // ==================== RAZORPAY SUCCESS SCREEN ====================
+  if (razorpaySuccess) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/owner/marketplace")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-xl sm:text-2xl font-bold">Payment Successful</h1>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 px-8">
+            <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center mb-6">
+              <CheckCircle className="h-12 w-12 text-green-500" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Payment Verified!</h2>
+            <p className="text-sm text-muted-foreground text-center mb-2">
+              Your payment of <span className="font-bold text-foreground">{formatPrice(totalAmount)}</span> via Razorpay has been verified.
+            </p>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Order has been placed successfully with {session.isAdminStore ? "KNI Official Store" : session.vendorName}.
+            </p>
+            <Button className="w-full max-w-xs" onClick={() => router.push("/owner/marketplace/orders")}>
+              <Receipt className="mr-2 h-4 w-4" />
+              View My Orders
+            </Button>
+            <Button variant="ghost" className="mt-4" onClick={() => router.push("/owner/marketplace")}>
+              Back to Marketplace
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ==================== MANUAL PAYMENT STATUS SCREEN (after submission) ====================
   if (paymentSubmitted) {
     return (
       <div className="space-y-6">
@@ -301,6 +447,8 @@ export default function MarketplacePaymentPage() {
     );
   }
 
+  const showRazorpayOption = vendorPaymentInfo?.useRazorpay === true;
+
   // ==================== MAIN PAYMENT VIEW ====================
   return (
     <div className="space-y-6">
@@ -342,119 +490,162 @@ export default function MarketplacePaymentPage() {
         </CardContent>
       </Card>
 
-      {/* Payment Details (QR + UPI) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <QrCode className="h-4 w-4" />
-            Payment Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingPaymentInfo ? (
-            <div className="flex items-center gap-3 py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Loading payment details...</span>
-            </div>
-          ) : !vendorPaymentInfo ? (
-            <div className="flex flex-col items-center gap-3 p-6 rounded-lg bg-yellow-50 border border-yellow-200">
-              <Clock className="h-8 w-8 text-yellow-500" />
-              <p className="text-sm text-center text-yellow-700">
-                Vendor has not set up payment details yet. Please contact them directly.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* QR Code */}
-              {vendorPaymentInfo.paymentQrCodeUrl && (
-                <div className="flex flex-col items-center">
-                  <p className="text-sm font-medium text-muted-foreground mb-3">Scan QR Code to Pay</p>
-                  <img
-                    src={vendorPaymentInfo.paymentQrCodeUrl}
-                    alt="Payment QR Code"
-                    className="max-w-[200px] h-auto rounded-lg border"
-                  />
-                </div>
-              )}
+      {/* For non-Razorpay vendors, force manual mode */}
 
-              {/* UPI ID */}
-              {vendorPaymentInfo.paymentUpiId && (
-                <div className={vendorPaymentInfo.paymentQrCodeUrl ? "pt-4 border-t" : ""}>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">UPI ID</p>
-                  <div className="flex items-center bg-muted/50 rounded-lg px-4 py-3">
-                    <span className="font-mono font-bold text-sm flex-1">{vendorPaymentInfo.paymentUpiId}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Account Name */}
-              {vendorPaymentInfo.paymentAccountName && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Account Name</p>
-                  <p className="text-sm font-medium">{vendorPaymentInfo.paymentAccountName}</p>
-                </div>
-              )}
-
-              {/* No payment details at all */}
-              {!vendorPaymentInfo.paymentQrCodeUrl && !vendorPaymentInfo.paymentUpiId && (
-                <p className="text-sm text-yellow-600">
-                  This vendor has not set up payment details yet. Please contact them directly.
+      {/* RAZORPAY PAYMENT (KNI Official Store) */}
+      {showRazorpayOption && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-semibold">Secure Payment via Razorpay</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Pay using UPI, Credit/Debit Card, NetBanking, or Wallets.
+                  Your order will be confirmed instantly after payment.
                 </p>
-              )}
-
-              {/* Amount Highlight */}
-              <div className="flex justify-between items-center p-4 rounded-lg bg-red-50 border border-red-100">
+              </div>
+              <div className="flex justify-between items-center p-4 rounded-lg bg-red-50 border border-red-100 w-full">
                 <span className="text-sm font-medium text-red-700">Amount to Pay</span>
                 <span className="text-xl font-bold text-red-700">{formatPrice(totalAmount)}</span>
               </div>
+              <Button
+                className="w-full h-12 text-base"
+                onClick={handleRazorpayPayment}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Pay {formatPrice(totalAmount)} with Razorpay
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Screenshot Upload */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Upload Payment Screenshot
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Payment Screenshot *</Label>
-            <ImageUpload
-              value={screenshotUrl}
-              onChange={setScreenshotUrl}
-              folder="marketplace-payments"
-              label="Upload Payment Screenshot"
-              maxSizeMB={5}
-            />
-            <p className="text-xs text-muted-foreground">
-              Take a screenshot of your payment confirmation and upload it here
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* MANUAL PAYMENT — Only for non-Razorpay vendors */}
+      {!showRazorpayOption && (
+        <>
+          {/* Payment Details (QR + UPI) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                Payment Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingPaymentInfo ? (
+                <div className="flex items-center gap-3 py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Loading payment details...</span>
+                </div>
+              ) : !vendorPaymentInfo ? (
+                <div className="flex flex-col items-center gap-3 p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <Clock className="h-8 w-8 text-yellow-500" />
+                  <p className="text-sm text-center text-yellow-700">
+                    Vendor has not set up payment details yet. Please contact them directly.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {vendorPaymentInfo.paymentQrCodeUrl && (
+                    <div className="flex flex-col items-center">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Scan QR Code to Pay</p>
+                      <img
+                        src={vendorPaymentInfo.paymentQrCodeUrl}
+                        alt="Payment QR Code"
+                        className="max-w-[200px] h-auto rounded-lg border"
+                      />
+                    </div>
+                  )}
 
-      {/* Submit Button */}
-      <Button
-        className="w-full h-12 text-base"
-        onClick={handleSubmitPayment}
-        disabled={isSubmitting || !screenshotUrl}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Submitting...
-          </>
-        ) : (
-          <>
-            <CreditCard className="mr-2 h-5 w-5" />
-            Submit Payment
-          </>
-        )}
-      </Button>
+                  {vendorPaymentInfo.paymentUpiId && (
+                    <div className={vendorPaymentInfo.paymentQrCodeUrl ? "pt-4 border-t" : ""}>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">UPI ID</p>
+                      <div className="flex items-center bg-muted/50 rounded-lg px-4 py-3">
+                        <span className="font-mono font-bold text-sm flex-1">{vendorPaymentInfo.paymentUpiId}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {vendorPaymentInfo.paymentAccountName && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Account Name</p>
+                      <p className="text-sm font-medium">{vendorPaymentInfo.paymentAccountName}</p>
+                    </div>
+                  )}
+
+                  {!vendorPaymentInfo.paymentQrCodeUrl && !vendorPaymentInfo.paymentUpiId && (
+                    <p className="text-sm text-yellow-600">
+                      This vendor has not set up payment details yet. Please contact them directly.
+                    </p>
+                  )}
+
+                  <div className="flex justify-between items-center p-4 rounded-lg bg-red-50 border border-red-100">
+                    <span className="text-sm font-medium text-red-700">Amount to Pay</span>
+                    <span className="text-xl font-bold text-red-700">{formatPrice(totalAmount)}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Screenshot Upload */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Upload Payment Screenshot
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Payment Screenshot *</Label>
+                <ImageUpload
+                  value={screenshotUrl}
+                  onChange={setScreenshotUrl}
+                  folder="marketplace-payments"
+                  label="Upload Payment Screenshot"
+                  maxSizeMB={5}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Take a screenshot of your payment confirmation and upload it here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Submit Button */}
+          <Button
+            className="w-full h-12 text-base"
+            onClick={handleSubmitPayment}
+            disabled={isSubmitting || !screenshotUrl}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <CreditCard className="mr-2 h-5 w-5" />
+                Submit Payment
+              </>
+            )}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

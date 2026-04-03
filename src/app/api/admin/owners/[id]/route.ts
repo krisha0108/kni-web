@@ -78,6 +78,43 @@ export async function GET(
   }
 }
 
+// DELETE - Permanently delete owner and all their data
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+
+    const owner = await db.user.findFirst({
+      where: { id, role: "OWNER", deletedAt: null },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!owner) {
+      return NextResponse.json(
+        { ok: false, error: "Owner not found" },
+        { status: 404 }
+      );
+    }
+
+    // Hard delete — cascade will remove all related data
+    await db.user.delete({ where: { id } });
+
+    return NextResponse.json({
+      ok: true,
+      message: `Owner "${owner.name}" and all associated data permanently deleted.`,
+    });
+  } catch (error) {
+    console.error("Delete owner error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Failed to delete owner" },
+      { status: 500 }
+    );
+  }
+}
+
 // PATCH - Toggle owner active status
 export async function PATCH(
   request: NextRequest,

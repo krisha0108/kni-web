@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         paymentQrCodeUrl: true,
         paymentUpiId: true,
         paymentAccountName: true,
+        isSystemVendor: true,
         user: { select: { name: true } },
       },
     });
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
         paymentQrCodeUrl: profile.paymentQrCodeUrl,
         paymentUpiId: profile.paymentUpiId,
         paymentAccountName: profile.paymentAccountName,
+        useRazorpay: profile.isSystemVendor === true,
       },
     });
   } catch (error) {

@@ -46,6 +46,8 @@ interface Collection {
   status: string;
   screenshotUrl: string | null;
   rejectionReason: string | null;
+  paymentMethod?: string;
+  razorpayPaymentId?: string;
   paymentUploadedAt: string | null;
   verifiedAt: string | null;
   createdAt: string;
@@ -467,6 +469,13 @@ export default function AdminVendorCommissionsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
+                          {/* Razorpay auto-verified */}
+                          {collection.status === "VERIFIED" && collection.paymentMethod === "RAZORPAY" && (
+                            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-xs">
+                              Razorpay
+                            </Badge>
+                          )}
+                          {/* Manual screenshot — show verify/reject */}
                           {collection.status === "PAYMENT_UPLOADED" && (
                             <>
                               {collection.screenshotUrl && (

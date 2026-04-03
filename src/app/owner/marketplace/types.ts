@@ -35,6 +35,7 @@ export interface VendorPaymentInfo {
   paymentQrCodeUrl?: string;
   paymentUpiId?: string;
   paymentAccountName?: string;
+  useRazorpay?: boolean;
 }
 
 export interface PaymentRecord {

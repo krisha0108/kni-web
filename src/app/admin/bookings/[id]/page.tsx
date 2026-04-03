@@ -60,7 +60,7 @@ interface Booking {
   isDirectBooking?: boolean;
   adminNotes?: string;
   createdByAdmin?: { id: string; name: string } | null;
-  paymentProof?: { id: string; screenshotUrl: string; status: string };
+  paymentProof?: { id: string; screenshotUrl: string | null; status: string; paymentMethod?: string; razorpayPaymentId?: string };
   engineerAssignments?: Array<{
     id: string;
     status: string;
@@ -595,17 +595,31 @@ export default function AdminBookingDetailPage() {
             <CardContent className="space-y-4">
               {booking.paymentProof ? (
                 <>
-                  <Badge
-                    variant={
-                      booking.paymentProof.status === "VERIFIED"
-                        ? "success"
-                        : booking.paymentProof.status === "REJECTED"
-                        ? "destructive"
-                        : "secondary"
-                    }
-                  >
-                    {booking.paymentProof.status}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      variant={
+                        booking.paymentProof.status === "VERIFIED"
+                          ? "success"
+                          : booking.paymentProof.status === "REJECTED"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {booking.paymentProof.status}
+                    </Badge>
+                    {booking.paymentProof.paymentMethod === "RAZORPAY" ? (
+                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                        Razorpay (Auto-Verified)
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Screenshot</Badge>
+                    )}
+                  </div>
+                  {booking.paymentProof.razorpayPaymentId && (
+                    <p className="text-xs text-muted-foreground">
+                      Razorpay Payment ID: {booking.paymentProof.razorpayPaymentId}
+                    </p>
+                  )}
                   {booking.paymentProof.screenshotUrl && (
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">Payment Screenshot</p>
@@ -613,7 +627,7 @@ export default function AdminBookingDetailPage() {
                         src={booking.paymentProof.screenshotUrl}
                         alt="Payment proof"
                         className="rounded border max-h-64 w-full object-contain cursor-pointer bg-muted"
-                        onClick={() => window.open(booking.paymentProof!.screenshotUrl, "_blank")}
+                        onClick={() => window.open(booking.paymentProof!.screenshotUrl!, "_blank")}
                       />
                       <p className="text-xs text-muted-foreground text-center">
                         Click image to view full size in new tab

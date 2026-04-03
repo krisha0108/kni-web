@@ -937,7 +937,7 @@ export default function OwnerGuidePage() {
         ]}
         accentColor={COLORS.indigo}
         ctaLabel="My Bookings"
-        ctaHref="/owner/bookings/new"
+        ctaHref="/owner/bookings"
       >
         <ScreenshotCarousel
           screens={[

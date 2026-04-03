@@ -31,6 +31,16 @@ import {
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   Eye,
   UserCheck,
@@ -40,6 +50,7 @@ import {
   Building2,
   Calendar,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -97,6 +108,8 @@ export default function AdminOwnersPage() {
   const [selectedOwner, setSelectedOwner] = useState<OwnerDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const fetchOwners = async () => {
@@ -175,6 +188,27 @@ export default function AdminOwnersPage() {
       toast({ title: "Error", description: "Failed to update owner status", variant: "destructive" });
     } finally {
       setIsTogglingStatus(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/owners/${deleteTarget.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Deleted", description: data.message });
+        setDeleteTarget(null);
+        setIsDetailDialogOpen(false);
+        fetchOwners();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete owner", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -346,6 +380,15 @@ export default function AdminOwnersPage() {
                             <UserCheck className="h-4 w-4 text-green-600" />
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeleteTarget({ id: owner.id, name: owner.name })}
+                          title="Delete owner permanently"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -531,6 +574,47 @@ export default function AdminOwnersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">Delete Owner Permanently?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                  <p className="font-semibold mb-1">This action cannot be undone. The following data will be permanently deleted:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>All restaurants owned by this user</li>
+                    <li>All service bookings and payment records</li>
+                    <li>All marketplace orders and payments</li>
+                    <li>All AMC contracts and requests</li>
+                    <li>All equipment records</li>
+                    <li>All notifications and sessions</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+              ) : (
+                <><Trash2 className="mr-2 h-4 w-4" /> Delete Permanently</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

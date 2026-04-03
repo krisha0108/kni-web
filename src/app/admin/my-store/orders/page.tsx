@@ -35,11 +35,13 @@ interface Payment {
   id: string;
   totalAmount: number;
   items: PaymentItem[];
-  screenshotUrl: string;
+  screenshotUrl: string | null;
   status: "PENDING" | "VERIFIED" | "REJECTED";
   rejectionReason?: string;
   deliveryAddress?: string;
   notes?: string;
+  paymentMethod?: "SCREENSHOT" | "RAZORPAY";
+  razorpayPaymentId?: string;
   createdAt: string;
   verifiedAt?: string;
   owner: { id: string; name: string; phone?: string; email?: string };
@@ -747,16 +749,40 @@ export default function MyStoreOrdersPage() {
                   </div>
                 )}
 
+                {/* Payment Method Badge */}
                 <div>
-                  <h4 className="font-medium mb-2">Payment Screenshot</h4>
-                  <img
-                    src={selectedPayment.screenshotUrl}
-                    alt="Payment screenshot"
-                    className="max-w-full h-auto max-h-96 rounded-lg border"
-                  />
+                  <h4 className="font-medium mb-2">Payment Method</h4>
+                  {selectedPayment.paymentMethod === "RAZORPAY" ? (
+                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                      <CreditCard className="mr-1 h-3 w-3" />
+                      Razorpay (Auto-Verified)
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">
+                      Screenshot Upload
+                    </Badge>
+                  )}
+                  {selectedPayment.razorpayPaymentId && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Razorpay ID: {selectedPayment.razorpayPaymentId}
+                    </p>
+                  )}
                 </div>
 
-                {selectedPayment.status === "PENDING" && (
+                {/* Screenshot (only for manual payments) */}
+                {selectedPayment.screenshotUrl && (
+                  <div>
+                    <h4 className="font-medium mb-2">Payment Screenshot</h4>
+                    <img
+                      src={selectedPayment.screenshotUrl}
+                      alt="Payment screenshot"
+                      className="max-w-full h-auto max-h-96 rounded-lg border"
+                    />
+                  </div>
+                )}
+
+                {/* Verify/Reject buttons only for manual PENDING payments */}
+                {selectedPayment.status === "PENDING" && selectedPayment.paymentMethod !== "RAZORPAY" && (
                   <DialogFooter className="gap-2">
                     <Button
                       variant="destructive"

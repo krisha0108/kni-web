@@ -22,9 +22,15 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { ArrowLeft, Shield, Loader2, Trash2, Calendar, MapPin, Wrench, ClipboardCheck, FileText, CheckCircle, XCircle, ExternalLink, IndianRupee, QrCode, Upload, AlertCircle } from "lucide-react";
+import { ArrowLeft, Shield, Loader2, Trash2, Calendar, MapPin, Wrench, ClipboardCheck, FileText, CheckCircle, XCircle, ExternalLink, IndianRupee, CreditCard, AlertCircle } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface AMCRequestDetail {
   id: string;
@@ -145,9 +151,8 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
   const [isRejecting, setIsRejecting] = useState(false);
 
   // Payment states
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
-  const [screenshotUrl, setScreenshotUrl] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [razorpaySuccess, setRazorpaySuccess] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -171,17 +176,85 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
 
   useEffect(() => { fetchRequest(); }, [id]);
 
-  // Fetch payment settings when payment is needed
-  useEffect(() => {
-    if (request && (request.status === "PAYMENT_PENDING" || request.status === "PAYMENT_UPLOADED")) {
-      fetch("/api/public/payment-settings")
-        .then((r) => r.json())
-        .then((d) => d.ok && setPaymentSettings(d.data))
-        .catch(() => {
-          toast({ title: "Error", description: "Failed to load payment settings", variant: "destructive" });
-        });
+  // Razorpay payment handler for AMC
+  const handleRazorpayPayment = async () => {
+    if (!request?.payment) return;
+    setIsProcessingPayment(true);
+
+    try {
+      // 1. Create Razorpay order
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: request.payment.amount,
+          type: "AMC_PAYMENT",
+          referenceId: request.payment.id,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error || "Failed to create payment order", variant: "destructive" });
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId, prefill } = orderData.data;
+
+      // 2. Open Razorpay checkout
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "KNI Super App",
+        description: `AMC Payment - ${request.restaurant?.name || ""}`,
+        order_id: orderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "AMC_PAYMENT",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amcPaymentId: request.payment!.id,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              setRazorpaySuccess(true);
+              toast({ title: "Payment Successful!", description: "Your AMC contract is now active." });
+              fetchRequest();
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsProcessingPayment(false);
+        },
+        modal: {
+          ondismiss: () => { setIsProcessingPayment(false); },
+        },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({ title: "Payment Failed", description: response.error?.description || "Payment was not completed", variant: "destructive" });
+        setIsProcessingPayment(false);
+      });
+      rzp.open();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to process payment", variant: "destructive" });
+      setIsProcessingPayment(false);
     }
-  }, [request?.status]);
+  };
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -249,32 +322,6 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
     }
   };
 
-  const handleUploadScreenshot = async () => {
-    if (!request?.payment || !screenshotUrl) {
-      toast({ title: "Error", description: "Please upload payment screenshot", variant: "destructive" });
-      return;
-    }
-    setIsUploading(true);
-    try {
-      const res = await fetch(`/api/owner/amc-payment/${request.payment.id}/upload`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ screenshotUrl }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast({ title: "Screenshot Uploaded!", description: "Admin will verify your payment shortly." });
-        setScreenshotUrl("");
-        fetchRequest();
-      } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to upload", variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -623,7 +670,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
           <CardHeader className="bg-orange-50">
             <CardTitle className="text-base flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
+                <CreditCard className="h-4 w-4" />
                 Payment
               </span>
               <Badge variant={
@@ -640,9 +687,9 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             {/* Amount to pay */}
-            <div className="bg-primary/5 rounded-lg p-4 text-center">
-              <p className="text-sm text-muted-foreground">Amount to Pay</p>
-              <p className="text-3xl font-bold text-primary">{formatPrice(request.payment.amount)}</p>
+            <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex justify-between items-center">
+              <span className="text-sm font-medium text-red-700">Amount to Pay</span>
+              <span className="text-2xl font-bold text-red-700">{formatPrice(request.payment.amount)}</span>
             </div>
 
             {/* Rejection reason */}
@@ -653,83 +700,45 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
                   <div>
                     <p className="font-medium text-red-700 text-sm">Payment Rejected</p>
                     <p className="text-sm text-red-600">{request.payment.rejectionReason}</p>
-                    <p className="text-xs text-red-500 mt-1">Please re-upload a valid screenshot.</p>
+                    <p className="text-xs text-red-500 mt-1">Please retry payment.</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* QR Code and Payment Details */}
-            {(request.payment.status === "PENDING" || request.payment.status === "REJECTED") && paymentSettings && canUpdate && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* QR Code */}
-                  <div className="text-center">
-                    <p className="text-sm font-medium mb-2">Scan QR Code to Pay</p>
-                    <div className="border rounded-lg p-2 inline-block bg-white">
-                      <img
-                        src={paymentSettings.qrCodeImageUrl}
-                        alt="Payment QR Code"
-                        className="w-48 h-48 object-contain mx-auto"
-                      />
-                    </div>
-                  </div>
-                  {/* UPI Details */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">UPI ID</Label>
-                      <p className="font-mono font-medium text-lg bg-muted p-2 rounded select-all">{paymentSettings.upiId}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Account Holder</Label>
-                      <p className="font-medium">{paymentSettings.accountHolderName}</p>
-                    </div>
-                    {paymentSettings.instructions && (
-                      <div>
-                        <Label className="text-muted-foreground text-xs">Instructions</Label>
-                        <p className="text-sm text-muted-foreground">{paymentSettings.instructions}</p>
-                      </div>
-                    )}
-                  </div>
+            {/* Razorpay Payment */}
+            {(request.payment.status === "PENDING" || request.payment.status === "REJECTED") && canUpdate && (
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                  <CreditCard className="h-8 w-8 text-blue-600" />
                 </div>
-
-                {/* Upload Screenshot */}
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Upload Payment Screenshot
-                  </h4>
-                  <ImageUpload
-                    value={screenshotUrl}
-                    onChange={setScreenshotUrl}
-                    label="Payment Screenshot"
-                  />
-                  <Button
-                    className="w-full mt-3"
-                    onClick={handleUploadScreenshot}
-                    disabled={!screenshotUrl || isUploading}
-                  >
-                    {isUploading ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
-                    ) : (
-                      <><Upload className="mr-2 h-4 w-4" /> Submit Payment Screenshot</>
-                    )}
-                  </Button>
+                <div>
+                  <p className="font-semibold">Secure Payment via Razorpay</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pay using UPI, Credit/Debit Card, NetBanking, or Wallets.
+                    Your AMC contract will be activated instantly.
+                  </p>
                 </div>
+                <Button
+                  className="w-full h-12 text-base"
+                  onClick={handleRazorpayPayment}
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? (
+                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
+                  ) : (
+                    <><CreditCard className="mr-2 h-5 w-5" /> Pay {formatPrice(request.payment.amount)} with Razorpay</>
+                  )}
+                </Button>
               </div>
             )}
 
-            {/* Uploaded - waiting verification */}
+            {/* Uploaded - waiting verification (legacy screenshot payments) */}
             {request.payment.status === "UPLOADED" && (
               <div className="text-center py-4">
                 <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
-                <p className="font-medium text-green-700">Payment screenshot submitted successfully!</p>
+                <p className="font-medium text-green-700">Payment submitted successfully!</p>
                 <p className="text-sm text-muted-foreground mt-1">Admin will verify your payment. You will be notified once verified.</p>
-                {request.payment.screenshotUrl && (
-                  <div className="mt-3 border rounded-lg p-2 inline-block">
-                    <img src={request.payment.screenshotUrl} alt="Payment Screenshot" className="max-w-[200px] rounded" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  </div>
-                )}
               </div>
             )}
           </CardContent>

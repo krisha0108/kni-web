@@ -14,7 +14,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Pencil } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface Engineer {
@@ -37,6 +41,8 @@ export default function AdminEngineersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -67,6 +73,26 @@ export default function AdminEngineersPage() {
   useEffect(() => {
     fetchEngineers();
   }, [search, page]);
+
+  const handleDeleteEngineer = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/engineers/${deleteTarget.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Deleted", description: data.message });
+        setDeleteTarget(null);
+        fetchEngineers();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete engineer", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const toggleStatus = async (engineerId: string, currentStatus: boolean) => {
     try {
@@ -186,6 +212,15 @@ export default function AdminEngineersPage() {
                         >
                           {engineer.isActive ? "Deactivate" : "Activate"}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeleteTarget({ id: engineer.id, name: engineer.name })}
+                          title="Delete permanently"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -218,6 +253,43 @@ export default function AdminEngineersPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">Delete Engineer Permanently?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                  <p className="font-semibold mb-1">This action cannot be undone. The following data will be permanently deleted:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>All engineer assignments and work logs</li>
+                    <li>All engineer ratings and reviews</li>
+                    <li>All payout records</li>
+                    <li>All notifications and sessions</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEngineer}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+              ) : (
+                <><Trash2 className="mr-2 h-4 w-4" /> Delete Permanently</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

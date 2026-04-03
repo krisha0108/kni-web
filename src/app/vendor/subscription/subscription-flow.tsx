@@ -68,9 +68,7 @@ export function SubscriptionFlow({
   const [latestRequest, setLatestRequest] = useState<SubscriptionRequest | null>(initialRequest);
   const [selectedDuration, setSelectedDuration] = useState<number>(6);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [screenshotUrl, setScreenshotUrl] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { toast } = useToast();
 
   // Determine if subscription is expired
@@ -106,19 +104,6 @@ export function SubscriptionFlow({
     return Math.max(0, days);
   })();
 
-  // Fetch payment settings when needed
-  useEffect(() => {
-    if (latestRequest?.status === "PRICE_SENT" || latestRequest?.status === "PAYMENT_REJECTED") {
-      fetch("/api/public/payment-settings")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.ok && data.data) {
-            setPaymentSettings(data.data);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [latestRequest?.status]);
 
   const handleRequestSubscription = async () => {
     setIsSubmitting(true);
@@ -142,28 +127,74 @@ export function SubscriptionFlow({
     }
   };
 
-  const handleUploadScreenshot = async () => {
-    if (!screenshotUrl) return;
-    setIsUploading(true);
+  const handleRazorpayPayment = async () => {
+    if (!latestRequest || isProcessingPayment) return;
+    setIsProcessingPayment(true);
     try {
-      const res = await fetch("/api/vendor/subscription/upload", {
+      const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ screenshotUrl }),
+        body: JSON.stringify({
+          amount: latestRequest.price,
+          type: "VENDOR_SUBSCRIPTION",
+          referenceId: latestRequest.id,
+        }),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error, variant: "destructive" });
+        setIsProcessingPayment(false);
         return;
       }
-      setLatestRequest((prev) =>
-        prev ? { ...prev, status: "PAYMENT_UPLOADED", screenshotUrl } : prev
-      );
-      toast({ title: "Success", description: "Payment screenshot uploaded!" });
-    } catch {
-      toast({ title: "Error", description: "Failed to upload screenshot", variant: "destructive" });
-    } finally {
-      setIsUploading(false);
+
+      const { orderId, amount, currency, keyId, prefill } = orderData.data;
+
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "KNI Super App",
+        description: `Subscription - ${latestRequest.durationMonths} months`,
+        order_id: orderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "VENDOR_SUBSCRIPTION",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                subscriptionRequestId: latestRequest.id,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              toast({ title: "Subscription Activated!", description: "Your subscription is now active." });
+              setLatestRequest((prev) => prev ? { ...prev, status: "ACTIVATED" } : prev);
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsProcessingPayment(false);
+        },
+        modal: { ondismiss: () => { setIsProcessingPayment(false); } },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", (resp: any) => {
+        toast({ title: "Payment Failed", description: resp.error?.description || "Payment not completed", variant: "destructive" });
+        setIsProcessingPayment(false);
+      });
+      rzp.open();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to process payment", variant: "destructive" });
+      setIsProcessingPayment(false);
     }
   };
 
@@ -378,13 +409,13 @@ export function SubscriptionFlow({
         </Card>
       )}
 
-      {/* ── State: PRICE_SENT → Show price + payment details + upload ── */}
+      {/* ── State: PRICE_SENT → Show price + Razorpay payment ── */}
       {showPriceSentState && (
         <Card className="border-2 border-orange-300">
           <CardHeader className="bg-orange-50">
             <CardTitle className="text-base flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
+                <CreditCard className="h-4 w-4" />
                 Payment
               </span>
               <Badge variant="warning">Awaiting Payment</Badge>
@@ -392,14 +423,14 @@ export function SubscriptionFlow({
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             {/* Amount */}
-            <div className="bg-primary/5 rounded-lg p-4 text-center">
-              <p className="text-sm text-muted-foreground">Amount to Pay</p>
-              <p className="text-3xl font-bold text-primary">
+            <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex justify-between items-center">
+              <div>
+                <span className="text-sm font-medium text-red-700">Amount to Pay</span>
+                <p className="text-xs text-muted-foreground">for {latestRequest!.durationMonths} month(s)</p>
+              </div>
+              <span className="text-2xl font-bold text-red-700">
                 {formatPrice(latestRequest!.price)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                for {latestRequest!.durationMonths} month(s)
-              </p>
+              </span>
             </div>
 
             {latestRequest!.adminNote && (
@@ -410,78 +441,30 @@ export function SubscriptionFlow({
               </div>
             )}
 
-            {/* QR Code and UPI Details */}
-            {paymentSettings && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium mb-2">Scan QR Code to Pay</p>
-                    <div className="border rounded-lg p-2 inline-block bg-white">
-                      <img
-                        src={paymentSettings.qrCodeImageUrl}
-                        alt="Payment QR Code"
-                        className="w-48 h-48 object-contain mx-auto"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">UPI ID</Label>
-                      <p className="font-mono font-medium text-lg bg-muted p-2 rounded select-all">
-                        {paymentSettings.upiId}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Account Holder</Label>
-                      <p className="font-medium">{paymentSettings.accountHolderName}</p>
-                    </div>
-                    {paymentSettings.instructions && (
-                      <div>
-                        <Label className="text-muted-foreground text-xs">Instructions</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {paymentSettings.instructions}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Upload Screenshot */}
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Upload Payment Screenshot
-                  </h4>
-                  <ImageUpload
-                    value={screenshotUrl}
-                    onChange={setScreenshotUrl}
-                    label="Payment Screenshot"
-                  />
-                  <Button
-                    className="w-full mt-3"
-                    onClick={handleUploadScreenshot}
-                    disabled={!screenshotUrl || isUploading}
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" /> Submit Payment Screenshot
-                      </>
-                    )}
-                  </Button>
-                </div>
+            {/* Razorpay Payment */}
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-blue-600" />
               </div>
-            )}
-
-            {!paymentSettings && (
-              <div className="text-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mt-2">Loading payment details...</p>
+              <div>
+                <p className="font-semibold">Secure Payment via Razorpay</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Pay using UPI, Credit/Debit Card, NetBanking, or Wallets.
+                  Your subscription will be activated instantly.
+                </p>
               </div>
-            )}
+              <Button
+                className="w-full h-12 text-base"
+                onClick={handleRazorpayPayment}
+                disabled={isProcessingPayment}
+              >
+                {isProcessingPayment ? (
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
+                ) : (
+                  <><CreditCard className="mr-2 h-5 w-5" /> Pay {formatPrice(latestRequest!.price)} with Razorpay</>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -508,114 +491,49 @@ export function SubscriptionFlow({
         </Card>
       )}
 
-      {/* ── State: PAYMENT_REJECTED → Show reason + re-upload ── */}
+      {/* ── State: PAYMENT_REJECTED → Show reason + Razorpay retry ── */}
       {showPaymentRejectedState && (
-        <Card className="border-2 border-orange-300">
-          <CardHeader className="bg-orange-50">
+        <Card className="border-2 border-red-300">
+          <CardHeader className="bg-red-50">
             <CardTitle className="text-base flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
+                <CreditCard className="h-4 w-4" />
                 Payment
               </span>
               <Badge variant="destructive">Rejected</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            {/* Amount */}
-            <div className="bg-primary/5 rounded-lg p-4 text-center">
-              <p className="text-sm text-muted-foreground">Amount to Pay</p>
-              <p className="text-3xl font-bold text-primary">
-                {formatPrice(latestRequest!.price)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                for {latestRequest!.durationMonths} month(s)
-              </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
+              <div>
+                <span className="text-sm font-medium text-red-700">Amount to Pay</span>
+                <p className="text-xs text-muted-foreground">for {latestRequest!.durationMonths} month(s)</p>
+              </div>
+              <span className="text-2xl font-bold text-red-700">{formatPrice(latestRequest!.price)}</span>
             </div>
 
-            {/* Rejection reason */}
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
                 <div>
                   <p className="font-medium text-red-700 text-sm">Payment Rejected</p>
                   <p className="text-sm text-red-600">{latestRequest!.rejectionReason}</p>
-                  <p className="text-xs text-red-500 mt-1">Please re-upload a valid screenshot.</p>
+                  <p className="text-xs text-red-500 mt-1">Please retry payment via Razorpay.</p>
                 </div>
               </div>
             </div>
 
-            {/* QR Code and UPI Details */}
-            {paymentSettings && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium mb-2">Scan QR Code to Pay</p>
-                    <div className="border rounded-lg p-2 inline-block bg-white">
-                      <img
-                        src={paymentSettings.qrCodeImageUrl}
-                        alt="Payment QR Code"
-                        className="w-48 h-48 object-contain mx-auto"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">UPI ID</Label>
-                      <p className="font-mono font-medium text-lg bg-muted p-2 rounded select-all">
-                        {paymentSettings.upiId}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Account Holder</Label>
-                      <p className="font-medium">{paymentSettings.accountHolderName}</p>
-                    </div>
-                    {paymentSettings.instructions && (
-                      <div>
-                        <Label className="text-muted-foreground text-xs">Instructions</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {paymentSettings.instructions}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Re-upload Screenshot */}
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Re-upload Payment Screenshot
-                  </h4>
-                  <ImageUpload
-                    value={screenshotUrl}
-                    onChange={setScreenshotUrl}
-                    label="Payment Screenshot"
-                  />
-                  <Button
-                    className="w-full mt-3"
-                    onClick={handleUploadScreenshot}
-                    disabled={!screenshotUrl || isUploading}
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" /> Submit Payment Screenshot
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {!paymentSettings && (
-              <div className="text-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mt-2">Loading payment details...</p>
-              </div>
-            )}
+            <Button
+              className="w-full h-12 text-base"
+              onClick={handleRazorpayPayment}
+              disabled={isProcessingPayment}
+            >
+              {isProcessingPayment ? (
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
+              ) : (
+                <><CreditCard className="mr-2 h-5 w-5" /> Retry Payment with Razorpay</>
+              )}
+            </Button>
           </CardContent>
         </Card>
       )}

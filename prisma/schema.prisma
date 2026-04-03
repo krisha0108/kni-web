@@ -692,10 +692,14 @@ model PaymentProof {
   id              String             @id @default(cuid())
   bookingId       String             @unique
   ownerId         String
-  screenshotUrl   String
+  screenshotUrl   String?
   status          PaymentProofStatus @default(UPLOADED)
   adminNote       String?            @db.Text
   rejectionReason String?            @db.Text // Mandatory when status is REJECTED
+  paymentMethod   String             @default("SCREENSHOT") // "SCREENSHOT" or "RAZORPAY"
+  razorpayOrderId  String?
+  razorpayPaymentId String?
+  razorpaySignature String?
   createdAt       DateTime           @default(now())
   verifiedAt      DateTime?
 
@@ -957,10 +961,14 @@ model MarketplacePayment {
   items            Json                     // [{productId, qty, priceSnapshot, name}]
   deliveryAddress  String?                  @db.Text
   notes            String?                  @db.Text
-  screenshotUrl    String                   @db.Text
+  screenshotUrl    String?                  @db.Text
   status           MarketplacePaymentStatus @default(PENDING)
   rejectionReason  String?                  @db.Text
   orderId          String?                  @unique
+  paymentMethod    String                   @default("SCREENSHOT") // "SCREENSHOT" or "RAZORPAY"
+  razorpayOrderId  String?
+  razorpayPaymentId String?
+  razorpaySignature String?
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
   verifiedAt       DateTime?
@@ -1545,6 +1553,10 @@ model AMCPayment {
   amount        Int         // in rupees
   screenshotUrl String?     @db.Text
   status        PaymentStatus @default(PENDING)
+  paymentMethod    String    @default("SCREENSHOT") // "SCREENSHOT" or "RAZORPAY"
+  razorpayOrderId  String?
+  razorpayPaymentId String?
+  razorpaySignature String?
 
   // Admin verification
   verifiedById    String?
@@ -2449,6 +2461,10 @@ model VendorSubscriptionRequest {
   priceSentAt     DateTime?
   priceSentById   String?
   screenshotUrl   String?                         @db.Text
+  paymentMethod   String                          @default("SCREENSHOT")
+  razorpayOrderId  String?
+  razorpayPaymentId String?
+  razorpaySignature String?
   paymentUploadedAt DateTime?
   verifiedById    String?
   verifiedAt      DateTime?
@@ -2497,6 +2513,10 @@ model VendorCommissionCollection {
   totalAmount       Int                               // total commission to collect
   status            VendorCommissionCollectionStatus   @default(REQUESTED)
   screenshotUrl     String?                           @db.Text
+  paymentMethod     String                            @default("SCREENSHOT")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
   paymentUploadedAt DateTime?
   verifiedById      String?
   verifiedAt        DateTime?

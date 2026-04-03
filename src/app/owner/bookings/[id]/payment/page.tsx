@@ -5,16 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, CreditCard, Smartphone } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Badge } from "@/components/ui/badge";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface Booking {
   id: string;
   status: string;
   totalAmount: number;
+  gstAmount: number;
+  tipAmount: number;
   restaurant: { name: string };
   items: Array<{
     id: string;
@@ -33,12 +42,17 @@ interface PaymentSettings {
   instructions: string;
 }
 
+type PaymentMode = "razorpay" | "manual";
+
 export default function PaymentUploadPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("razorpay");
+  const [razorpaySuccess, setRazorpaySuccess] = useState(false);
+  const [isProcessingRazorpay, setIsProcessingRazorpay] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
@@ -49,7 +63,6 @@ export default function PaymentUploadPage() {
       try {
         setIsLoading(true);
 
-        // Fetch booking and payment settings in parallel
         const [bookingRes, settingsRes] = await Promise.all([
           fetch("/api/owner/bookings/" + bookingId),
           fetch("/api/public/payment-settings"),
@@ -84,11 +97,99 @@ export default function PaymentUploadPage() {
     fetchData();
   }, [bookingId]);
 
+  const totalPayable = booking ? booking.totalAmount + booking.gstAmount + booking.tipAmount : 0;
+
+  // ==================== RAZORPAY PAYMENT ====================
+  const handleRazorpayPayment = async () => {
+    if (!booking) return;
+    setIsProcessingRazorpay(true);
+
+    try {
+      // 1. Create Razorpay order
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: totalPayable,
+          type: "SERVICE_BOOKING",
+          referenceId: booking.id,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error || "Failed to create order", variant: "destructive" });
+        setIsProcessingRazorpay(false);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId, prefill } = orderData.data;
+
+      // 2. Open Razorpay checkout
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "KNI Super App",
+        description: `Service Booking - ${booking.restaurant.name}`,
+        order_id: orderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          // 3. Verify payment
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "SERVICE_BOOKING",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingId: booking.id,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              setRazorpaySuccess(true);
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsProcessingRazorpay(false);
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessingRazorpay(false);
+          },
+        },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({
+          title: "Payment Failed",
+          description: response.error?.description || "Payment was not completed",
+          variant: "destructive",
+        });
+        setIsProcessingRazorpay(false);
+      });
+      rzp.open();
+    } catch {
+      toast({ title: "Error", description: "Failed to initiate payment", variant: "destructive" });
+      setIsProcessingRazorpay(false);
+    }
+  };
+
+  // ==================== MANUAL PAYMENT ====================
   const handleSubmitPayment = async () => {
     if (!uploadedImageUrl || uploadedImageUrl.trim() === "") {
       toast({
         title: "Payment Proof Required",
-        description: "Please upload a payment screenshot before submitting. The order will only be placed after you provide payment proof.",
+        description: "Please upload a payment screenshot before submitting.",
         variant: "destructive"
       });
       return;
@@ -127,11 +228,38 @@ export default function PaymentUploadPage() {
     );
   }
 
-  if (!booking) {
-    return null;
-  }
+  if (!booking) return null;
 
   const alreadyUploaded = booking.status !== "SLOT_SELECTED";
+
+  // ==================== RAZORPAY SUCCESS ====================
+  if (razorpaySuccess) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => router.push("/owner/bookings")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Bookings
+        </Button>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 px-8">
+            <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center mb-6">
+              <CheckCircle className="h-12 w-12 text-green-500" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Payment Successful!</h2>
+            <p className="text-sm text-muted-foreground text-center mb-2">
+              Your payment of <span className="font-bold text-foreground">{formatPrice(totalPayable)}</span> via Razorpay has been verified.
+            </p>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Your booking is now confirmed. An engineer will be assigned shortly.
+            </p>
+            <Button className="w-full max-w-xs" onClick={() => router.push("/owner/bookings/" + bookingId)}>
+              View Booking Details
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -141,158 +269,107 @@ export default function PaymentUploadPage() {
       </Button>
 
       <div>
-        <h1 className="text-3xl font-bold">Upload Payment Proof</h1>
+        <h1 className="text-3xl font-bold">Complete Payment</h1>
         <p className="text-muted-foreground">
-          Upload a screenshot of your payment to complete the booking
+          {booking.restaurant.name} — {formatPrice(totalPayable)}
         </p>
       </div>
 
-      <Alert>
-        <AlertDescription className="font-medium">
-          ⚠️ Payment proof screenshot is required. Your booking will only be placed after you upload the payment proof and admin verifies it.
-        </AlertDescription>
-      </Alert>
-
-      {!paymentSettings && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            Payment settings are not configured. Please contact the administrator.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Details</CardTitle>
-            <CardDescription>
-              Scan the QR code with any UPI app to make payment
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {paymentSettings ? (
-              <>
-                {/* QR Code Display */}
-                <div className="flex justify-center p-6 bg-muted/50 rounded-lg">
-                  <img
-                    src={paymentSettings.qrCodeImageUrl}
-                    alt="Payment QR Code"
-                    className="w-64 h-64 border-2 border-border rounded-lg object-contain bg-white"
-                  />
-                </div>
-
-                {/* Payment Info */}
-                <div className="space-y-3">
-                  <div className="p-4 bg-muted rounded-lg space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">UPI ID</span>
-                      <span className="font-medium font-mono">{paymentSettings.upiId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Account Name</span>
-                      <span className="font-medium">{paymentSettings.accountHolderName}</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between text-lg font-bold">
-                      <span>Amount to Pay</span>
-                      <span className="text-primary">{formatPrice(booking.totalAmount)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Instructions */}
-                {paymentSettings.instructions && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Payment Instructions:</h4>
-                    <div className="text-sm text-muted-foreground whitespace-pre-line">
-                      {paymentSettings.instructions}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex justify-center py-12">
-                <p className="text-muted-foreground">Payment details not available</p>
+      {/* Booking Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Booking Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {booking.items.map((item) => (
+            <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0">
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-sm font-medium">{item.serviceItem?.name || item.partItem?.name}</span>
+                <span className="text-sm text-muted-foreground">x{item.qty}</span>
+              </div>
+              <span className="text-sm font-semibold">{formatPrice(item.priceSnapshot * item.qty)}</span>
+            </div>
+          ))}
+          <div className="pt-3 border-t space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span>{formatPrice(booking.totalAmount)}</span>
+            </div>
+            {booking.gstAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>GST (18%)</span>
+                <span>{formatPrice(booking.gstAmount)}</span>
               </div>
             )}
+            {booking.tipAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Tip</span>
+                <span>{formatPrice(booking.tipAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-base pt-2 border-t">
+              <span>Total</span>
+              <span className="text-primary">{formatPrice(totalPayable)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {alreadyUploaded ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+            <p className="text-lg font-medium">Payment Already Submitted</p>
+            <p className="text-sm text-muted-foreground">
+              Status: {booking.paymentProof?.status || booking.status}
+            </p>
+            <Button className="mt-4" onClick={() => router.push("/owner/bookings/" + bookingId)}>
+              View Booking
+            </Button>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Payment Screenshot (Required)</CardTitle>
-            <CardDescription>
-              {alreadyUploaded
-                ? "Payment proof has already been uploaded"
-                : "Upload a clear screenshot of your payment confirmation to place your order"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {alreadyUploaded ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-                <p className="text-lg font-medium">Payment Uploaded</p>
-                <p className="text-sm text-muted-foreground">
-                  Status: {booking.paymentProof?.status || booking.status}
-                </p>
-                <Button
-                  className="mt-4"
-                  onClick={() => router.push("/owner/bookings/" + bookingId)}
-                >
-                  View Booking
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label>Payment Screenshot *</Label>
-                  <ImageUpload
-                    value={uploadedImageUrl}
-                    onChange={(url) => setUploadedImageUrl(url)}
-                    folder="payment-proofs"
-                    label="Upload Payment Screenshot"
-                    disabled={isUploading}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Upload a clear screenshot of your payment confirmation
+      ) : (
+        <>
+          {/* RAZORPAY PAYMENT */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                  <CreditCard className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold">Secure Payment via Razorpay</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pay using UPI, Credit/Debit Card, NetBanking, or Wallets.
+                    Your booking will be confirmed instantly.
                   </p>
                 </div>
-
-                {!uploadedImageUrl && (
-                  <Alert variant="destructive">
-                    <AlertDescription>
-                      Please upload a payment screenshot above to enable submission
-                    </AlertDescription>
-                  </Alert>
-                )}
-
+                <div className="flex justify-between items-center p-4 rounded-lg bg-red-50 border border-red-100 w-full">
+                  <span className="text-sm font-medium text-red-700">Amount to Pay</span>
+                  <span className="text-xl font-bold text-red-700">{formatPrice(totalPayable)}</span>
+                </div>
                 <Button
-                  className="w-full"
-                  onClick={handleSubmitPayment}
-                  disabled={!uploadedImageUrl || isUploading}
+                  className="w-full h-12 text-base"
+                  onClick={handleRazorpayPayment}
+                  disabled={isProcessingRazorpay}
                 >
-                  {isUploading ? (
+                  {isProcessingRazorpay ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting Payment Proof...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
                     </>
                   ) : (
-                    "Submit Payment Proof & Place Order"
+                    <>
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      Pay {formatPrice(totalPayable)} with Razorpay
+                    </>
                   )}
                 </Button>
-
-                {uploadedImageUrl && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    By submitting, your booking will be placed and sent for admin verification
-                  </p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

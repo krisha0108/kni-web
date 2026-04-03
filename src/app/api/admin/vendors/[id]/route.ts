@@ -269,6 +269,47 @@ const patchBodySchema = z.object({
   { message: "commissionRate (1-100) is required when revenueModel is COMMISSION", path: ["commissionRate"] }
 );
 
+// DELETE - Permanently delete vendor and all their data
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+
+    const vendor = await db.user.findFirst({
+      where: { id, role: "VENDOR", deletedAt: null },
+      select: { id: true, name: true, vendorProfile: { select: { isSystemVendor: true } } },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ ok: false, error: "Vendor not found" }, { status: 404 });
+    }
+
+    // Prevent deleting KNI Official Store (system vendor)
+    if (vendor.vendorProfile?.isSystemVendor) {
+      return NextResponse.json(
+        { ok: false, error: "Cannot delete the KNI Official Store (system vendor)" },
+        { status: 400 }
+      );
+    }
+
+    await db.user.delete({ where: { id } });
+
+    return NextResponse.json({
+      ok: true,
+      message: `Vendor "${vendor.name}" and all associated data permanently deleted.`,
+    });
+  } catch (error) {
+    console.error("Delete vendor error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Failed to delete vendor" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

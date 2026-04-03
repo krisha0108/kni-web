@@ -54,6 +54,39 @@ const patchEngineerSchema = z.object({
   monthlySalary: z.number().int().optional(),
 });
 
+// DELETE - Permanently delete engineer and all their data
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+
+    const engineer = await db.user.findFirst({
+      where: { id, role: "ENGINEER", deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    if (!engineer) {
+      return NextResponse.json({ ok: false, error: "Engineer not found" }, { status: 404 });
+    }
+
+    await db.user.delete({ where: { id } });
+
+    return NextResponse.json({
+      ok: true,
+      message: `Engineer "${engineer.name}" and all associated data permanently deleted.`,
+    });
+  } catch (error) {
+    console.error("Delete engineer error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Failed to delete engineer" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

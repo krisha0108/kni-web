@@ -30,7 +30,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CheckCircle, XCircle, Eye, MapPin, Tags, ShieldBan, Pencil } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, CheckCircle, XCircle, Eye, MapPin, Tags, ShieldBan, Pencil, Trash2, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { RejectionReasonInput } from "@/components/rejection-reason-input";
 import Link from "next/link";
@@ -85,6 +89,8 @@ export default function AdminVendorsPage() {
   const [editRevenueModel, setEditRevenueModel] = useState<string>("SUBSCRIPTION");
   const [editCommissionRate, setEditCommissionRate] = useState<string>("10");
   const [isSavingModel, setIsSavingModel] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   // Fetch pending subscription request count
@@ -132,6 +138,26 @@ export default function AdminVendorsPage() {
   useEffect(() => {
     fetchVendors();
   }, [search, statusFilter, page]);
+
+  const handleDeleteVendor = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/vendors/${deleteTarget.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Deleted", description: data.message });
+        setDeleteTarget(null);
+        fetchVendors();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete vendor", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const openApproveDialog = (vendorId: string) => {
     setApproveVendorId(vendorId);
@@ -534,6 +560,15 @@ export default function AdminVendorsPage() {
                             )}
                           </>
                         )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => setDeleteTarget({ id: vendor.id, name: vendor.name })}
+                          title="Delete vendor permanently"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -952,6 +987,44 @@ export default function AdminVendorsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">Delete Vendor Permanently?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                  <p className="font-semibold mb-1">This action cannot be undone. The following data will be permanently deleted:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>All products listed by this vendor</li>
+                    <li>All marketplace orders and payments</li>
+                    <li>All vendor ledger entries</li>
+                    <li>All location requests and approvals</li>
+                    <li>All notifications and sessions</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVendor}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+              ) : (
+                <><Trash2 className="mr-2 h-4 w-4" /> Delete Permanently</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

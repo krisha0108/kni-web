@@ -52,6 +52,8 @@ interface SubscriptionRequest {
   price: number | null;
   priceSentAt: string | null;
   screenshotUrl: string | null;
+  paymentMethod?: string;
+  razorpayPaymentId?: string;
   paymentUploadedAt: string | null;
   rejectionReason: string | null;
   adminNote: string | null;
@@ -331,7 +333,7 @@ export default function AdminVendorSubscriptionsPage() {
                           </Badge>
                         )}
 
-                        {/* PAYMENT_UPLOADED → View + Verify + Reject */}
+                        {/* PAYMENT_UPLOADED → View + Verify + Reject (manual only) */}
                         {req.status === "PAYMENT_UPLOADED" && (
                           <>
                             {req.screenshotUrl && (
@@ -368,15 +370,22 @@ export default function AdminVendorSubscriptionsPage() {
                         {/* PAYMENT_REJECTED → Waiting */}
                         {req.status === "PAYMENT_REJECTED" && (
                           <Badge variant="outline">
-                            <Clock className="mr-1 h-3 w-3" /> Waiting for re-upload
+                            <Clock className="mr-1 h-3 w-3" /> Waiting for retry
                           </Badge>
                         )}
 
-                        {/* ACTIVATED → View only */}
+                        {/* ACTIVATED → Show payment method + active until */}
                         {req.status === "ACTIVATED" && (
-                          <span className="text-sm text-muted-foreground">
-                            Active until {req.activeUntil ? formatDate(req.activeUntil) : "—"}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {req.paymentMethod === "RAZORPAY" && (
+                              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-xs">
+                                Razorpay
+                              </Badge>
+                            )}
+                            <span className="text-sm text-muted-foreground">
+                              Active until {req.activeUntil ? formatDate(req.activeUntil) : "—"}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </TableCell>

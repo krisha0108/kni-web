@@ -554,7 +554,7 @@ model RestaurantMember {
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   user       User       @relation("RestaurantMember", fields: [userId], references: [id], onDelete: Cascade)
-  inviter    User       @relation("RestaurantInviter", fields: [invitedBy], references: [id])
+  inviter    User       @relation("RestaurantInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, userId])
   @@index([restaurantId])
@@ -657,7 +657,7 @@ model ServiceBooking {
   owner               User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   restaurant          Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   equipment           Equipment?           @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
-  createdByAdmin      User?                @relation("AdminBookings", fields: [createdByAdminId], references: [id])
+  createdByAdmin      User?                @relation("AdminBookings", fields: [createdByAdminId], references: [id], onDelete: SetNull)
   items               ServiceBookingItem[]
   paymentProof        PaymentProof?
   engineerAssignments EngineerAssignment[]
@@ -847,7 +847,7 @@ model MarketplaceProduct {
 
   marketplaceCategory    MarketplaceCategory?    @relation(fields: [marketplaceCategoryId], references: [id], onDelete: Cascade)
   marketplaceSubCategory MarketplaceSubCategory? @relation(fields: [marketplaceSubCategoryId], references: [id])
-  creator                User                    @relation("MarketplaceProductCreator", fields: [createdBy], references: [id])
+  creator                User                    @relation("MarketplaceProductCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   vendorProducts         VendorProduct[]
   legacyCategory         Category?               @relation(fields: [categoryId], references: [id])
 
@@ -973,9 +973,9 @@ model MarketplacePayment {
   updatedAt        DateTime                 @updatedAt
   verifiedAt       DateTime?
 
-  owner      User              @relation("OwnerPayments", fields: [ownerId], references: [id])
-  vendor     User              @relation("VendorPayments", fields: [vendorId], references: [id])
-  restaurant Restaurant        @relation(fields: [restaurantId], references: [id])
+  owner      User              @relation("OwnerPayments", fields: [ownerId], references: [id], onDelete: Cascade)
+  vendor     User              @relation("VendorPayments", fields: [vendorId], references: [id], onDelete: Cascade)
+  restaurant Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 }
 
 model MarketplaceCart {
@@ -1033,7 +1033,7 @@ model OrderStatusHistory {
   createdAt   DateTime               @default(now())
 
   order      MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  changedByUser User          @relation(fields: [changedBy], references: [id])
+  changedByUser User          @relation(fields: [changedBy], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([changedBy])
@@ -1568,7 +1568,7 @@ model AMCPayment {
 
   request    AMCRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   owner      User       @relation("OwnerAMCPayments", fields: [ownerId], references: [id], onDelete: Cascade)
-  verifiedBy User?      @relation("AdminVerifiedPayments", fields: [verifiedById], references: [id])
+  verifiedBy User?      @relation("AdminVerifiedPayments", fields: [verifiedById], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([status])
@@ -1613,8 +1613,8 @@ model StockMovement {
   createdAt    DateTime          @default(now())
 
   inventory WarehouseInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  booking   ServiceBooking?    @relation(fields: [bookingId], references: [id])
-  creator   User               @relation(fields: [createdBy], references: [id])
+  booking   ServiceBooking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  creator   User               @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([inventoryId])
   @@index([movementType])
@@ -2309,7 +2309,7 @@ model SupportTicketThread {
   createdAt DateTime @default(now())
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user   User          @relation("SupportTicketThreadUser", fields: [userId], references: [id])
+  user   User          @relation("SupportTicketThreadUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([createdAt])
@@ -2361,10 +2361,10 @@ model PartRequest {
   updatedAt       DateTime            @updatedAt
 
   // Relations
-  engineer        User                @relation("EngineerPartRequests", fields: [engineerId], references: [id])
+  engineer        User                @relation("EngineerPartRequests", fields: [engineerId], references: [id], onDelete: Cascade)
   partItem        PartItem            @relation(fields: [partItemId], references: [id])
-  assignment      EngineerAssignment? @relation(fields: [assignmentId], references: [id])
-  admin           User?               @relation("AdminPartRequests", fields: [adminId], references: [id])
+  assignment      EngineerAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  admin           User?               @relation("AdminPartRequests", fields: [adminId], references: [id], onDelete: SetNull)
 
   @@index([engineerId])
   @@index([partItemId])
@@ -2476,8 +2476,8 @@ model VendorSubscriptionRequest {
   updatedAt       DateTime                        @updatedAt
 
   vendor      User  @relation("VendorSubscriptionRequests", fields: [vendorId], references: [id], onDelete: Cascade)
-  priceSentBy User? @relation("AdminPriceSentSubscriptions", fields: [priceSentById], references: [id])
-  verifiedBy  User? @relation("AdminVerifiedSubscriptions", fields: [verifiedById], references: [id])
+  priceSentBy User? @relation("AdminPriceSentSubscriptions", fields: [priceSentById], references: [id], onDelete: SetNull)
+  verifiedBy  User? @relation("AdminVerifiedSubscriptions", fields: [verifiedById], references: [id], onDelete: SetNull)
 
   @@index([vendorId])
   @@index([status])
@@ -2526,7 +2526,7 @@ model VendorCommissionCollection {
   updatedAt         DateTime                          @updatedAt
 
   vendor      User               @relation("VendorCommissionCollections", fields: [vendorId], references: [id], onDelete: Cascade)
-  verifiedBy  User?              @relation("AdminVerifiedCommissionCollections", fields: [verifiedById], references: [id])
+  verifiedBy  User?              @relation("AdminVerifiedCommissionCollections", fields: [verifiedById], references: [id], onDelete: SetNull)
   commissions VendorCommission[]
 
   @@index([vendorId])

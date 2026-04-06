@@ -272,13 +272,11 @@ export const adminSidebarItems: SidebarEntry[] = [
       { title: "My Store Products", href: "/admin/my-store/products", icon: Store },
       { title: "Price Requests", href: "/admin/my-store/price-requests", icon: Tag },
       { title: "My Store Orders", href: "/admin/my-store/orders", icon: ShoppingCart },
-      { title: "Store Payment Settings", href: "/admin/my-store/payment-settings", icon: QrCode },
       { title: "My Store Analytics", href: "/admin/my-store/analytics", icon: BarChart },
     ],
   },
   { title: "Warehouse", href: "/admin/warehouse", icon: Warehouse },
   { title: "Payouts", href: "/admin/payouts", icon: Wallet },
-  { title: "Payment Settings", href: "/admin/payment-settings", icon: CreditCard },
 
   // ── AMC ──
   { sectionTitle: "AMC" },

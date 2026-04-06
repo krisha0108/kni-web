@@ -12,7 +12,7 @@ const paymentSettingsSchema = z.object({
 });
 
 // GET - Fetch current payment settings (Admin only)
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
 

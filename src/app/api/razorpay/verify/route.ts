@@ -342,6 +342,17 @@ async function handleServiceBookingPayment(session: any, body: any) {
     );
   }
 
+  // 1b. Check for duplicate payment by razorpayPaymentId (prevent replay)
+  const existingByPaymentId = await db.paymentProof.findFirst({
+    where: { razorpayPaymentId: razorpay_payment_id },
+  });
+  if (existingByPaymentId) {
+    return NextResponse.json({
+      ok: true,
+      data: { bookingId: existingByPaymentId.bookingId, paymentVerified: true, message: "Payment already recorded" },
+    });
+  }
+
   // 2. Find booking
   const booking = await db.serviceBooking.findUnique({
     where: { id: bookingId },
@@ -402,7 +413,8 @@ async function handleServiceBookingPayment(session: any, body: any) {
   });
 
   // 7. Notify
-  const totalAmount = (booking.totalAmount || 0) + (booking.gstAmount || 0) + (booking.tipAmount || 0);
+  // totalAmount already includes GST + tip from booking creation
+  const totalAmount = booking.totalAmount || 0;
 
   createNotification({
     userId: actualOwnerId,

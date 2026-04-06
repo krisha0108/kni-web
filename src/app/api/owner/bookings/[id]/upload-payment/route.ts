@@ -38,7 +38,7 @@ export async function POST(
     // RBAC check - verify user has access to update bookings for this restaurant
     await requireRestaurantAccess(session, booking.restaurantId, "bookings:update");
 
-    if (booking.status !== "SLOT_SELECTED") {
+    if (booking.status !== "SLOT_SELECTED" && booking.status !== "PAYMENT_REJECTED") {
       return NextResponse.json(
         { ok: false, error: "Cannot upload payment for this booking status" },
         { status: 400 }
@@ -48,14 +48,31 @@ export async function POST(
     // Use actual restaurant owner ID for the payment proof record FK
     const actualOwnerId = await getRestaurantOwnerId(booking.restaurantId);
 
-    await db.paymentProof.create({
-      data: {
-        bookingId: id,
-        ownerId: actualOwnerId,
-        screenshotUrl,
-        status: "UPLOADED",
-      },
+    // Check if PaymentProof already exists (e.g., re-upload after rejection)
+    const existingProof = await db.paymentProof.findUnique({
+      where: { bookingId: id },
     });
+
+    if (existingProof) {
+      await db.paymentProof.update({
+        where: { bookingId: id },
+        data: {
+          screenshotUrl,
+          status: "UPLOADED",
+          rejectionReason: null,
+          adminNote: null,
+        },
+      });
+    } else {
+      await db.paymentProof.create({
+        data: {
+          bookingId: id,
+          ownerId: actualOwnerId,
+          screenshotUrl,
+          status: "UPLOADED",
+        },
+      });
+    }
 
     await db.serviceBooking.update({
       where: { id },

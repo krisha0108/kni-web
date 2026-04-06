@@ -642,14 +642,14 @@ export default function BookingDetailPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-muted-foreground">No payment uploaded yet</p>
+                  <p className="text-muted-foreground">Payment pending</p>
                   {canUpdate && (booking.status === "SLOT_SELECTED" || booking.status === "PAYMENT_REJECTED") && (
                     <Button
                       className="w-full"
                       onClick={() => router.push("/owner/bookings/" + booking.id + "/payment")}
                     >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Payment
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Pay Now
                     </Button>
                   )}
                 </>

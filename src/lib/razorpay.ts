@@ -20,7 +20,7 @@ function getRazorpay() {
 
 /**
  * Create a Razorpay order
- * @param amountInRupees - Amount in whole rupees (integer). Will be converted to paise.
+ * @param amountInRupees - Amount in rupees. Will be converted to paise.
  */
 export async function createRazorpayOrder(
   amountInRupees: number,
@@ -29,8 +29,8 @@ export async function createRazorpayOrder(
 ) {
   const razorpay = getRazorpay();
 
-  // Ensure amount is a positive integer (rupees, not paise)
-  const amount = Math.round(Math.abs(amountInRupees)) * 100;
+  // Convert rupees to paise with correct rounding
+  const amount = Math.round(amountInRupees * 100);
   if (amount <= 0) {
     throw new Error("Payment amount must be greater than 0");
   }

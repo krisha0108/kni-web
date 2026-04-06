@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Table,
   TableBody,
@@ -375,13 +373,6 @@ export default function VendorCommissionPage() {
                 )}
               </Button>
             </div>
-
-            {false && (
-              <div className="text-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mt-2">Loading payment details...</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

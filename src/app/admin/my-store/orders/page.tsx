@@ -14,7 +14,7 @@ import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
 import {
   Package, MapPin, User, Phone, Mail, Calendar, X, Clock, History,
-  Search, Filter, ArrowUpDown, CheckCircle, XCircle, Eye, CreditCard,
+  Search, Filter, ArrowUpDown,
   Loader2,
 } from "lucide-react";
 import { formatPrice, formatDate, formatDateTime } from "@/lib/utils";
@@ -23,30 +23,6 @@ import { MarketplaceOrderStatus } from "@prisma/client";
 import { CancellationReasonInput } from "@/components/rejection-reason-input";
 
 // ── Types ──
-
-interface PaymentItem {
-  productId: string;
-  qty: number;
-  priceSnapshot: number;
-  name: string;
-}
-
-interface Payment {
-  id: string;
-  totalAmount: number;
-  items: PaymentItem[];
-  screenshotUrl: string | null;
-  status: "PENDING" | "VERIFIED" | "REJECTED";
-  rejectionReason?: string;
-  deliveryAddress?: string;
-  notes?: string;
-  paymentMethod?: "SCREENSHOT" | "RAZORPAY";
-  razorpayPaymentId?: string;
-  createdAt: string;
-  verifiedAt?: string;
-  owner: { id: string; name: string; phone?: string; email?: string };
-  restaurant: { id: string; name: string; city: string; address: string };
-}
 
 interface OrderItem {
   id: string;
@@ -97,16 +73,7 @@ interface StatusHistoryItem {
 
 export default function MyStoreOrdersPage() {
   // ── Tab state ──
-  const [activeTab, setActiveTab] = useState("payments");
-
-  // ── Payment state ──
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [isPaymentViewOpen, setIsPaymentViewOpen] = useState(false);
-  const [isRejectOpen, setIsRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [activeTab, setActiveTab] = useState("active");
 
   // ── Order state ──
   const [orders, setOrders] = useState<Order[]>([]);
@@ -135,24 +102,8 @@ export default function MyStoreOrdersPage() {
 
   // ── Data fetching ──
   useEffect(() => {
-    fetchPayments();
     fetchOrders();
   }, []);
-
-  const fetchPayments = async () => {
-    try {
-      setIsLoadingPayments(true);
-      const response = await fetch("/api/admin/my-store/payments?status=PENDING");
-      const data = await response.json();
-      if (data.ok) {
-        setPayments(data.data || []);
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to load payments", variant: "destructive" });
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  };
 
   const fetchOrders = async () => {
     try {
@@ -166,61 +117,6 @@ export default function MyStoreOrdersPage() {
       toast({ title: "Error", description: "Failed to fetch orders", variant: "destructive" });
     } finally {
       setIsLoadingOrders(false);
-    }
-  };
-
-  // ── Payment handlers ──
-  const handleVerify = async (paymentId: string) => {
-    setIsSubmittingPayment(true);
-    try {
-      const response = await fetch(`/api/admin/my-store/payments/${paymentId}/verify`, {
-        method: "POST",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        toast({ title: "Verified", description: "Payment verified and order confirmed successfully" });
-        setIsPaymentViewOpen(false);
-        setSelectedPayment(null);
-        fetchPayments();
-        fetchOrders();
-        setActiveTab("active");
-      } else {
-        toast({ title: "Error", description: data.error || "Failed to verify", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to verify payment", variant: "destructive" });
-    } finally {
-      setIsSubmittingPayment(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedPayment || !rejectReason.trim()) {
-      toast({ title: "Error", description: "Please provide a rejection reason", variant: "destructive" });
-      return;
-    }
-    setIsSubmittingPayment(true);
-    try {
-      const response = await fetch(`/api/admin/my-store/payments/${selectedPayment.id}/reject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: rejectReason }),
-      });
-      const data = await response.json();
-      if (data.ok) {
-        toast({ title: "Rejected", description: "Payment rejected" });
-        setIsRejectOpen(false);
-        setIsPaymentViewOpen(false);
-        setSelectedPayment(null);
-        setRejectReason("");
-        fetchPayments();
-      } else {
-        toast({ title: "Error", description: data.error || "Failed to reject", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to reject payment", variant: "destructive" });
-    } finally {
-      setIsSubmittingPayment(false);
     }
   };
 
@@ -367,80 +263,6 @@ export default function MyStoreOrdersPage() {
     </Badge>
   );
 
-  const paymentStatusBadge = (status: string) => {
-    switch (status) {
-      case "PENDING":
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">Pending</Badge>;
-      case "VERIFIED":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">Verified</Badge>;
-      case "REJECTED":
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // ── Render: Payment Card ──
-  const renderPaymentCard = (payment: Payment) => (
-    <Card key={payment.id}>
-      <CardContent className="pt-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">{payment.owner.name}</span>
-              {paymentStatusBadge(payment.status)}
-            </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              {payment.restaurant.name}, {payment.restaurant.city}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {(payment.items as PaymentItem[]).map(i => `${i.name} x${i.qty}`).join(", ")}
-            </p>
-            <p className="text-sm font-medium">
-              {(payment.items as PaymentItem[]).length} items &middot; {formatPrice(payment.totalAmount)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(payment.createdAt)}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedPayment(payment);
-                setIsPaymentViewOpen(true);
-              }}
-            >
-              <Eye className="mr-1 h-4 w-4" />
-              View
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleVerify(payment.id)}
-              disabled={isSubmittingPayment}
-            >
-              <CheckCircle className="mr-1 h-4 w-4" />
-              Verify
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                setSelectedPayment(payment);
-                setIsRejectOpen(true);
-              }}
-            >
-              <XCircle className="mr-1 h-4 w-4" />
-              Reject
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   // ── Render: Order Card ──
   const renderOrderCard = (order: Order, showActions = true) => (
     <Card key={order.id} className="cursor-pointer hover:bg-accent/50 transition-colors">
@@ -577,20 +399,12 @@ export default function MyStoreOrdersPage() {
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">KNI Store - Order Management</h1>
           <p className="text-muted-foreground">
-            Manage payments and orders for KNI Official Store
+            Manage orders for KNI Official Store
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="payments" className="relative">
-              Pending Payments
-              {payments.length > 0 && (
-                <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-xs text-white">
-                  {payments.length}
-                </span>
-              )}
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="active" className="relative">
               Active Orders
               {activeOrders.length > 0 && (
@@ -604,28 +418,7 @@ export default function MyStoreOrdersPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Tab 1: Pending Payments ── */}
-          <TabsContent value="payments" className="mt-4">
-            {isLoadingPayments ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : payments.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg text-muted-foreground">No pending payments</p>
-                  <p className="text-sm text-muted-foreground">All payments have been processed</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {payments.map(renderPaymentCard)}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ── Tab 2: Active Orders ── */}
+          {/* ── Tab 1: Active Orders ── */}
           <TabsContent value="active" className="mt-4">
             {isLoadingOrders ? (
               <div className="flex items-center justify-center h-48">
@@ -636,7 +429,7 @@ export default function MyStoreOrdersPage() {
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Package className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-lg text-muted-foreground">No active orders</p>
-                  <p className="text-sm text-muted-foreground">Verify payments to create orders</p>
+                  <p className="text-sm text-muted-foreground">New orders will appear here when customers pay via Razorpay</p>
                 </CardContent>
               </Card>
             ) : (
@@ -690,166 +483,6 @@ export default function MyStoreOrdersPage() {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* ── Payment View Dialog ── */}
-        <Dialog open={isPaymentViewOpen} onOpenChange={setIsPaymentViewOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-auto w-[95vw] sm:w-full overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Payment Details</DialogTitle>
-              <DialogDescription>
-                From {selectedPayment?.owner.name} for {selectedPayment?.restaurant.name}
-              </DialogDescription>
-            </DialogHeader>
-            {selectedPayment && (
-              <div className="space-y-4">
-                {/* Customer Info */}
-                <div>
-                  <h4 className="font-medium mb-2">Customer</h4>
-                  <div className="text-sm space-y-1">
-                    <div className="flex items-center gap-2">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span>{selectedPayment.owner.name}</span>
-                    </div>
-                    {selectedPayment.owner.phone && (
-                      <p className="text-muted-foreground ml-5">{selectedPayment.owner.phone}</p>
-                    )}
-                    {selectedPayment.owner.email && (
-                      <p className="text-muted-foreground ml-5">{selectedPayment.owner.email}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Items</h4>
-                  <div className="space-y-1">
-                    {(selectedPayment.items as PaymentItem[]).map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-sm">
-                        <span>{item.name} x{item.qty}</span>
-                        <span>{formatPrice(item.priceSnapshot * item.qty)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between font-bold border-t pt-2 mt-2">
-                      <span>Total</span>
-                      <span>{formatPrice(selectedPayment.totalAmount)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedPayment.deliveryAddress && (
-                  <div>
-                    <h4 className="font-medium mb-1">Delivery Address</h4>
-                    <p className="text-sm text-muted-foreground">{selectedPayment.deliveryAddress}</p>
-                  </div>
-                )}
-
-                {selectedPayment.notes && (
-                  <div>
-                    <h4 className="font-medium mb-1">Notes</h4>
-                    <p className="text-sm text-muted-foreground">{selectedPayment.notes}</p>
-                  </div>
-                )}
-
-                {/* Payment Method Badge */}
-                <div>
-                  <h4 className="font-medium mb-2">Payment Method</h4>
-                  {selectedPayment.paymentMethod === "RAZORPAY" ? (
-                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                      <CreditCard className="mr-1 h-3 w-3" />
-                      Razorpay (Auto-Verified)
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">
-                      Screenshot Upload
-                    </Badge>
-                  )}
-                  {selectedPayment.razorpayPaymentId && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Razorpay ID: {selectedPayment.razorpayPaymentId}
-                    </p>
-                  )}
-                </div>
-
-                {/* Screenshot (only for manual payments) */}
-                {selectedPayment.screenshotUrl && (
-                  <div>
-                    <h4 className="font-medium mb-2">Payment Screenshot</h4>
-                    <img
-                      src={selectedPayment.screenshotUrl}
-                      alt="Payment screenshot"
-                      className="max-w-full h-auto max-h-96 rounded-lg border"
-                    />
-                  </div>
-                )}
-
-                {/* Verify/Reject buttons only for manual PENDING payments */}
-                {selectedPayment.status === "PENDING" && selectedPayment.paymentMethod !== "RAZORPAY" && (
-                  <DialogFooter className="gap-2">
-                    <Button
-                      variant="destructive"
-                      onClick={() => setIsRejectOpen(true)}
-                      disabled={isSubmittingPayment}
-                    >
-                      <XCircle className="mr-1 h-4 w-4" />
-                      Reject
-                    </Button>
-                    <Button
-                      onClick={() => handleVerify(selectedPayment.id)}
-                      disabled={isSubmittingPayment}
-                    >
-                      {isSubmittingPayment ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="mr-1 h-4 w-4" />
-                      )}
-                      Verify Payment
-                    </Button>
-                  </DialogFooter>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* ── Reject Payment Dialog ── */}
-        <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-          <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Reject Payment</DialogTitle>
-              <DialogDescription>
-                Please provide a reason for rejecting this payment
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="reason">Rejection Reason *</Label>
-                <Textarea
-                  id="reason"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="e.g. Screenshot unclear, amount doesn't match, payment not received..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsRejectOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleReject}
-                disabled={isSubmittingPayment || !rejectReason.trim()}
-              >
-                {isSubmittingPayment ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <XCircle className="mr-1 h-4 w-4" />
-                )}
-                Reject Payment
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* ── Order Details Dialog ── */}
         <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/server/db";
 
 // GET - Fetch active payment settings (Public - no auth required)
-// This endpoint is public so owners can see QR code during payment
+// This endpoint is public so owners can see QR code during payment.
 export async function GET() {
   try {
     const settings = await db.paymentSettings.findFirst({

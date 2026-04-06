@@ -56,6 +56,7 @@ export default function OwnerEquipmentPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,6 +235,98 @@ export default function OwnerEquipmentPage() {
     }
   };
 
+  const handleEdit = (item: Equipment) => {
+    setEditingId(item.id);
+    setFormData({
+      restaurantId: item.restaurant.id,
+      categoryId: item.category?.id || "",
+      subCategoryId: item.subCategory?.id || "",
+      brand: item.brand || "",
+      model: item.model || "",
+      purchaseDate: item.purchaseDate ? item.purchaseDate.split("T")[0] : "",
+      warrantyEndDate: item.warrantyEndDate ? item.warrantyEndDate.split("T")[0] : "",
+      serialNumber: item.serialNumber || "",
+      installLocation: item.installLocation || "",
+      notes: "",
+      billImageUrl: "",
+      warrantyCardUrl: "",
+      photoUrls: [],
+    });
+    // Set subcategories for the selected category
+    if (item.category?.id) {
+      const selectedCategory = categories.find(c => c.id === item.category?.id);
+      setSubCategories(selectedCategory?.subCategories || []);
+    }
+    setIsCreateOpen(true);
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      restaurantId: selectedRestaurant?.restaurantId || "",
+      categoryId: "",
+      subCategoryId: "",
+      brand: "",
+      model: "",
+      purchaseDate: "",
+      warrantyEndDate: "",
+      serialNumber: "",
+      installLocation: "",
+      notes: "",
+      billImageUrl: "",
+      warrantyCardUrl: "",
+      photoUrls: [],
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId) return;
+    try {
+      const selectedCategory = categories.find(c => c.id === formData.categoryId);
+      const selectedSubCategory = subCategories.find(sc => sc.id === formData.subCategoryId);
+      const equipmentName = selectedSubCategory?.name || selectedCategory?.name || "Equipment";
+
+      const payload: any = {
+        name: equipmentName,
+        categoryId: formData.categoryId,
+        subCategoryId: formData.subCategoryId || undefined,
+        brand: formData.brand || undefined,
+        model: formData.model || undefined,
+        serialNumber: formData.serialNumber || undefined,
+        installLocation: formData.installLocation || undefined,
+        notes: formData.notes || undefined,
+        billImageUrl: formData.billImageUrl || undefined,
+        warrantyCardUrl: formData.warrantyCardUrl || undefined,
+        photoUrls: formData.photoUrls.length > 0 ? formData.photoUrls : undefined,
+      };
+
+      if (formData.purchaseDate) {
+        payload.purchaseDate = new Date(formData.purchaseDate).toISOString();
+      }
+      if (formData.warrantyEndDate) {
+        payload.warrantyEndDate = new Date(formData.warrantyEndDate).toISOString();
+      }
+
+      const response = await fetch(`/api/owner/equipment/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Equipment updated successfully" });
+        setIsCreateOpen(false);
+        resetForm();
+        fetchEquipment();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to update equipment", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update equipment", variant: "destructive" });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this equipment?")) return;
 
@@ -377,18 +470,18 @@ export default function OwnerEquipmentPage() {
           />
           {canCreate && (
           <ClientOnly>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => resetForm()}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Equipment
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
-              <DialogTitle>Add Equipment</DialogTitle>
+              <DialogTitle>{editingId ? "Edit Equipment" : "Add Equipment"}</DialogTitle>
               <DialogDescription>
-                Add new equipment to track warranty, maintenance, and service history.
+                {editingId ? "Update equipment details." : "Add new equipment to track warranty, maintenance, and service history."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -542,10 +635,12 @@ export default function OwnerEquipmentPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <Button variant="outline" onClick={() => { setIsCreateOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate}>Add Equipment</Button>
+              <Button onClick={editingId ? handleUpdate : handleCreate}>
+                {editingId ? "Save Changes" : "Add Equipment"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -829,6 +924,16 @@ export default function OwnerEquipmentPage() {
                             }}
                           >
                             <Wrench className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
+                        {canCreate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Edit Equipment"
+                            onClick={() => handleEdit(item)}
+                          >
+                            <Pencil className="h-4 w-4 text-blue-500" />
                           </Button>
                         )}
                         <Button

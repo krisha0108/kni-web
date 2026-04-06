@@ -7,24 +7,24 @@ export const categorySchema = z.object({
 export const subCategorySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   categoryId: z.string().min(1, "Category is required"),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
 });
 
 export const serviceItemSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   price: z.number().int().positive("Price must be a positive integer"),
   categoryId: z.string().min(1, "Category is required"),
-  subCategoryId: z.string().optional(),
+  subCategoryId: z.string().nullable().optional(),
 });
 
 export const partItemSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().optional(),
-  imageUrl: z.string().optional(),
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
   price: z.number().int().positive("Price must be a positive integer"),
   categoryId: z.string().min(1, "Category is required"),
-  subCategoryId: z.string().optional(),
+  subCategoryId: z.string().nullable().optional(),
 });
 
 export type CategoryInput = z.infer<typeof categorySchema>;

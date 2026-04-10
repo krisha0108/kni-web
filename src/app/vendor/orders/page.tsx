@@ -124,6 +124,10 @@ export default function VendorOrdersPage() {
   });
   const [cancellationError, setCancellationError] = useState("");
 
+  // ── Pagination ──
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
   // ── Search/filter for orders ──
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -358,6 +362,20 @@ export default function VendorOrdersPage() {
 
   const filteredActiveOrders = useMemo(() => filterAndSort(activeOrders), [activeOrders, searchQuery, filterStatus, sortBy]);
   const filteredCompletedOrders = useMemo(() => filterAndSort(completedOrders), [completedOrders, searchQuery, filterStatus, sortBy]);
+
+  // Reset page on tab/filter/search change
+  useEffect(() => { setPage(1); }, [activeTab, searchQuery, filterStatus, sortBy]);
+
+  // Paginated slices
+  const paginatedPayments = useMemo(() => payments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [payments, page]);
+  const paginatedActiveOrders = useMemo(() => filteredActiveOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredActiveOrders, page]);
+  const paginatedCompletedOrders = useMemo(() => filteredCompletedOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredCompletedOrders, page]);
+
+  const currentTotalPages = useMemo(() => {
+    if (activeTab === "payments") return Math.ceil(payments.length / PAGE_SIZE) || 1;
+    if (activeTab === "active") return Math.ceil(filteredActiveOrders.length / PAGE_SIZE) || 1;
+    return Math.ceil(filteredCompletedOrders.length / PAGE_SIZE) || 1;
+  }, [activeTab, payments.length, filteredActiveOrders.length, filteredCompletedOrders.length]);
 
   // ── Helpers ──
   const getStatusBadge = (status: MarketplaceOrderStatus) => (
@@ -618,7 +636,7 @@ export default function VendorOrdersPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {payments.map(renderPaymentCard)}
+                {paginatedPayments.map(renderPaymentCard)}
               </div>
             )}
           </TabsContent>
@@ -649,7 +667,7 @@ export default function VendorOrdersPage() {
                   </Card>
                 ) : (
                   <div className="grid gap-4">
-                    {filteredActiveOrders.map((order) => renderOrderCard(order, true))}
+                    {paginatedActiveOrders.map((order) => renderOrderCard(order, true))}
                   </div>
                 )}
               </>
@@ -681,13 +699,21 @@ export default function VendorOrdersPage() {
                   </Card>
                 ) : (
                   <div className="grid gap-4">
-                    {filteredCompletedOrders.map((order) => renderOrderCard(order, false))}
+                    {paginatedCompletedOrders.map((order) => renderOrderCard(order, false))}
                   </div>
                 )}
               </>
             )}
           </TabsContent>
         </Tabs>
+
+        {currentTotalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {currentTotalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(currentTotalPages, p + 1))} disabled={page === currentTotalPages}>Next</Button>
+          </div>
+        )}
 
         {/* ── Payment View Dialog ── */}
         <Dialog open={isPaymentViewOpen} onOpenChange={setIsPaymentViewOpen}>

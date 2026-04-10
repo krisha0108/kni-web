@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {
       vendorId: session.id,
@@ -38,22 +40,27 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    const vendorProducts = await db.vendorProduct.findMany({
-      where,
-      include: {
-        product: {
-          include: {
-            marketplaceCategory: {
-              select: { id: true, name: true },
-            },
-            marketplaceSubCategory: {
-              select: { id: true, name: true },
+    const [vendorProducts, total] = await Promise.all([
+      db.vendorProduct.findMany({
+        where,
+        include: {
+          product: {
+            include: {
+              marketplaceCategory: {
+                select: { id: true, name: true },
+              },
+              marketplaceSubCategory: {
+                select: { id: true, name: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.vendorProduct.count({ where }),
+    ]);
 
     const products = vendorProducts
       .filter((vp) => vp.product !== null)
@@ -77,7 +84,7 @@ export async function GET(request: NextRequest) {
         subCategory: vp.product!.marketplaceSubCategory,
       }));
 
-    return NextResponse.json({ ok: true, data: products });
+    return NextResponse.json({ ok: true, data: { items: products, total, page, pageSize } });
   } catch (error) {
     console.error("Get admin store products error:", error);
     return NextResponse.json(

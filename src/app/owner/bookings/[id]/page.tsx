@@ -580,8 +580,8 @@ export default function BookingDetailPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Service PIN Card */}
-          {booking.engineerAssignments && booking.engineerAssignments.length > 0 && (() => {
+          {/* ==> Service PIN Card — TEMPORARILY DISABLED (client request — will re-enable later) */}
+          {/* {booking.engineerAssignments && booking.engineerAssignments.length > 0 && (() => {
             const assignment = booking.engineerAssignments[0];
             if (!assignment.servicePin || !assignment.servicePinExpiresAt) return null;
             const isExpired = new Date() > new Date(assignment.servicePinExpiresAt);
@@ -612,7 +612,7 @@ export default function BookingDetailPage() {
                 </CardContent>
               </Card>
             );
-          })()}
+          })()} */}
 
           {/* Payment Status */}
           <Card>

@@ -75,6 +75,8 @@ export default function StaffSalaryPage() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState((currentDate.getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const { toast } = useToast();
   const { selectedRestaurant } = useRestaurant();
@@ -83,7 +85,7 @@ export default function StaffSalaryPage() {
     if (selectedRestaurant) {
       fetchSalaryRecords();
     }
-  }, [selectedRestaurant, selectedMonth, selectedYear]);
+  }, [selectedRestaurant, selectedMonth, selectedYear, page]);
 
   const fetchSalaryRecords = async () => {
     if (!selectedRestaurant) return;
@@ -96,11 +98,17 @@ export default function StaffSalaryPage() {
         year: selectedYear,
       });
 
+      params.append("page", page.toString());
+      params.append("pageSize", "20");
+
       const response = await fetch(`/api/owner/staff-salary?${params}`);
       const data = await response.json();
 
       if (data.ok) {
-        setSalaryRecords(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setSalaryRecords(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -310,7 +318,7 @@ export default function StaffSalaryPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-2">
               <Label htmlFor="month">Month</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <Select value={selectedMonth} onValueChange={(v) => { setSelectedMonth(v); setPage(1); }}>
                 <SelectTrigger id="month">
                   <SelectValue />
                 </SelectTrigger>
@@ -325,7 +333,7 @@ export default function StaffSalaryPage() {
             </div>
             <div className="flex-1 space-y-2">
               <Label htmlFor="year">Year</Label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setPage(1); }}>
                 <SelectTrigger id="year">
                   <SelectValue />
                 </SelectTrigger>
@@ -505,6 +513,14 @@ export default function StaffSalaryPage() {
           )}
         </CardContent>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>

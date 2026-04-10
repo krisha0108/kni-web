@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const session = await requireOwnerMobile(request);
     const searchParams = request.nextUrl.searchParams;
     const restaurantId = searchParams.get("restaurantId");
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -69,9 +69,10 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
     }),
-      page > 0 ? db.marketplaceOrder.count({ where }) : Promise.resolve(-1),
+      db.marketplaceOrder.count({ where }),
     ]);
 
     // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: resolved, total, page, pageSize } : resolved,
+      data: { items: resolved, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get marketplace orders error:", error);

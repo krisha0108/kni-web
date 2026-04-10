@@ -20,6 +20,8 @@ const statusColors: Record<string, "default" | "success" | "destructive" | "warn
 export default function OwnerAMCContractsPage() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
   const { selectedRestaurant } = useRestaurant();
@@ -27,12 +29,19 @@ export default function OwnerAMCContractsPage() {
   useEffect(() => {
     if (!selectedRestaurant) return;
     setIsLoading(true);
-    fetch(`/api/owner/amc-contracts?restaurantId=${selectedRestaurant.restaurantId}`)
+    fetch(`/api/owner/amc-contracts?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`)
       .then((r) => r.json())
-      .then((d) => d.ok && setContracts(d.data))
+      .then((d) => {
+        if (d.ok) {
+          const items = d.data?.items || d.data;
+          const total = d.data?.total || 0;
+          setContracts(Array.isArray(items) ? items : []);
+          setTotalPages(Math.ceil(total / 20) || 1);
+        }
+      })
       .catch(() => toast({ title: "Error", description: "Failed to load contracts", variant: "destructive" }))
       .finally(() => setIsLoading(false));
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -102,6 +111,14 @@ export default function OwnerAMCContractsPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
     </div>

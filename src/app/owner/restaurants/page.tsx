@@ -43,17 +43,22 @@ export default function RestaurantsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Restaurant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
 
   const fetchRestaurants = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/restaurants");
+      const response = await fetch(`/api/owner/restaurants?page=${page}&pageSize=20`);
       const data = await response.json();
 
       if (data.ok) {
-        setRestaurants(Array.isArray(data.data) ? data.data : []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setRestaurants(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -74,7 +79,7 @@ export default function RestaurantsPage() {
 
   useEffect(() => {
     fetchRestaurants();
-  }, []);
+  }, [page]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -311,6 +316,14 @@ export default function RestaurantsPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
 

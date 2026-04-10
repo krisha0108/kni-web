@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +102,8 @@ export default function VendorCommissionPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // ── Fetch commission data ────────────────────────────────────────────────────
 
@@ -249,6 +251,9 @@ export default function VendorCommissionPage() {
   // ── Derived state ────────────────────────────────────────────────────────────
 
   const { vendorProfile, commissions, totalCommission, pendingCommission, paidCommission, collections } = data;
+
+  const totalPages = useMemo(() => Math.ceil(commissions.length / PAGE_SIZE) || 1, [commissions.length]);
+  const paginatedCommissions = useMemo(() => commissions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [commissions, page]);
 
   const uploadedCollection = collections.find((c) => c.status === "PAYMENT_UPLOADED");
 
@@ -421,7 +426,7 @@ export default function VendorCommissionPage() {
               </p>
             </div>
           ) : (
-            
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -436,18 +441,18 @@ export default function VendorCommissionPage() {
               </TableHeader>
               
               <TableBody>
-                {commissions.map((c) => (
+                {paginatedCommissions.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono text-xs">
                       {c.orderId.slice(0, 8)}
                     </TableCell>
-                    
+
                     <TableCell>{formatPrice(c.orderAmount)}</TableCell>
                     <TableCell>{c.commissionRate}%</TableCell>
                     <TableCell className="font-medium">
                       {formatPrice(c.commissionAmount)}
                     </TableCell>
-                    
+
                     <TableCell>{formatDate(c.createdAt)}</TableCell>
                     <TableCell>
                       {c.collectionId ? (
@@ -460,11 +465,14 @@ export default function VendorCommissionPage() {
                 ))}
               </TableBody>
             </Table>
-                    
-                    
-              
-                  
-            
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+              </div>
+            )}
+          </>
           )}
         </CardContent>
       </Card>

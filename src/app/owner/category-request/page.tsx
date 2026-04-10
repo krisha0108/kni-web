@@ -74,6 +74,8 @@ export default function OwnerCategoryRequestPage() {
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [deleteRequest, setDeleteRequest] = useState<CategoryRequest | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
   const { selectedRestaurant } = useRestaurant();
@@ -81,17 +83,20 @@ export default function OwnerCategoryRequestPage() {
   const loadMyRequests = useCallback(async () => {
     if (!selectedRestaurant) return;
     try {
-      const response = await fetch(`/api/owner/category-request?restaurantId=${selectedRestaurant.restaurantId}`);
+      const response = await fetch(`/api/owner/category-request?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`);
       const data = await response.json();
       if (data.ok) {
-        setMyRequests(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setMyRequests(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       console.error("Load requests error:", error);
     } finally {
       setLoadingRequests(false);
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   useEffect(() => {
     loadMyRequests();
@@ -354,6 +359,14 @@ export default function OwnerCategoryRequestPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
 

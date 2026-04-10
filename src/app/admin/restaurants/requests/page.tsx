@@ -58,14 +58,25 @@ export default function RestaurantRequestsPage() {
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   const fetchRestaurants = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/admin/restaurants/requests?status=" + statusFilter);
+      const params = new URLSearchParams();
+      params.set("status", statusFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/restaurants/requests?" + params.toString());
       const data = await response.json();
-      if (data.ok) setRestaurants(data.data.items);
+      if (data.ok) {
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setRestaurants(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to fetch restaurants", variant: "destructive" });
     } finally {
@@ -75,7 +86,7 @@ export default function RestaurantRequestsPage() {
 
   useEffect(() => {
     fetchRestaurants();
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   const handleApprove = async (restaurant: Restaurant) => {
     try {
@@ -271,14 +282,14 @@ export default function RestaurantRequestsPage() {
             )}
           </TableBody>
         </Table>
-                  
-                  
-                  
-                  
-                
-          
-              
-        
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>

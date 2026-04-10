@@ -83,12 +83,16 @@ export default function AdminLocationsPage() {
   const [states, setStates] = useState<ServiceState[]>([]);
   const [statesLoading, setStatesLoading] = useState(true);
   const [stateSearch, setStateSearch] = useState("");
+  const [statesPage, setStatesPage] = useState(1);
+  const [statesTotalPages, setStatesTotalPages] = useState(1);
 
   // Cities
   const [cities, setCities] = useState<ServiceCity[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(true);
   const [citySearch, setCitySearch] = useState("");
   const [cityFilterStateId, setCityFilterStateId] = useState("all");
+  const [citiesPage, setCitiesPage] = useState(1);
+  const [citiesTotalPages, setCitiesTotalPages] = useState(1);
 
   // Areas
   const [areas, setAreas] = useState<ServiceArea[]>([]);
@@ -97,6 +101,8 @@ export default function AdminLocationsPage() {
   const [areaFilterStateId, setAreaFilterStateId] = useState("all");
   const [areaFilterCityId, setAreaFilterCityId] = useState("all");
   const [filteredCitiesForArea, setFilteredCitiesForArea] = useState<ServiceCity[]>([]);
+  const [areasPage, setAreasPage] = useState(1);
+  const [areasTotalPages, setAreasTotalPages] = useState(1);
 
   // All states for dropdowns
   const [allStates, setAllStates] = useState<ServiceState[]>([]);
@@ -130,7 +136,7 @@ export default function AdminLocationsPage() {
   // Fetch all states for dropdowns
   const fetchAllStates = async () => {
     try {
-      const response = await fetch("/api/admin/locations/states?includeInactive=true");
+      const response = await fetch("/api/admin/locations/states?includeInactive=true&pageSize=500");
       const data = await response.json();
       if (data.ok) {
         setAllStates(data.data.items);
@@ -143,7 +149,7 @@ export default function AdminLocationsPage() {
   // Fetch all cities for dropdowns
   const fetchAllCities = async (stateId?: string) => {
     try {
-      const params = new URLSearchParams({ includeInactive: "true" });
+      const params = new URLSearchParams({ includeInactive: "true", pageSize: "500" });
       if (stateId && stateId !== "all") params.set("stateId", stateId);
       const response = await fetch("/api/admin/locations/cities?" + params.toString());
       const data = await response.json();
@@ -163,10 +169,15 @@ export default function AdminLocationsPage() {
       setStatesLoading(true);
       const params = new URLSearchParams({ includeInactive: "true" });
       if (stateSearch) params.set("search", stateSearch);
+      params.set("page", String(statesPage));
+      params.set("pageSize", "20");
       const response = await fetch("/api/admin/locations/states?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setStates(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setStatesTotalPages(Math.ceil(total / 20) || 1);
+        setStates(Array.isArray(items) ? items : []);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch states", variant: "destructive" });
@@ -257,10 +268,15 @@ export default function AdminLocationsPage() {
       const params = new URLSearchParams({ includeInactive: "true" });
       if (citySearch) params.set("search", citySearch);
       if (cityFilterStateId && cityFilterStateId !== "all") params.set("stateId", cityFilterStateId);
+      params.set("page", String(citiesPage));
+      params.set("pageSize", "20");
       const response = await fetch("/api/admin/locations/cities?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setCities(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setCitiesTotalPages(Math.ceil(total / 20) || 1);
+        setCities(Array.isArray(items) ? items : []);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch cities", variant: "destructive" });
@@ -349,10 +365,15 @@ export default function AdminLocationsPage() {
       if (areaSearch) params.set("search", areaSearch);
       if (areaFilterStateId && areaFilterStateId !== "all") params.set("stateId", areaFilterStateId);
       if (areaFilterCityId && areaFilterCityId !== "all") params.set("cityId", areaFilterCityId);
+      params.set("page", String(areasPage));
+      params.set("pageSize", "20");
       const response = await fetch("/api/admin/locations/areas?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setAreas(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setAreasTotalPages(Math.ceil(total / 20) || 1);
+        setAreas(Array.isArray(items) ? items : []);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch areas", variant: "destructive" });
@@ -444,9 +465,9 @@ export default function AdminLocationsPage() {
     if (activeTab === "areas") fetchAreas();
   }, [activeTab]);
 
-  useEffect(() => { fetchStates(); }, [stateSearch]);
-  useEffect(() => { fetchCities(); }, [citySearch, cityFilterStateId]);
-  useEffect(() => { fetchAreas(); }, [areaSearch, areaFilterStateId, areaFilterCityId]);
+  useEffect(() => { fetchStates(); }, [stateSearch, statesPage]);
+  useEffect(() => { fetchCities(); }, [citySearch, cityFilterStateId, citiesPage]);
+  useEffect(() => { fetchAreas(); }, [areaSearch, areaFilterStateId, areaFilterCityId, areasPage]);
 
   // Cascading city filter for areas tab
   useEffect(() => {
@@ -644,7 +665,7 @@ export default function AdminLocationsPage() {
           {(["states", "cities", "areas"] as Tab[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => { setActiveTab(tab); if (tab === "states") setStatesPage(1); if (tab === "cities") setCitiesPage(1); if (tab === "areas") setAreasPage(1); }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
                   ? "border-primary text-primary"
@@ -664,15 +685,15 @@ export default function AdminLocationsPage() {
               placeholder={`Search ${activeTab}...`}
               value={activeTab === "states" ? stateSearch : activeTab === "cities" ? citySearch : areaSearch}
               onChange={(e) => {
-                if (activeTab === "states") setStateSearch(e.target.value);
-                if (activeTab === "cities") setCitySearch(e.target.value);
-                if (activeTab === "areas") setAreaSearch(e.target.value);
+                if (activeTab === "states") { setStateSearch(e.target.value); setStatesPage(1); }
+                if (activeTab === "cities") { setCitySearch(e.target.value); setCitiesPage(1); }
+                if (activeTab === "areas") { setAreaSearch(e.target.value); setAreasPage(1); }
               }}
               className="pl-10"
             />
           </div>
           {activeTab === "cities" && (
-            <Select value={cityFilterStateId} onValueChange={setCityFilterStateId}>
+            <Select value={cityFilterStateId} onValueChange={(v) => { setCityFilterStateId(v); setCitiesPage(1); }}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="All States" />
               </SelectTrigger>
@@ -686,7 +707,7 @@ export default function AdminLocationsPage() {
           )}
           {activeTab === "areas" && (
             <>
-              <Select value={areaFilterStateId} onValueChange={setAreaFilterStateId}>
+              <Select value={areaFilterStateId} onValueChange={(v) => { setAreaFilterStateId(v); setAreasPage(1); }}>
                 <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
@@ -697,7 +718,7 @@ export default function AdminLocationsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={areaFilterCityId} onValueChange={setAreaFilterCityId} disabled={areaFilterStateId === "all"}>
+              <Select value={areaFilterCityId} onValueChange={(v) => { setAreaFilterCityId(v); setAreasPage(1); }} disabled={areaFilterStateId === "all"}>
                 <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder={areaFilterStateId === "all" ? "Select state first" : "All Cities"} />
                 </SelectTrigger>
@@ -767,12 +788,14 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
-                      
-                    
-                    
-              
-                  
-            
+
+            {statesTotalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button variant="outline" size="sm" onClick={() => setStatesPage((p) => Math.max(1, p - 1))} disabled={statesPage === 1}>Previous</Button>
+                <span className="flex items-center px-4 text-sm">Page {statesPage} of {statesTotalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setStatesPage((p) => Math.min(statesTotalPages, p + 1))} disabled={statesPage === statesTotalPages}>Next</Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -833,12 +856,14 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
-                      
-                    
-                    
-              
-                  
-            
+
+            {citiesTotalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button variant="outline" size="sm" onClick={() => setCitiesPage((p) => Math.max(1, p - 1))} disabled={citiesPage === 1}>Previous</Button>
+                <span className="flex items-center px-4 text-sm">Page {citiesPage} of {citiesTotalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setCitiesPage((p) => Math.min(citiesTotalPages, p + 1))} disabled={citiesPage === citiesTotalPages}>Next</Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -902,13 +927,14 @@ export default function AdminLocationsPage() {
                 )}
               </TableBody>
             </Table>
-                      
-                      
-                    
-                    
-              
-                  
-            
+
+            {areasTotalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button variant="outline" size="sm" onClick={() => setAreasPage((p) => Math.max(1, p - 1))} disabled={areasPage === 1}>Previous</Button>
+                <span className="flex items-center px-4 text-sm">Page {areasPage} of {areasTotalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setAreasPage((p) => Math.min(areasTotalPages, p + 1))} disabled={areasPage === areasTotalPages}>Next</Button>
+              </div>
+            )}
           </div>
         )}
 

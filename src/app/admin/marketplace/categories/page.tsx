@@ -55,6 +55,8 @@ export default function AdminMarketplaceCategoriesPage() {
   const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -75,11 +77,16 @@ export default function AdminMarketplaceCategoriesPage() {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       params.set("includeInactive", "true");
+      params.set("page", String(page));
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/marketplace/categories?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setCategories(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setCategories(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -94,7 +101,7 @@ export default function AdminMarketplaceCategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, [search]);
+  }, [search, page]);
 
   const resetForm = () => {
     setFormName("");
@@ -287,7 +294,7 @@ export default function AdminMarketplaceCategoriesPage() {
           <Input
             placeholder="Search categories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
@@ -390,15 +397,15 @@ export default function AdminMarketplaceCategoriesPage() {
             )}
           </TableBody>
         </Table>
-                  
-                  
-                  
-                
-              
-          
-              
-        
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => {

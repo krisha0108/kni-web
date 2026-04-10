@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const includeInactive = searchParams.get("includeInactive") === "true";
 
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
+
     const where: any = {};
     if (search) {
       where.name = { contains: search };
@@ -34,23 +37,28 @@ export async function GET(request: NextRequest) {
       where.isActive = true;
     }
 
-    const categories = await db.marketplaceCategory.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            subCategories: true,
-            products: true,
-            vendorCategories: true,
+    const [categories, total] = await Promise.all([
+      db.marketplaceCategory.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              subCategories: true,
+              products: true,
+              vendorCategories: true,
+            },
           },
         },
-      },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    });
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.marketplaceCategory.count({ where }),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: { items: categories },
+      data: { items: categories, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get marketplace categories error:", error);

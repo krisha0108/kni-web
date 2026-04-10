@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
     // W-B: Parse optional status filter from query params
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: { engineerId: string; status?: EngineerAssignmentStatus } = { engineerId: session.id };
     if (status && Object.values(EngineerAssignmentStatus).includes(status as EngineerAssignmentStatus)) {
@@ -37,14 +37,15 @@ export async function GET(request: NextRequest) {
           workLog: true,
         },
         orderBy: { assignedAt: "desc" },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
-      page > 0 ? db.engineerAssignment.count({ where }) : Promise.resolve(-1),
+      db.engineerAssignment.count({ where }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: assignments, total, page, pageSize } : assignments,
+      data: { items: assignments, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get engineer jobs error:", error);

@@ -56,16 +56,18 @@ export default function AdminNotificationsPage() {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [page]);
 
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/notifications?limit=100");
+      const response = await fetch(`/api/notifications?page=${page}&pageSize=20`);
 
       if (!response.ok) {
         setNotifications([]);
@@ -75,7 +77,10 @@ export default function AdminNotificationsPage() {
       const data = await response.json();
 
       if (data.ok && data.data) {
-        setNotifications(data.data.items || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setNotifications(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         setNotifications([]);
       }
@@ -281,7 +286,7 @@ export default function AdminNotificationsPage() {
                 className="pl-9"
               />
             </div>
-            <Select value={filter} onValueChange={setFilter}>
+            <Select value={filter} onValueChange={(v) => { setFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
@@ -365,6 +370,14 @@ export default function AdminNotificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Notification Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>

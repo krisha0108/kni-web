@@ -56,6 +56,8 @@ export default function AdminLocationRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isActionOpen, setIsActionOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LocationRequest | null>(null);
   const [actionType, setActionType] = useState<"APPROVED" | "REJECTED">("APPROVED");
@@ -70,10 +72,15 @@ export default function AdminLocationRequestsPage() {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filterStatus && filterStatus !== "all") params.set("status", filterStatus);
+      params.set("page", String(page));
+      params.set("pageSize", "20");
       const response = await fetch("/api/admin/location-requests?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setRequests(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setTotalPages(Math.ceil(total / 20) || 1);
+        setRequests(Array.isArray(items) ? items : []);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch requests", variant: "destructive" });
@@ -84,7 +91,7 @@ export default function AdminLocationRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, [search, filterStatus]);
+  }, [search, filterStatus, page]);
 
   const openActionDialog = (req: LocationRequest, action: "APPROVED" | "REJECTED") => {
     setSelectedRequest(req);
@@ -158,11 +165,11 @@ export default function AdminLocationRequestsPage() {
             <Input
               placeholder="Search vendor or location..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-10"
             />
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -262,8 +269,16 @@ export default function AdminLocationRequestsPage() {
                 
             
                 
-          
+
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
 
         {/* Action Dialog */}
         <Dialog open={isActionOpen} onOpenChange={(open) => {

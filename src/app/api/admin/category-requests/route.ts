@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {};
     if (status && ["PENDING", "APPROVED", "REJECTED"].includes(status)) {
@@ -37,14 +37,15 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: "desc",
         },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
-      page > 0 ? db.categoryRequest.count({ where }) : Promise.resolve(-1),
+      db.categoryRequest.count({ where }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: categoryRequests, total, page, pageSize } : categoryRequests,
+      data: { items: categoryRequests, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get category requests error:", error);

@@ -101,6 +101,8 @@ export default function AdminPayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [filteredPayouts, setFilteredPayouts] = useState<Payout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
@@ -125,7 +127,7 @@ export default function AdminPayoutsPage() {
 
   useEffect(() => {
     fetchPayouts();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (activeTab === "salary") fetchSalaryPayouts();
@@ -138,11 +140,14 @@ export default function AdminPayoutsPage() {
   const fetchPayouts = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/admin/payouts");
+      const response = await fetch(`/api/admin/payouts?page=${page}&pageSize=20`);
       const data = await response.json();
 
       if (data.ok) {
-        setPayouts(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setPayouts(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -481,7 +486,7 @@ export default function AdminPayoutsPage() {
 
                 <div className="min-w-[180px]">
                   <Label>Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -597,6 +602,14 @@ export default function AdminPayoutsPage() {
               )}
             </CardContent>
           </Card>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+              <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+            </div>
+          )}
         </>
       ) : (
         <>

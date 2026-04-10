@@ -45,12 +45,14 @@ export default function PendingApprovalsPage() {
   const [items, setItems] = useState<PendingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchPendingItems();
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const fetchPendingItems = async () => {
     try {
@@ -59,6 +61,9 @@ export default function PendingApprovalsPage() {
       if (selectedRestaurant) {
         params.append("restaurantId", selectedRestaurant.restaurantId);
       }
+
+      params.append("page", page.toString());
+      params.append("pageSize", "20");
 
       const response = await fetch("/api/owner/pending-approvals?" + params.toString());
 
@@ -69,7 +74,10 @@ export default function PendingApprovalsPage() {
       const data = await response.json();
 
       if (data.ok) {
-        setItems(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setItems(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         setItems([]);
         toast({ title: "Error", description: data.error || "Failed to load pending approvals", variant: "destructive" });
@@ -169,7 +177,7 @@ export default function PendingApprovalsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }}>
         <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 mb-4 scrollbar-hide">
           <div className="px-4 sm:px-0 min-w-min">
             <TabsList className="inline-flex w-auto">
@@ -260,6 +268,14 @@ export default function PendingApprovalsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Help Card */}
       <Card className="mt-6">

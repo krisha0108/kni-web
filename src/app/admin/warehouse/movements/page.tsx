@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
@@ -34,22 +35,28 @@ export default function StockMovementsPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [movementTypeFilter, setMovementTypeFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMovements();
-  }, [movementTypeFilter]);
+  }, [movementTypeFilter, page]);
 
   const fetchMovements = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (movementTypeFilter !== "all") params.append("movementType", movementTypeFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/warehouse/stock-movements?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setMovements(data.data.movements || []);
+        setMovements(data.data?.movements || data.data?.items || []);
+        const total = data.data?.total || 0;
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -153,15 +160,14 @@ export default function StockMovementsPage() {
             )}
           </TableBody>
         </Table>
-                  
-                  
-                  
-                  
-                
-              
-          
-              
-        
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
       </div>
     </div>
   );

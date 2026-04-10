@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +85,8 @@ export default function VendorProductsPage() {
   const [availableProducts, setAvailableProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -143,11 +145,15 @@ export default function VendorProductsPage() {
   };
 
   useEffect(() => {
+    setPage(1);
     const timer = setTimeout(() => {
       fetchProducts();
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const totalPages = useMemo(() => Math.ceil(products.length / PAGE_SIZE) || 1, [products.length]);
+  const paginatedProducts = useMemo(() => products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [products, page]);
 
   useEffect(() => {
     if (isAddPriceOpen) {
@@ -539,7 +545,7 @@ export default function VendorProductsPage() {
             </TableHeader>
             
             <TableBody>
-              {products.map((product) => (
+              {paginatedProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -597,11 +603,14 @@ export default function VendorProductsPage() {
               ))}
             </TableBody>
           </Table>
-                  
-                  
-            
-                
-          
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
 

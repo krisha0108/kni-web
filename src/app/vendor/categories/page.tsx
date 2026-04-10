@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,8 @@ export default function VendorCategoriesPage() {
   const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const { toast } = useToast();
 
   const fetchCategories = async () => {
@@ -94,6 +96,8 @@ export default function VendorCategoriesPage() {
   };
 
   const selectedCount = categories.filter((c) => c.isSelected).length;
+  const totalPages = useMemo(() => Math.ceil(categories.length / PAGE_SIZE) || 1, [categories.length]);
+  const paginatedCategories = useMemo(() => categories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [categories, page]);
 
   if (isLoading) {
     return (
@@ -128,7 +132,7 @@ export default function VendorCategoriesPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
+          {paginatedCategories.map((category) => (
             <Card
               key={category.id}
               className={`relative transition-all ${
@@ -203,6 +207,14 @@ export default function VendorCategoriesPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
 

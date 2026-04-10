@@ -75,6 +75,8 @@ export default function StaffAttendancePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendanceForm, setAttendanceForm] = useState<AttendanceFormData>({});
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const { selectedRestaurant } = useRestaurant();
 
@@ -83,7 +85,7 @@ export default function StaffAttendancePage() {
       fetchStaff();
       fetchAttendance();
     }
-  }, [selectedRestaurant, selectedDate]);
+  }, [selectedRestaurant, selectedDate, page]);
 
   const fetchStaff = async () => {
     if (!selectedRestaurant) return;
@@ -121,12 +123,15 @@ export default function StaffAttendancePage() {
       const endDate = selectedDate;
 
       const response = await fetch(
-        `/api/owner/staff-attendance?restaurantId=${selectedRestaurant.restaurantId}&startDate=${startDate}&endDate=${endDate}`
+        `/api/owner/staff-attendance?restaurantId=${selectedRestaurant.restaurantId}&startDate=${startDate}&endDate=${endDate}&page=${page}&pageSize=20`
       );
       const data = await response.json();
 
       if (data.ok) {
-        setAttendance(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setAttendance(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -488,6 +493,14 @@ export default function StaffAttendancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
     </div>
   );
 }

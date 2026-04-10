@@ -326,11 +326,34 @@ export default function EngineerJobDetailPage() {
     }
   };
 
-  // Start work / Start timer - now goes through PIN flow
+  // ==> PIN FLOW TEMPORARILY DISABLED — engineer starts work directly
+  // const handleStartWork = async () => {
+  //   console.log("🔐 [FRONTEND] handleStartWork clicked! Job status:", job?.status, "workStarted:", workStarted);
+  //   await handleRequestPin("START");
+  // };
   const handleStartWork = async () => {
-    console.log("🔐 [FRONTEND] handleStartWork clicked! Job status:", job?.status, "workStarted:", workStarted);
-    await handleRequestPin("START");
+    setIsStartingWork(true);
+    try {
+      const response = await fetch("/api/engineer/jobs/" + jobId + "/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        setIsTimerRunning(true);
+        toast({ title: "Work Started", description: "Timer is now running!" });
+        fetchJob();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to start work", variant: "destructive" });
+    } finally {
+      setIsStartingWork(false);
+    }
   };
+  // <== END PIN FLOW DISABLED
 
   // Toggle timer
   const handleToggleTimer = () => {
@@ -410,7 +433,7 @@ export default function EngineerJobDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "complete",
-          pin: pinForCompleteRef.current, // W1: Use saved PIN from ref
+          // pin: pinForCompleteRef.current, // W1: PIN temporarily disabled
           completionNote: completionNote.trim(),
           proofImageUrls,
           partsUsed: validParts,
@@ -1165,33 +1188,26 @@ export default function EngineerJobDetailPage() {
             <Button variant="outline" onClick={() => { setIsCompleteOpen(false); pinForCompleteRef.current = ""; }} disabled={isCompleting}>
               Cancel
             </Button>
+            {/* ==> PIN FLOW TEMPORARILY DISABLED — direct complete */}
             <Button
               onClick={() => {
-                if (!pinForCompleteRef.current) {
-                  // No PIN yet — close dialog, request PIN, PIN flow will re-open dialog with PIN
-                  setIsCompleteOpen(false);
-                  handleRequestPin("COMPLETE");
-                } else {
-                  handleComplete();
-                }
+                // PIN disabled — directly complete
+                handleComplete();
+                // Original PIN flow (re-enable later):
+                // if (!pinForCompleteRef.current) {
+                //   setIsCompleteOpen(false);
+                //   handleRequestPin("COMPLETE");
+                // } else {
+                //   handleComplete();
+                // }
               }}
-              disabled={isCompleting || proofImageUrls.length === 0 || timeSpent === 0 || isRequestingPin}
+              disabled={isCompleting || proofImageUrls.length === 0 || timeSpent === 0}
               className="w-full sm:w-auto"
             >
               {isCompleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Completing...
-                </>
-              ) : isRequestingPin ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Requesting PIN...
-                </>
-              ) : !pinForCompleteRef.current ? (
-                <>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Request PIN & Complete
                 </>
               ) : (
                 <>

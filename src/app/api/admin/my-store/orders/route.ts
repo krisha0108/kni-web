@@ -9,46 +9,53 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {
       vendorId: session.id,
       ...(status ? { status: status as MarketplaceOrderStatus } : {}),
     };
 
-    const orders = await db.marketplaceOrder.findMany({
-      where,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
+    const [orders, total] = await Promise.all([
+      db.marketplaceOrder.findMany({
+        where,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
           },
-        },
-        restaurant: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            city: true,
+          restaurant: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              city: true,
+            },
           },
-        },
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                unit: true,
-                product: { select: { name: true, unit: true } },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                  product: { select: { name: true, unit: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.marketplaceOrder.count({ where }),
+    ]);
 
     // Resolve product names from MarketplaceProduct (VendorProduct.name is legacy/null)
     const resolved = orders.map((order) => ({
@@ -65,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: resolved,
+      data: { items: resolved, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get admin store orders error:", error);

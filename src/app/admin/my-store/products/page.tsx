@@ -87,6 +87,8 @@ export default function MyStoreProductsPage() {
   const [availableProducts, setAvailableProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -112,11 +114,16 @@ export default function MyStoreProductsPage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (search) params.append("search", search);
+      params.set("page", String(page));
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/my-store/products?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setProducts(data.data || []);
+        const items = data.data?.items || data.data || [];
+        const total = data.data?.total || 0;
+        setProducts(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -146,7 +153,7 @@ export default function MyStoreProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [search]);
+  }, [search, page]);
 
   useEffect(() => {
     if (isAddPriceOpen) {
@@ -502,7 +509,7 @@ export default function MyStoreProductsPage() {
           <Input
             placeholder="Search store products..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
@@ -525,6 +532,7 @@ export default function MyStoreProductsPage() {
           </Button>
         </div>
       ) : (
+        <>
         <div className="border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <Table className="min-w-[800px]">
@@ -617,6 +625,15 @@ export default function MyStoreProductsPage() {
             </Table>
           </div>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Edit Dialog */}

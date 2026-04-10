@@ -50,6 +50,8 @@ export default function VendorNotificationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { toast } = useToast();
@@ -151,6 +153,12 @@ export default function VendorNotificationsPage() {
 
     return filtered;
   }, [notifications, filter, searchQuery]);
+
+  const totalPages = useMemo(() => Math.ceil(filteredNotifications.length / PAGE_SIZE) || 1, [filteredNotifications.length]);
+  const paginatedNotifications = useMemo(() => filteredNotifications.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredNotifications, page]);
+
+  // Reset page when filter/search changes
+  useEffect(() => { setPage(1); }, [filter, searchQuery]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const orderCount = notifications.filter(n => n.type === "ORDER").length;
@@ -305,7 +313,7 @@ export default function VendorNotificationsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredNotifications.map((notification) => {
+              {paginatedNotifications.map((notification) => {
                 const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.SYSTEM;
                 const Icon = config.icon;
 
@@ -351,6 +359,13 @@ export default function VendorNotificationsPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+              <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
             </div>
           )}
         </CardContent>

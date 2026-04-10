@@ -94,6 +94,8 @@ export default function OwnerAMCRequestsPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
   const { selectedRestaurant } = useRestaurant();
@@ -106,10 +108,13 @@ export default function OwnerAMCRequestsPage() {
     if (!selectedRestaurant) return;
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/owner/amc-requests?restaurantId=${selectedRestaurant.restaurantId}`);
+      const response = await fetch(`/api/owner/amc-requests?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`);
       const data = await response.json();
       if (data.ok) {
-        setRequests(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setRequests(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({ title: "Error", description: data.error || "Failed to fetch AMC requests", variant: "destructive" });
       }
@@ -122,7 +127,7 @@ export default function OwnerAMCRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const handleCancel = async () => {
     if (!cancelId) return;
@@ -292,14 +297,14 @@ export default function OwnerAMCRequestsPage() {
               ))}
             </TableBody>
           </Table>
-                  
-                  
-                  
-                  
-                
-                
-                
-          
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+              <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+            </div>
+          )}
         </div>
       )}
 

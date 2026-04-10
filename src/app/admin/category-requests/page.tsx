@@ -48,6 +48,8 @@ export default function AdminCategoryRequestsPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [isMounted, setIsMounted] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,13 +59,17 @@ export default function AdminCategoryRequestsPage() {
   const fetchRequests = async (status?: string) => {
     try {
       setIsLoading(true);
-      const url = status
-        ? `/api/admin/category-requests?status=${status}`
-        : "/api/admin/category-requests";
-      const response = await fetch(url);
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch(`/api/admin/category-requests?${params}`);
       const data = await response.json();
       if (data.ok) {
-        setRequests(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setRequests(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
@@ -82,7 +88,7 @@ export default function AdminCategoryRequestsPage() {
       all: "",
     };
     fetchRequests(statusMap[activeTab]);
-  }, [activeTab]);
+  }, [activeTab, page]);
 
   const handleApprove = async (requestId: string) => {
     setIsApproving(true);
@@ -240,7 +246,7 @@ export default function AdminCategoryRequestsPage() {
       </div>
 
       {isMounted && (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }}>
           <TabsList>
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
@@ -262,6 +268,30 @@ export default function AdminCategoryRequestsPage() {
             ) : (
               <div>
                 {requests.map(renderRequest)}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="flex items-center px-4 text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
               </div>
             )}
           </TabsContent>

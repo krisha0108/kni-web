@@ -33,27 +33,33 @@ export default function WarehouseAlertsPage() {
   const [stats, setStats] = useState({ criticalCount: 0, lowCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     fetchAlerts();
-  }, [severityFilter]);
+  }, [severityFilter, page]);
 
   const fetchAlerts = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (severityFilter !== "all") params.append("severity", severityFilter);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/warehouse/alerts?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setAlerts(data.data.alerts || []);
+        setAlerts(data.data?.alerts || data.data?.items || []);
         setStats({
-          criticalCount: data.data.criticalCount || 0,
-          lowCount: data.data.lowCount || 0,
+          criticalCount: data.data?.criticalCount || 0,
+          lowCount: data.data?.lowCount || 0,
         });
+        const total = data.data?.total || 0;
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -213,13 +219,14 @@ export default function WarehouseAlertsPage() {
             )}
           </TableBody>
         </Table>
-                  
-                  
-                
-              
-          
-              
-        
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
       </div>
     </div>
   );

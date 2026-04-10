@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const stateId = searchParams.get("stateId");
     const search = searchParams.get("search") || "";
     const includeInactive = searchParams.get("includeInactive") === "true";
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {};
     if (stateId) {
@@ -30,18 +32,23 @@ export async function GET(request: NextRequest) {
       where.isActive = true;
     }
 
-    const cities = await db.serviceCity.findMany({
-      where,
-      include: {
-        state: { select: { id: true, name: true } },
-        _count: { select: { areas: true } },
-      },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    });
+    const [cities, total] = await Promise.all([
+      db.serviceCity.findMany({
+        where,
+        include: {
+          state: { select: { id: true, name: true } },
+          _count: { select: { areas: true } },
+        },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.serviceCity.count({ where }),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: { items: cities },
+      data: { items: cities, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get service cities error:", error);

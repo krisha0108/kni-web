@@ -64,6 +64,8 @@ export default function BannersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBanners, setSelectedBanners] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -86,13 +88,17 @@ export default function BannersPage() {
   const fetchBanners = async () => {
     try {
       setIsLoading(true);
-      const url = statusFilter === "all"
-        ? "/api/admin/banners"
-        : `/api/admin/banners?status=${statusFilter}`;
-      const response = await fetch(url);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("page", String(page));
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/banners?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setBanners(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setTotalPages(Math.ceil(total / 20) || 1);
+        setBanners(Array.isArray(items) ? items : []);
       }
     } catch (error) {
       toast({
@@ -107,7 +113,7 @@ export default function BannersPage() {
 
   useEffect(() => {
     fetchBanners();
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   const handleCreate = async () => {
     if (!formData.title.trim()) {
@@ -278,7 +284,7 @@ export default function BannersPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -433,8 +439,16 @@ export default function BannersPage() {
               
               
               
-        
+
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Create/Edit Dialog */}
       <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => {

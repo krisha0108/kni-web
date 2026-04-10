@@ -118,6 +118,8 @@ export default function StaffManagementPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const { selectedRestaurant } = useRestaurant();
 
@@ -129,7 +131,7 @@ export default function StaffManagementPage() {
     if (selectedRestaurant) {
       fetchStaff();
     }
-  }, [selectedRestaurant, statusFilter]);
+  }, [selectedRestaurant, statusFilter, page]);
 
   const fetchStaff = async () => {
     if (!selectedRestaurant) return;
@@ -141,11 +143,17 @@ export default function StaffManagementPage() {
         ...(statusFilter !== "all" && { status: statusFilter }),
       });
 
+      params.append("page", page.toString());
+      params.append("pageSize", "20");
+
       const response = await fetch(`/api/owner/staff?${params}`);
       const data = await response.json();
 
       if (data.ok) {
-        setStaff(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setStaff(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -419,11 +427,11 @@ export default function StaffManagementPage() {
           <Input
             placeholder="Search by name, designation, or phone..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -567,6 +575,14 @@ export default function StaffManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Add/Edit Staff Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

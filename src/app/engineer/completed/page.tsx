@@ -35,16 +35,21 @@ interface CompletedJob {
 export default function EngineerCompletedPage() {
   const [jobs, setJobs] = useState<CompletedJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   const router = useRouter();
 
   const fetchCompletedJobs = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/engineer/jobs?status=COMPLETED");
+      const response = await fetch(`/api/engineer/jobs?status=COMPLETED&page=${page}&pageSize=20`);
       const data = await response.json();
       if (data.ok) {
-        setJobs(data.data.items || data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setJobs(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch completed jobs", variant: "destructive" });
@@ -55,7 +60,7 @@ export default function EngineerCompletedPage() {
 
   useEffect(() => {
     fetchCompletedJobs();
-  }, []);
+  }, [page]);
 
   return (
     <div className="space-y-6">
@@ -128,6 +133,14 @@ export default function EngineerCompletedPage() {
               
         
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {!isLoading && jobs.length === 0 && (
         <div className="text-center py-12 border rounded-lg">

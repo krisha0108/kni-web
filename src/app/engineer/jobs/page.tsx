@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,8 @@ export default function EngineerJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -166,6 +168,10 @@ export default function EngineerJobsPage() {
     return jobs;
   };
 
+  const filteredJobs = useMemo(() => filterJobs(activeTab), [jobs, activeTab]);
+  const totalPages = useMemo(() => Math.ceil(filteredJobs.length / PAGE_SIZE) || 1, [filteredJobs.length]);
+  const paginatedJobs = useMemo(() => filteredJobs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredJobs, page]);
+
   const renderJobCard = (job: Job) => (
     <Card key={job.id} className="mb-4">
       <CardHeader className="pb-2">
@@ -262,7 +268,7 @@ export default function EngineerJobsPage() {
         <p className="text-muted-foreground">Manage your assigned service jobs</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="pending">
             Pending ({filterJobs("pending").length})
@@ -276,38 +282,65 @@ export default function EngineerJobsPage() {
         </TabsList>
 
         <TabsContent value="pending" className="mt-6">
-          {filterJobs("pending").length === 0 ? (
+          {filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 No pending jobs
               </CardContent>
             </Card>
           ) : (
-            filterJobs("pending").map(renderJobCard)
+            <>
+              {paginatedJobs.map(renderJobCard)}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4 p-4">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                  <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="active" className="mt-6">
-          {filterJobs("active").length === 0 ? (
+          {filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 No active jobs
               </CardContent>
             </Card>
           ) : (
-            filterJobs("active").map(renderJobCard)
+            <>
+              {paginatedJobs.map(renderJobCard)}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4 p-4">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                  <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="completed" className="mt-6">
-          {filterJobs("completed").length === 0 ? (
+          {filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 No completed jobs
               </CardContent>
             </Card>
           ) : (
-            filterJobs("completed").map(renderJobCard)
+            <>
+              {paginatedJobs.map(renderJobCard)}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4 p-4">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                  <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>

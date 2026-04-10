@@ -105,6 +105,8 @@ export default function CashbookPage() {
   const [deletingEntry, setDeletingEntry] = useState<CashbookEntry | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
@@ -123,14 +125,14 @@ export default function CashbookPage() {
       fetchEntries();
       fetchStats();
     }
-  }, [selectedRestaurant, filterType]);
+  }, [selectedRestaurant, filterType, page]);
 
   const fetchEntries = async () => {
     if (!selectedRestaurant) return;
 
     try {
       setIsLoading(true);
-      let url = `/api/owner/cashbook?restaurantId=${selectedRestaurant.restaurantId}`;
+      let url = `/api/owner/cashbook?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`;
       if (filterType !== "all") {
         url += `&entryType=${filterType}`;
       }
@@ -139,7 +141,10 @@ export default function CashbookPage() {
       const data = await response.json();
 
       if (data.ok) {
-        setEntries(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setEntries(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -441,7 +446,7 @@ export default function CashbookPage() {
       <div className="flex gap-4 items-center">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filterType} onValueChange={setFilterType}>
+          <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
@@ -545,6 +550,14 @@ export default function CashbookPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
 

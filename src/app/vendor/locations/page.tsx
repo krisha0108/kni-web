@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -70,6 +70,8 @@ export default function VendorLocationsPage() {
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
   const [requestNote, setRequestNote] = useState("");
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const { toast } = useToast();
 
   const fetchLocations = async () => {
@@ -197,9 +199,12 @@ export default function VendorLocationsPage() {
     setRequestNote("");
   };
 
-  const approved = locations.filter((l) => l.status === "APPROVED");
-  const pending = locations.filter((l) => l.status === "PENDING");
-  const rejected = locations.filter((l) => l.status === "REJECTED");
+  const totalPages = useMemo(() => Math.ceil(locations.length / PAGE_SIZE) || 1, [locations.length]);
+  const paginatedLocations = useMemo(() => locations.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [locations, page]);
+
+  const approved = paginatedLocations.filter((l) => l.status === "APPROVED");
+  const pending = paginatedLocations.filter((l) => l.status === "PENDING");
+  const rejected = paginatedLocations.filter((l) => l.status === "REJECTED");
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -406,25 +411,25 @@ export default function VendorLocationsPage() {
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Rejected Requests ({rejected.length})</h2>
                 <div className="border rounded-lg">
-                  
+
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
-                        
+
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Reason</TableHead>
                       </TableRow>
                     </TableHeader>
-                    
+
                     <TableBody>
                       {rejected.map((loc) => (
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
-                          
+
                           <TableCell>{loc.area.city.state.name}</TableCell>
                           <TableCell>{getStatusBadge(loc.status)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -434,11 +439,19 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
-                          
-                    
-                        
-                  
+
+
+
+
                 </div>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-4 p-4">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
               </div>
             )}
           </>

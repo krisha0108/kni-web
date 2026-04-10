@@ -71,6 +71,8 @@ export default function TeamManagementPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -83,7 +85,7 @@ export default function TeamManagementPage() {
     if (selectedRestaurant) {
       fetchMembers();
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const fetchMembers = async () => {
     if (!selectedRestaurant) return;
@@ -91,12 +93,15 @@ export default function TeamManagementPage() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `/api/owner/team?restaurantId=${selectedRestaurant.restaurantId}`
+        `/api/owner/team?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`
       );
       const data = await response.json();
 
       if (data.ok) {
-        setMembers(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setMembers(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -317,6 +322,14 @@ export default function TeamManagementPage() {
             
           </CardContent>
         </Card>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
       )}
 
       {/* Invite Dialog */}

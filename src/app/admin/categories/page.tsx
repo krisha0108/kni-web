@@ -52,15 +52,22 @@ export default function AdminCategoriesPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [formName, setFormName] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/admin/categories?search=" + encodeURIComponent(search));
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/categories?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setCategories(data.data.items);
+        setCategories(data.data.items || []);
+        setTotalPages(Math.ceil((data.data.total || 0) / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -75,7 +82,7 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, [search]);
+  }, [search, page]);
 
   const handleCreate = async () => {
     try {
@@ -187,7 +194,7 @@ export default function AdminCategoriesPage() {
           <Input
             placeholder="Search categories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
@@ -264,6 +271,30 @@ export default function AdminCategoriesPage() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Edit Dialog */}

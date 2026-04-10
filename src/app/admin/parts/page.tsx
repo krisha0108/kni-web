@@ -76,6 +76,8 @@ export default function AdminPartsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -105,11 +107,16 @@ export default function AdminPartsPage() {
   const fetchParts = async () => {
     try {
       setIsLoading(true);
-      let url = "/api/admin/parts?search=" + encodeURIComponent(search);
+      let url = "/api/admin/parts?search=" + encodeURIComponent(search) + "&page=" + page + "&pageSize=20";
       if (filterCategoryId && filterCategoryId !== "all") url += "&categoryId=" + filterCategoryId;
       const response = await fetch(url);
       const data = await response.json();
-      if (data.ok) setParts(data.data.items);
+      if (data.ok) {
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setParts(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to fetch parts", variant: "destructive" });
     } finally {
@@ -123,7 +130,7 @@ export default function AdminPartsPage() {
 
   useEffect(() => {
     fetchParts();
-  }, [search, filterCategoryId]);
+  }, [search, filterCategoryId, page]);
 
   useEffect(() => {
     if (formData.categoryId) {
@@ -297,10 +304,10 @@ export default function AdminPartsPage() {
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search parts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Search parts..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-10" />
         </div>
         <ClientOnly>
-          <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+          <Select value={filterCategoryId} onValueChange={(v) => { setFilterCategoryId(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All categories" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
@@ -399,6 +406,14 @@ export default function AdminPartsPage() {
           </Table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">

@@ -101,6 +101,8 @@ export default function VendorLedgerPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [selectedVendor, setSelectedVendor] = useState("__all__");
   const [startDate, setStartDate] = useState("");
@@ -128,7 +130,7 @@ export default function VendorLedgerPage() {
       fetchVendorSummary();
       fetchEntries();
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const fetchVendorSummary = async () => {
     if (!selectedRestaurant) return;
@@ -161,11 +163,17 @@ export default function VendorLedgerPage() {
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
+      params.append("page", page.toString());
+      params.append("pageSize", "20");
+
       const response = await fetch(`/api/owner/vendor-ledger?${params}`);
       const data = await response.json();
 
       if (data.ok) {
-        setEntries(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setEntries(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -373,7 +381,7 @@ export default function VendorLedgerPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="summary">Vendor Summary</TabsTrigger>
           <TabsTrigger value="transactions">All Transactions</TabsTrigger>
@@ -599,6 +607,14 @@ export default function VendorLedgerPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Add Entry Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

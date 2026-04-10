@@ -66,6 +66,8 @@ export default function AdminSubCategoriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -86,11 +88,19 @@ export default function AdminSubCategoriesPage() {
   const fetchSubCategories = async () => {
     try {
       setIsLoading(true);
-      let url = "/api/admin/subcategories?search=" + encodeURIComponent(search);
-      if (filterCategoryId && filterCategoryId !== "all") url += "&categoryId=" + filterCategoryId;
-      const response = await fetch(url);
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (filterCategoryId && filterCategoryId !== "all") params.set("categoryId", filterCategoryId);
+      params.set("page", page.toString());
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/subcategories?" + params.toString());
       const data = await response.json();
-      if (data.ok) setSubCategories(data.data.items);
+      if (data.ok) {
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setSubCategories(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to fetch subcategories", variant: "destructive" });
     } finally {
@@ -104,7 +114,7 @@ export default function AdminSubCategoriesPage() {
 
   useEffect(() => {
     fetchSubCategories();
-  }, [search, filterCategoryId]);
+  }, [search, filterCategoryId, page]);
 
   const resetForm = () => {
     setFormData({ name: "", categoryId: "", imageUrl: "" });
@@ -328,6 +338,14 @@ export default function AdminSubCategoriesPage() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
       </div>
 
       <ClientOnly>

@@ -108,17 +108,22 @@ export default function OwnerMarketplaceOrdersPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchOrders = async () => {
     if (!selectedRestaurant) return;
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}`);
+      const response = await fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`);
       const data = await response.json();
 
       if (data.ok) {
-        setOrders(data.data || []);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setOrders(Array.isArray(items) ? items : []);
+        setTotalPages(Math.ceil(total / 20) || 1);
       } else {
         toast({
           title: "Error",
@@ -160,7 +165,7 @@ export default function OwnerMarketplaceOrdersPage() {
       fetchOrders();
       fetchPayments();
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   // Auto-refresh orders and payments every 60 seconds when tab is visible
   useEffect(() => {
@@ -266,7 +271,7 @@ export default function OwnerMarketplaceOrdersPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="orders" className="gap-1.5">
             <Package className="h-4 w-4" />
@@ -522,6 +527,14 @@ export default function OwnerMarketplaceOrdersPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* ===== ORDER DETAIL DIALOG ===== */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

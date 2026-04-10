@@ -9,41 +9,50 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const engineerId = searchParams.get("engineerId");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") || "20", 10) || 20);
 
-    // Fetch commission-based payouts
-    const payouts = await db.payout.findMany({
-      where: {
-        ...(status && { status: status as "PENDING" | "PAID" | "CANCELLED" }),
-        ...(engineerId && { engineerId }),
-      },
-      include: {
-        engineer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
+    const payoutWhere = {
+      ...(status && { status: status as "PENDING" | "PAID" | "CANCELLED" }),
+      ...(engineerId && { engineerId }),
+    };
+
+    // Fetch commission-based payouts with pagination
+    const [payouts, payoutTotal] = await Promise.all([
+      db.payout.findMany({
+        where: payoutWhere,
+        include: {
+          engineer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
           },
-        },
-        assignment: {
-          include: {
-            booking: {
-              include: {
-                restaurant: {
-                  select: {
-                    id: true,
-                    name: true,
+          assignment: {
+            include: {
+              booking: {
+                include: {
+                  restaurant: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.payout.count({ where: payoutWhere }),
+    ]);
 
     // Fetch salary-based engineers with their job counts
     const salaryEngineers = await db.user.findMany({
@@ -87,7 +96,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: payouts,
+      data: {
+        items: payouts,
+        total: payoutTotal,
+        page,
+        pageSize,
+      },
       salaryEngineers,
       salaryStats: {
         totalEngineers: salaryEngineers.length,

@@ -240,6 +240,8 @@ export default function OrderTrackingPage() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [selectedService, setSelectedService] = useState<ServiceBooking | null>(null);
   const [selectedTracking, setSelectedTracking] = useState<TrackingItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
@@ -247,7 +249,7 @@ export default function OrderTrackingPage() {
     if (selectedRestaurant) {
       fetchData();
     }
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, page]);
 
   const fetchData = async () => {
     if (!selectedRestaurant) return;
@@ -255,9 +257,9 @@ export default function OrderTrackingPage() {
     setIsLoading(true);
     try {
       const [bookingsRes, ordersRes, paymentsRes] = await Promise.all([
-        fetch(`/api/owner/bookings?restaurantId=${selectedRestaurant.restaurantId}`),
-        fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}`),
-        fetch(`/api/owner/marketplace/payments?restaurantId=${selectedRestaurant.restaurantId}`),
+        fetch(`/api/owner/bookings?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`),
+        fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`),
+        fetch(`/api/owner/marketplace/payments?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`),
       ]);
 
       const bookingsData = await bookingsRes.json();
@@ -265,7 +267,10 @@ export default function OrderTrackingPage() {
       const paymentsData = await paymentsRes.json();
 
       if (bookingsData.ok) {
-        setServiceBookings(bookingsData.data || []);
+        const bItems = bookingsData.data?.items || bookingsData.data;
+        const bTotal = bookingsData.data?.total || 0;
+        setServiceBookings(Array.isArray(bItems) ? bItems : []);
+        setTotalPages(Math.ceil(bTotal / 20) || 1);
       }
 
       // Build unified tracking items: payment + linked order
@@ -447,7 +452,7 @@ export default function OrderTrackingPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} className="space-y-4 sm:space-y-6">
         <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 scrollbar-hide">
           <div className="px-4 sm:px-0 min-w-min">
             <TabsList className="grid w-full max-w-md grid-cols-2 inline-flex">
@@ -641,6 +646,14 @@ export default function OrderTrackingPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Service Detail Dialog */}
       <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>

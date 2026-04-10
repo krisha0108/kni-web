@@ -175,6 +175,8 @@ export default function AdminPartRequestsPage() {
   const [adminNote, setAdminNote] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   /**
@@ -196,12 +198,17 @@ export default function AdminPartRequestsPage() {
       if (searchQuery) {
         params.append("search", searchQuery);
       }
+      params.append("page", page.toString());
+      params.append("limit", "20");
 
       const url = `/api/admin/part-requests?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
       if (data.ok) {
-        setRequests(data.data);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setRequests(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
         setSummary(data.summary);
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
@@ -215,7 +222,7 @@ export default function AdminPartRequestsPage() {
 
   useEffect(() => {
     fetchRequests(activeTab);
-  }, [activeTab]);
+  }, [activeTab, page]);
 
   /**
    * Handle admin actions on part requests (APPROVE / REJECT / DISPATCH)
@@ -534,10 +541,10 @@ export default function AdminPartRequestsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
         />
-        <Button onClick={() => fetchRequests(activeTab)}>Search</Button>
+        <Button onClick={() => { setPage(1); fetchRequests(activeTab); }}>Search</Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} id="part-requests-tabs">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} id="part-requests-tabs">
         <TabsList>
           <TabsTrigger value="pending">Pending ({summary.pending})</TabsTrigger>
           <TabsTrigger value="approved">Approved ({summary.approved})</TabsTrigger>
@@ -564,6 +571,14 @@ export default function AdminPartRequestsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Reject Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>

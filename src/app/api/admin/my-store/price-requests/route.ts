@@ -82,8 +82,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      data: { items: data, total, page, pageSize: limit },
       pendingCount,
     });
   } catch (error) {

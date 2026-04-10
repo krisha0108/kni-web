@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {};
     if (status && status !== "ALL") where.status = status;
@@ -30,14 +30,15 @@ export async function GET(request: NextRequest) {
           owner: { select: { name: true, phone: true } },
         },
         orderBy: { createdAt: "desc" },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
-      page > 0 ? db.aMCBreakdownRequest.count({ where }) : Promise.resolve(-1),
+      db.aMCBreakdownRequest.count({ where }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: breakdowns, total, page, pageSize } : breakdowns,
+      data: { items: breakdowns, total, page, pageSize },
     });
   } catch (error) {
     return NextResponse.json(

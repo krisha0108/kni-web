@@ -92,6 +92,8 @@ export default function AdminMarketplaceProductsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -144,11 +146,16 @@ export default function AdminMarketplaceProductsPage() {
       if (search) params.set("search", search);
       if (filterStatus && filterStatus !== "all") params.set("status", filterStatus);
       if (filterCategoryId && filterCategoryId !== "all") params.set("categoryId", filterCategoryId);
+      params.set("page", String(page));
+      params.set("pageSize", "20");
 
       const response = await fetch("/api/admin/marketplace/products?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setProducts(data.data.items);
+        const items = data.data?.items || data.data;
+        const total = data.data?.total || 0;
+        setProducts(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch (error) {
       toast({
@@ -167,7 +174,7 @@ export default function AdminMarketplaceProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [search, filterStatus, filterCategoryId]);
+  }, [search, filterStatus, filterCategoryId, page]);
 
   useEffect(() => {
     if (formCategoryId) {
@@ -439,11 +446,11 @@ export default function AdminMarketplaceProductsPage() {
           <Input
             placeholder="Search products..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-10"
           />
         </div>
-        <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+        <Select value={filterCategoryId} onValueChange={(v) => { setFilterCategoryId(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
@@ -456,7 +463,7 @@ export default function AdminMarketplaceProductsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
+        <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
@@ -581,16 +588,15 @@ export default function AdminMarketplaceProductsPage() {
             )}
           </TableBody>
         </Table>
-                  
-                  
-                  
-                  
-                
-              
-          
-              
-        
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4 p-4">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+          <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => {

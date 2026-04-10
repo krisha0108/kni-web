@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
     const search = searchParams.get("search") || "";
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     const where: any = {};
     if (status && status !== "all") {
@@ -46,14 +46,15 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { createdAt: "desc" },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
-      page > 0 ? db.vendorLocationRequest.count({ where }) : Promise.resolve(-1),
+      db.vendorLocationRequest.count({ where }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: requests, total, page, pageSize } : { items: requests },
+      data: { items: requests, total, page, pageSize },
     });
   } catch (error) {
     console.error("Get location requests error:", error);

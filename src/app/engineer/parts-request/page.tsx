@@ -58,7 +58,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -195,6 +195,8 @@ export default function PartsRequestPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -222,6 +224,12 @@ export default function PartsRequestPage() {
       fetchParts();
     }
   }, [activeTab, mounted]);
+
+  // Reset page when tab changes
+  useEffect(() => { setPage(1); }, [activeTab]);
+
+  const totalPages = useMemo(() => Math.ceil(requests.length / PAGE_SIZE) || 1, [requests.length]);
+  const paginatedRequests = useMemo(() => requests.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [requests, page]);
 
   /**
    * Fetch engineer's part requests
@@ -676,9 +684,16 @@ export default function PartsRequestPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {requests.map((request) => (
+                {paginatedRequests.map((request) => (
                   <RequestCard key={request.id} request={request} />
                 ))}
+                {totalPages > 1 && (
+                  <div className="flex justify-center gap-2 mt-4 p-4">
+                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                    <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>

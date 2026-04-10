@@ -78,6 +78,8 @@ export default function MyStoreOrdersPage() {
   // ── Order state ──
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -103,15 +105,21 @@ export default function MyStoreOrdersPage() {
   // ── Data fetching ──
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [page]);
 
   const fetchOrders = async () => {
     try {
       setIsLoadingOrders(true);
-      const response = await fetch("/api/admin/my-store/orders");
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", "20");
+      const response = await fetch("/api/admin/my-store/orders?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setOrders(data.data || []);
+        const items = data.data?.items || data.data || [];
+        const total = data.data?.total || 0;
+        setOrders(items);
+        setTotalPages(Math.ceil(total / 20) || 1);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch orders", variant: "destructive" });
@@ -384,7 +392,7 @@ export default function MyStoreOrdersPage() {
             <span className="text-sm text-muted-foreground">
               Showing {filteredCount} of {totalCount} orders
             </span>
-            <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); setPage(1); }}>
               <X className="h-3 w-3 mr-1" /> Clear
             </Button>
           </div>
@@ -483,6 +491,14 @@ export default function MyStoreOrdersPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4 p-4">
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+          </div>
+        )}
 
         {/* ── Order Details Dialog ── */}
         <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>

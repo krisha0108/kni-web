@@ -212,14 +212,14 @@ export async function GET(request: NextRequest) {
       summaryMap.total += item._count.id;
     });
 
+    const pageSize = limit;
     return NextResponse.json({
       ok: true,
-      data: partRequests,
-      pagination: {
-        page,
-        limit,
+      data: {
+        items: partRequests,
         total,
-        totalPages: Math.ceil(total / limit),
+        page,
+        pageSize,
       },
       summary: summaryMap,
     });

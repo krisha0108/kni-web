@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const restaurantId = searchParams.get("restaurantId");
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "0", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -56,14 +56,15 @@ export async function GET(request: NextRequest) {
         orderBy: {
           name: "asc",
         },
-        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
-      page > 0 ? db.staff.count({ where }) : Promise.resolve(-1),
+      db.staff.count({ where }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: staff, total, page, pageSize } : staff,
+      data: { items: staff, total, page, pageSize },
     });
   } catch (error: any) {
     return NextResponse.json(

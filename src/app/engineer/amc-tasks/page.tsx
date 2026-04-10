@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,8 @@ export default function EngineerAMCTasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const { toast } = useToast();
   const router = useRouter();
 
@@ -132,9 +134,12 @@ export default function EngineerAMCTasksPage() {
     }
   };
 
-  const needsAccept = tasks.filter((t) => t.status === "SCHEDULED" || t.status === "ASSIGNED");
-  const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS");
-  const completed = tasks.filter((t) => t.status === "COMPLETED");
+  const totalPages = useMemo(() => Math.ceil(tasks.length / PAGE_SIZE) || 1, [tasks.length]);
+  const paginatedTasks = useMemo(() => tasks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [tasks, page]);
+
+  const needsAccept = paginatedTasks.filter((t) => t.status === "SCHEDULED" || t.status === "ASSIGNED");
+  const inProgress = paginatedTasks.filter((t) => t.status === "IN_PROGRESS");
+  const completed = paginatedTasks.filter((t) => t.status === "COMPLETED");
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -229,6 +234,14 @@ export default function EngineerAMCTasksPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Completed ({completed.length})</h2>
               {completed.map((t) => renderTask(t, "none"))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4 p-4">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+              <span className="flex items-center px-4 text-sm">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
             </div>
           )}
         </>

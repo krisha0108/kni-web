@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineerMobile } from "@/server/auth/rbac";
+import { requireEngineer, requireEngineerMobile } from "@/server/auth/rbac";
 import { EngineerAssignmentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireEngineerMobile(request);
+    // Support both web (cookie) and mobile (Bearer token) auth
+    let session;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      session = await requireEngineerMobile(request);
+    } else {
+      session = await requireEngineer();
+    }
 
     // W-B: Parse optional status filter from query params
     const { searchParams } = new URL(request.url);

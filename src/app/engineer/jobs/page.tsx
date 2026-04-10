@@ -71,10 +71,10 @@ export default function EngineerJobsPage() {
   const fetchJobs = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/engineer/jobs");
+      const response = await fetch("/api/engineer/jobs?pageSize=200");
       const data = await response.json();
       if (data.ok) {
-        setJobs(data.data);
+        setJobs(data.data.items ?? data.data);
       }
     } catch (error) {
       toast({

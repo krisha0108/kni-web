@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { requireEngineerMobile } from "@/server/auth/rbac";
+import { requireEngineer, requireEngineerMobile } from "@/server/auth/rbac";
 import { notifyOwnerJobCompleted, createNotificationForRole, createNotification, checkAndNotifyLowStock } from "@/server/notifications/service";
 import { saveUploadedFile } from "@/server/upload/localUpload";
 import { Role, NotificationType } from "@prisma/client";
@@ -8,12 +8,20 @@ import { rejectionReasonSchema } from "@/lib/validations/rejection";
 import { calculateCommission } from "@/lib/commission";
 import { updateAMCOnBookingComplete } from "@/server/amc/auto-update";
 
+async function resolveEngineerSession(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return requireEngineerMobile(request);
+  }
+  return requireEngineer();
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineerMobile(request);
+    const session = await resolveEngineerSession(request);
     const { id } = await params;
 
     const assignment = await db.engineerAssignment.findUnique({
@@ -83,7 +91,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineerMobile(request);
+    const session = await resolveEngineerSession(request);
     const { id } = await params;
 
     const body = await request.json();
@@ -149,7 +157,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireEngineerMobile(request);
+    const session = await resolveEngineerSession(request);
     const { id } = await params;
 
     const contentType = request.headers.get("content-type") || "";

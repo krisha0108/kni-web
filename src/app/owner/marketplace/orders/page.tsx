@@ -151,7 +151,7 @@ export default function OwnerMarketplaceOrdersPage() {
       const data = await response.json();
 
       if (data.ok) {
-        setPayments(data.data || []);
+        setPayments(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch payments:", error);
@@ -176,13 +176,13 @@ export default function OwnerMarketplaceOrdersPage() {
         // Silent refresh - don't show loading spinners
         fetch(`/api/owner/marketplace/orders?restaurantId=${selectedRestaurant.restaurantId}`)
           .then(res => res.json())
-          .then(data => { if (data.ok) setOrders(data.data || []); })
+          .then(data => { if (data.ok) setOrders(data.data?.items || data.data || []); })
           .catch(() => {
             toast({ title: "Error", description: "Failed to refresh orders", variant: "destructive" });
           });
         fetch(`/api/owner/marketplace/payments?restaurantId=${selectedRestaurant.restaurantId}`)
           .then(res => res.json())
-          .then(data => { if (data.ok) setPayments(data.data || []); })
+          .then(data => { if (data.ok) setPayments(data.data?.items || data.data || []); })
           .catch(() => {
             toast({ title: "Error", description: "Failed to refresh payments", variant: "destructive" });
           });

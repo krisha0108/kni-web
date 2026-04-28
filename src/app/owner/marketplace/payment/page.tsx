@@ -136,7 +136,8 @@ export default function MarketplacePaymentPage() {
       );
       const data = await response.json();
       if (data.ok) {
-        const payment = data.data.find((p: any) => p.id === paymentId);
+        const payments = data.data?.items || data.data || [];
+        const payment = payments.find((p: any) => p.id === paymentId);
         if (payment) {
           setPaymentStatus(payment.status);
           if (payment.status === "REJECTED") {

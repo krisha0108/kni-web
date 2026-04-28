@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Shield, Loader2, CheckCircle2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Shield, Loader2, CheckCircle2, ShieldAlert, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 
 // Equipment categories fetched from database (admin manages these)
@@ -67,6 +67,34 @@ export default function AMCRequestPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const calendarDays = (() => {
+    const firstDay = new Date(calYear, calMonth, 1);
+    const lastDay = new Date(calYear, calMonth + 1, 0);
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(calYear, calMonth, d); date.setHours(0, 0, 0, 0); days.push(date);
+    }
+    return days;
+  })();
+
+  const goToPrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); };
+  const goToNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); };
+
+  const selectedDateObj = formData.preferredStartDate ? new Date(formData.preferredStartDate + "T00:00:00") : null;
+  const selectDate = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    setFormData({ ...formData, preferredStartDate: `${yyyy}-${mm}-${dd}` });
+    setShowDatePicker(false);
+  };
+
   const { toast } = useToast();
   const router = useRouter();
   const { selectedRestaurant } = useRestaurant();
@@ -268,17 +296,60 @@ export default function AMCRequestPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preferred Start Date <span className="text-destructive">*</span></Label>
-                <input
-                  type="date"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={formData.preferredStartDate}
-                  onChange={(e) => setFormData({ ...formData, preferredStartDate: e.target.value })}
-                  min={new Date().toISOString().split("T")[0]}
-                />
+            <div className="space-y-3">
+              <Label>Preferred Start Date <span className="text-destructive">*</span></Label>
+              <div
+                className="flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 cursor-pointer hover:shadow-sm transition-shadow"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+              >
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-primary" />
+                </div>
+                <span className={`flex-1 text-sm font-medium ${selectedDateObj ? "" : "text-muted-foreground"}`}>
+                  {selectedDateObj
+                    ? `${selectedDateObj.getDate()} ${MONTH_NAMES[selectedDateObj.getMonth()]} ${selectedDateObj.getFullYear()}`
+                    : "Tap to select date"}
+                </span>
+                <span className="text-muted-foreground text-xs">{showDatePicker ? "▲" : "▼"}</span>
               </div>
+
+              {showDatePicker && (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm font-bold min-w-[160px] text-center">
+                        {MONTH_NAMES[calMonth]} {calYear}
+                      </span>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                        <div key={day} className="text-center text-xs text-muted-foreground py-1 font-medium">{day}</div>
+                      ))}
+                      {calendarDays.map((date, idx) => {
+                        if (!date) return <div key={`empty-${idx}`} />;
+                        const isSelected = selectedDateObj?.toDateString() === date.toDateString();
+                        const isToday = new Date().toDateString() === date.toDateString();
+                        return (
+                          <Button
+                            key={date.toISOString()}
+                            variant={isSelected ? "default" : "outline"}
+                            className={`h-9 text-xs ${isToday ? "ring-2 ring-primary ring-offset-1" : ""}`}
+                            onClick={() => selectDate(date)}
+                          >
+                            {date.getDate()}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <div className="space-y-2">

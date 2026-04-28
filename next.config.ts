@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Required for Docker containerization
   output: "standalone",
 
+  // Keep pdfkit out of webpack bundle — it needs fs access to load .afm font files
+  serverExternalPackages: ["pdfkit"],
+
   // Disable Next.js image optimizer so uploaded images served directly via /uploads/ work correctly
   images: {
     unoptimized: true,

@@ -1,6 +1,5 @@
 import PDFDocument from "pdfkit";
 import { db } from "@/server/db";
-import { Readable } from "stream";
 
 // ========================================
 // UTILITY FUNCTIONS
@@ -39,14 +38,14 @@ function getMonthName(month: number): string {
 }
 
 /**
- * Convert stream to buffer
+ * Convert PDFDocument to buffer by collecting chunks
  */
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
+function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    stream.on("data", (chunk) => chunks.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
   });
 }
 
@@ -76,10 +75,7 @@ export async function generateExpenseReceipt(expenseId: string): Promise<Buffer>
 
   // Create PDF document
   const doc = new PDFDocument({ size: "A4", margin: 50 });
-  const stream = new Readable({
-    read() {},
-  });
-  doc.pipe(stream as any);
+  const bufferPromise = pdfToBuffer(doc);
 
   // Receipt Number
   const dateStr = new Date(expense.expenseDate).toISOString().slice(0, 10).replace(/-/g, "");
@@ -161,7 +157,7 @@ export async function generateExpenseReceipt(expenseId: string): Promise<Buffer>
   // Finalize PDF
   doc.end();
 
-  return streamToBuffer(stream);
+  return bufferPromise;
 }
 
 // ========================================
@@ -198,10 +194,7 @@ export async function generateSalarySlip(salaryId: string): Promise<Buffer> {
 
   // Create PDF document
   const doc = new PDFDocument({ size: "A4", margin: 50 });
-  const stream = new Readable({
-    read() {},
-  });
-  doc.pipe(stream as any);
+  const bufferPromise = pdfToBuffer(doc);
 
   const monthName = getMonthName(salary.month);
   const slipTitle = `Salary Slip for ${monthName} ${salary.year}`;
@@ -358,7 +351,7 @@ export async function generateSalarySlip(salaryId: string): Promise<Buffer> {
   // Finalize PDF
   doc.end();
 
-  return streamToBuffer(stream);
+  return bufferPromise;
 }
 
 // ========================================
@@ -402,10 +395,7 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
 
   // Create PDF document
   const doc = new PDFDocument({ size: "A4", margin: 50 });
-  const stream = new Readable({
-    read() {},
-  });
-  doc.pipe(stream as any);
+  const bufferPromise = pdfToBuffer(doc);
 
   // ===== HEADER =====
   doc.fontSize(22).font("Helvetica-Bold").text("ANNUAL MAINTENANCE CONTRACT", 50, 50, {
@@ -636,5 +626,5 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
   // Finalize PDF
   doc.end();
 
-  return streamToBuffer(stream);
+  return bufferPromise;
 }

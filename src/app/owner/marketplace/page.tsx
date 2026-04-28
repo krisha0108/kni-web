@@ -81,7 +81,7 @@ export default function OwnerMarketplacePage() {
       const response = await fetch("/api/owner/marketplace/products?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        setProducts(data.data);
+        setProducts(data.data?.items || data.data || []);
       } else {
         toast({
           title: "Error",

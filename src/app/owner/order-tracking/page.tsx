@@ -274,8 +274,10 @@ export default function OrderTrackingPage() {
       }
 
       // Build unified tracking items: payment + linked order
-      const payments: MarketplacePayment[] = paymentsData.ok ? paymentsData.data || [] : [];
-      const orders: MarketplaceOrder[] = ordersData.ok ? ordersData.data || [] : [];
+      const paymentsRaw = paymentsData.ok ? (paymentsData.data?.items || paymentsData.data || []) : [];
+      const ordersRaw = ordersData.ok ? (ordersData.data?.items || ordersData.data || []) : [];
+      const payments: MarketplacePayment[] = Array.isArray(paymentsRaw) ? paymentsRaw : [];
+      const orders: MarketplaceOrder[] = Array.isArray(ordersRaw) ? ordersRaw : [];
       const orderMap = new Map(orders.map((o) => [o.id, o]));
       const linkedOrderIds = new Set<string>();
 

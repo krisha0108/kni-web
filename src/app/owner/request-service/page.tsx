@@ -220,18 +220,59 @@ export default function RequestServicePage() {
     return { itemTotal, gst, tip, total };
   }, [selectedItems, tip]);
 
-  // Generate next 30 days for calendar
-  const next30Days = useMemo(() => {
-    const days: Date[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
+  // Calendar state for month navigation
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  // Picker visibility
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Custom time picker state
+  const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  const [pickerHour, setPickerHour] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [pickerAmPm, setPickerAmPm] = useState<"AM" | "PM">("AM");
+  const [customSlot, setCustomSlot] = useState<{ id: string; label: string; start: string; end: string } | null>(null);
+
+  const confirmTimePicker = () => {
+    let h24 = pickerHour;
+    if (pickerAmPm === "PM" && h24 !== 12) h24 += 12;
+    if (pickerAmPm === "AM" && h24 === 12) h24 = 0;
+    const endH24 = h24 + 2;
+    const startStr = `${String(h24).padStart(2, "0")}:${String(pickerMinute).padStart(2, "0")}`;
+    const endStr = `${String(endH24).padStart(2, "0")}:${String(pickerMinute).padStart(2, "0")}`;
+    const endAmPm = endH24 >= 12 ? "PM" : "AM";
+    const endH12 = endH24 > 12 ? endH24 - 12 : endH24 === 0 ? 12 : endH24;
+    const label = `${pickerHour}:${String(pickerMinute).padStart(2, "0")} ${pickerAmPm} - ${endH12}:${String(pickerMinute).padStart(2, "0")} ${endAmPm}`;
+    setCustomSlot({ id: "custom", label, start: startStr, end: endStr });
+    setSelectedSlot("custom");
+  };
+
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(calYear, calMonth, 1);
+    const lastDay = new Date(calYear, calMonth + 1, 0);
+    const startPad = firstDay.getDay();
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startPad; i++) days.push(null);
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(calYear, calMonth, d);
+      date.setHours(0, 0, 0, 0);
       days.push(date);
     }
     return days;
-  }, []);
+  }, [calMonth, calYear]);
+
+  const goToPrevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
+    else setCalMonth(m => m - 1);
+  };
+  const goToNextMonth = () => {
+    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
+    else setCalMonth(m => m + 1);
+  };
 
   // Handle payment screenshot upload
   const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,7 +316,7 @@ export default function RequestServicePage() {
 
     setIsSubmitting(true);
     try {
-      const slot = TIME_SLOTS.find((s) => s.id === selectedSlot);
+      const slot = selectedSlot === "custom" ? customSlot : TIME_SLOTS.find((s) => s.id === selectedSlot);
       if (!slot) throw new Error("Invalid time slot");
 
       const slotStart = new Date(selectedDate);
@@ -427,7 +468,7 @@ export default function RequestServicePage() {
 
     setIsSubmitting(true);
     try {
-      const slot = TIME_SLOTS.find((s) => s.id === selectedSlot);
+      const slot = selectedSlot === "custom" ? customSlot : TIME_SLOTS.find((s) => s.id === selectedSlot);
       if (!slot) throw new Error("Invalid time slot");
 
       // Build slot datetime
@@ -667,68 +708,135 @@ export default function RequestServicePage() {
       case "date":
         return (
           <div className="space-y-6">
-            {/* Calendar */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Select Date
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-7 gap-2">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                    <div key={day} className="text-center text-xs text-muted-foreground py-2">
-                      {day}
-                    </div>
-                  ))}
-                  {next30Days.map((date, idx) => {
-                    const isSelected = selectedDate?.toDateString() === date.toDateString();
-                    const isToday = new Date().toDateString() === date.toDateString();
-                    // Add empty cells for first week alignment
-                    const emptyCells = idx === 0 ? Array(date.getDay()).fill(null) : [];
-                    return (
-                      <React.Fragment key={date.toISOString()}>
-                        {emptyCells.map((_, i) => (
-                          <div key={`empty-${i}`} />
-                        ))}
-                        <Button
-                          variant={isSelected ? "default" : "outline"}
-                          className={`h-10 ${isToday ? "ring-2 ring-primary ring-offset-2" : ""}`}
-                          onClick={() => setSelectedDate(date)}
-                        >
-                          {date.getDate()}
-                        </Button>
-                      </React.Fragment>
-                    );
-                  }).flat()}
+            {/* Date Selector Button */}
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => { setShowDatePicker(!showDatePicker); setShowTimePicker(false); }}
+            >
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-primary" />
                 </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground font-medium">Select Date</p>
+                  <p className="font-semibold">
+                    {selectedDate
+                      ? `${selectedDate.getDate()} ${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`
+                      : "Tap to select date"}
+                  </p>
+                </div>
+                <span className="text-muted-foreground">{showDatePicker ? "▲" : "▼"}</span>
               </CardContent>
             </Card>
 
-            {/* Time Slots */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Select Time Slot
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {TIME_SLOTS.map((slot) => (
-                    <Button
-                      key={slot.id}
-                      variant={selectedSlot === slot.id ? "default" : "outline"}
-                      className="h-auto py-3"
-                      onClick={() => setSelectedSlot(slot.id)}
-                    >
-                      {slot.label}
+            {/* Calendar (collapsible) */}
+            {showDatePicker && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-center gap-3">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
+                      <span className="text-lg">&lsaquo;</span>
                     </Button>
-                  ))}
+                    <span className="text-sm font-bold min-w-[160px] text-center">
+                      {MONTH_NAMES[calMonth]} {calYear}
+                    </span>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
+                      <span className="text-lg">&rsaquo;</span>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-7 gap-2">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <div key={day} className="text-center text-xs text-muted-foreground py-2 font-medium">{day}</div>
+                    ))}
+                    {calendarDays.map((date, idx) => {
+                      if (!date) return <div key={`empty-${idx}`} />;
+                      const isSelected = selectedDate?.toDateString() === date.toDateString();
+                      const isToday = new Date().toDateString() === date.toDateString();
+                      return (
+                        <Button
+                          key={date.toISOString()}
+                          variant={isSelected ? "default" : "outline"}
+                          className={`h-10 ${isToday ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                          onClick={() => { setSelectedDate(date); setShowDatePicker(false); }}
+                        >
+                          {date.getDate()}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Time Selector Button */}
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => { setShowTimePicker(!showTimePicker); setShowDatePicker(false); }}
+            >
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-primary" />
                 </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground font-medium">Select Time</p>
+                  <p className="font-semibold">
+                    {selectedSlot
+                      ? (selectedSlot === "custom" ? customSlot?.label : TIME_SLOTS.find((s) => s.id === selectedSlot)?.label)
+                      : "Tap to select time"}
+                  </p>
+                </div>
+                <span className="text-muted-foreground">{showTimePicker ? "▲" : "▼"}</span>
               </CardContent>
             </Card>
+
+            {/* Time Picker (collapsible) */}
+            {showTimePicker && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Hour */}
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground text-center mb-2 uppercase tracking-wider">Hour</p>
+                      <div className="max-h-[200px] overflow-y-auto space-y-1 pr-1">
+                        {HOURS.map((h) => (
+                          <button key={h} className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${pickerHour === h ? "bg-primary text-white" : "hover:bg-muted text-foreground"}`} onClick={() => setPickerHour(h)}>
+                            {String(h).padStart(2, "0")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Minute */}
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground text-center mb-2 uppercase tracking-wider">Minute</p>
+                      <div className="max-h-[200px] overflow-y-auto space-y-1 pr-1">
+                        {MINUTES.map((m) => (
+                          <button key={m} className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${pickerMinute === m ? "bg-primary text-white" : "hover:bg-muted text-foreground"}`} onClick={() => setPickerMinute(m)}>
+                            {String(m).padStart(2, "0")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* AM/PM */}
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground text-center mb-2 uppercase tracking-wider">AM/PM</p>
+                      <div className="flex flex-col gap-3 justify-center h-[200px]">
+                        {(["AM", "PM"] as const).map((v) => (
+                          <button key={v} className={`w-full py-5 rounded-xl text-base font-bold transition-colors ${pickerAmPm === v ? "bg-primary text-white" : "bg-muted hover:bg-muted/80 text-foreground"}`} onClick={() => setPickerAmPm(v)}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <Button className="w-full mt-4" size="lg" onClick={() => { confirmTimePicker(); setShowTimePicker(false); }}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Confirm Time
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Problem Description */}
             <Card>
@@ -971,7 +1079,7 @@ export default function RequestServicePage() {
                           {formatDate(selectedDate.toISOString())}
                         </p>
                         <p className="text-sm">
-                          {TIME_SLOTS.find((s) => s.id === selectedSlot)?.label}
+                          {selectedSlot === "custom" ? customSlot?.label : TIME_SLOTS.find((s) => s.id === selectedSlot)?.label}
                         </p>
                       </div>
                     )}

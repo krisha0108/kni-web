@@ -68,7 +68,7 @@ export default function OwnerCartPage() {
         );
         const data = await response.json();
         if (data.ok) {
-          setPendingPayments(data.data);
+          setPendingPayments(data.data?.items || data.data || []);
         }
       } catch {
         // Ignore

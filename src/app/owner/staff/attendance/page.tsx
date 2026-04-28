@@ -97,10 +97,11 @@ export default function StaffAttendancePage() {
       const data = await response.json();
 
       if (data.ok) {
-        setStaff(data.data || []);
+        const staffList = Array.isArray(data.data) ? data.data : (data.data?.items || []);
+        setStaff(staffList);
         // Initialize form for all staff
         const initialForm: AttendanceFormData = {};
-        (data.data || []).forEach((member: Staff) => {
+        staffList.forEach((member: Staff) => {
           initialForm[member.id] = {
             status: "",
             checkInTime: "09:00",

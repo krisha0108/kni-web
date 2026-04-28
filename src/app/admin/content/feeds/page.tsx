@@ -131,8 +131,8 @@ export default function FeedsPage() {
       const response = await fetch(`/api/admin/feeds?${params}`);
       const data = await response.json();
       if (data.ok) {
-        setFeeds(data.data.items);
-        setTotal(data.data.total);
+        setFeeds(data.data?.items || data.data || []);
+        setTotal(data.data?.total || 0);
       }
     } catch (error) {
       toast({

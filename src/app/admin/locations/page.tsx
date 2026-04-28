@@ -139,7 +139,7 @@ export default function AdminLocationsPage() {
       const response = await fetch("/api/admin/locations/states?includeInactive=true&pageSize=500");
       const data = await response.json();
       if (data.ok) {
-        setAllStates(data.data.items);
+        setAllStates(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch states", error);
@@ -154,7 +154,7 @@ export default function AdminLocationsPage() {
       const response = await fetch("/api/admin/locations/cities?" + params.toString());
       const data = await response.json();
       if (data.ok) {
-        return data.data.items as ServiceCity[];
+        return (data.data?.items || data.data || []) as ServiceCity[];
       }
       return [];
     } catch (error) {

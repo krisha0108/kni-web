@@ -90,7 +90,7 @@ export default function AdminMarketplaceSubCategoriesPage() {
       const response = await fetch("/api/admin/marketplace/categories");
       const data = await response.json();
       if (data.ok) {
-        setCategories(data.data.items);
+        setCategories(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch categories", error);

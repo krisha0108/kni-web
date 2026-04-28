@@ -91,13 +91,13 @@ export default function AdminServicesPage() {
   const fetchCategories = async () => {
     const response = await fetch("/api/admin/categories");
     const data = await response.json();
-    if (data.ok) setCategories(data.data.items);
+    if (data.ok) setCategories(data.data?.items || data.data || []);
   };
 
   const fetchSubCategories = async (categoryId: string) => {
     const response = await fetch("/api/admin/subcategories?categoryId=" + categoryId);
     const data = await response.json();
-    if (data.ok) setSubCategories(data.data.items);
+    if (data.ok) setSubCategories(data.data?.items || data.data || []);
   };
 
   const fetchServices = async () => {

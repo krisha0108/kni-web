@@ -116,7 +116,7 @@ export default function AdminMarketplaceProductsPage() {
       const response = await fetch("/api/admin/marketplace/categories");
       const data = await response.json();
       if (data.ok) {
-        setCategories(data.data.items);
+        setCategories(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch categories", error);
@@ -132,7 +132,7 @@ export default function AdminMarketplaceProductsPage() {
       const response = await fetch("/api/admin/marketplace/subcategories?categoryId=" + categoryId);
       const data = await response.json();
       if (data.ok) {
-        setSubCategories(data.data.items);
+        setSubCategories(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch subcategories", error);

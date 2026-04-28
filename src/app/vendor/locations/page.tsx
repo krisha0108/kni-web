@@ -80,7 +80,7 @@ export default function VendorLocationsPage() {
       const response = await fetch("/api/vendor/locations");
       const data = await response.json();
       if (data.ok) {
-        setLocations(data.data.items);
+        setLocations(data.data?.items || data.data || []);
       }
     } catch {
       toast({ title: "Error", description: "Failed to fetch locations", variant: "destructive" });

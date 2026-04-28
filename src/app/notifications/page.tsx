@@ -103,7 +103,7 @@ export default function NotificationsPage() {
       if (!response.ok) return;
       const data = await response.json();
       if (data.ok) {
-        setNotifications(data.data.items);
+        setNotifications(data.data?.items || data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);

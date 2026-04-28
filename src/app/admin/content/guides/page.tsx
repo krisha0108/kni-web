@@ -106,8 +106,8 @@ export default function GuidesPage() {
       const response = await fetch(`/api/admin/guides?${params.toString()}`);
       const data = await response.json();
       if (data.ok) {
-        setGuides(data.data.items);
-        setTotal(data.data.total);
+        setGuides(data.data?.items || data.data || []);
+        setTotal(data.data?.total || 0);
       }
     } catch {
       toast({

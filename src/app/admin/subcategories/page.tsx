@@ -82,7 +82,7 @@ export default function AdminSubCategoriesPage() {
   const fetchCategories = async () => {
     const response = await fetch("/api/admin/categories");
     const data = await response.json();
-    if (data.ok) setCategories(data.data.items);
+    if (data.ok) setCategories(data.data?.items || data.data || []);
   };
 
   const fetchSubCategories = async () => {

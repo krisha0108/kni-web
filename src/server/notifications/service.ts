@@ -7,6 +7,8 @@ import {
   sendEngineerJobAssignmentEmail,
   sendWorkCompletedEmail,
   sendServicePinEmail,
+  sendRestaurantApprovedEmail,
+  sendRestaurantRejectedEmail,
 } from "@/lib/email";
 import { sendPushNotification, sendPushNotificationToMultipleUsers } from "./fcm-service";
 import { sendSMS, sendSMSFromTemplate } from "@/server/sms/service";
@@ -191,10 +193,10 @@ export async function notifyOwnerRestaurantApproved(
   ownerId: string,
   restaurantName: string
 ) {
-  // Get owner details for SMS
+  // Get owner details for SMS and email
   const owner = await db.user.findUnique({
     where: { id: ownerId },
-    select: { phone: true },
+    select: { phone: true, email: true, name: true },
   });
 
   // Send in-app notification
@@ -218,6 +220,17 @@ export async function notifyOwnerRestaurantApproved(
     });
   }
 
+  // Send email (non-blocking)
+  if (owner?.email) {
+    sendRestaurantApprovedEmail(
+      owner.email,
+      owner.name || "Restaurant Owner",
+      restaurantName
+    ).catch((error) => {
+      console.error("Failed to send restaurant approved email:", error);
+    });
+  }
+
   return notification;
 }
 
@@ -226,13 +239,33 @@ export async function notifyOwnerRestaurantRejected(
   restaurantName: string,
   reason: string
 ) {
-  return createNotification({
+  // Get owner details for email
+  const owner = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { email: true, name: true },
+  });
+
+  const notification = await createNotification({
     userId: ownerId,
     title: "Restaurant Rejected",
     message: `Your restaurant "${restaurantName}" was rejected. Reason: ${reason}`,
     type: NotificationType.SYSTEM,
     linkUrl: "/owner/restaurant/status",
   });
+
+  // Send email (non-blocking)
+  if (owner?.email) {
+    sendRestaurantRejectedEmail(
+      owner.email,
+      owner.name || "Restaurant Owner",
+      restaurantName,
+      reason
+    ).catch((error) => {
+      console.error("Failed to send restaurant rejected email:", error);
+    });
+  }
+
+  return notification;
 }
 
 export async function notifyOwnerPaymentVerified(

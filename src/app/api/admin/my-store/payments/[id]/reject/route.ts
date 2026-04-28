@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { getOrCreateSystemVendor } from "@/server/my-store";
 import { createNotification } from "@/server/notifications/service";
+import { sendMarketplacePaymentRejectedEmail } from "@/lib/email";
 import { z } from "zod";
 
 const rejectSchema = z.object({
@@ -32,6 +33,9 @@ export async function POST(
 
     const payment = await db.marketplacePayment.findUnique({
       where: { id },
+      include: {
+        owner: { select: { name: true, email: true } },
+      },
     });
 
     if (!payment) {
@@ -71,6 +75,15 @@ export async function POST(
       type: "PAYMENT",
       linkUrl: "/owner/marketplace",
     }).catch(console.error);
+
+    // Send email to owner (non-blocking)
+    if (payment.owner?.email) {
+      sendMarketplacePaymentRejectedEmail(
+        payment.owner.email,
+        payment.owner.name || "Restaurant Owner",
+        reason
+      ).catch(console.error);
+    }
 
     return NextResponse.json({ ok: true, data: updated });
   } catch (error) {

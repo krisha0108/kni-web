@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
 import { NotificationType, RestaurantRole } from "@prisma/client";
+import { sendAMCPaymentVerifiedEmail } from "@/lib/email";
 
 /**
  * POST /api/admin/amc-payment/[id]/verify
@@ -151,6 +152,23 @@ export async function POST(
       type: NotificationType.AMC,
       linkUrl: `/owner/amc-contracts/${contract.id}`,
     });
+
+    // Send email to owner (non-blocking)
+    const owner = await db.user.findUnique({
+      where: { id: payment.ownerId },
+      select: { email: true, name: true },
+    });
+    if (owner?.email) {
+      sendAMCPaymentVerifiedEmail(
+        owner.email,
+        owner.name || "Restaurant Owner",
+        payment.request.restaurant.name,
+        contractNumber,
+        `/owner/amc-contracts/${contract.id}`
+      ).catch((error) => {
+        console.error("Failed to send AMC payment verified email:", error);
+      });
+    }
 
     return NextResponse.json({ ok: true, data: contract });
   } catch (error) {

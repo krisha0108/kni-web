@@ -914,6 +914,431 @@ export async function sendServicePinEmail(
   });
 }
 
+// 14. Restaurant Approved Email (Owner)
+export async function sendRestaurantApprovedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  restaurantName: string
+): Promise<void> {
+  const content = `
+    <h2>Restaurant Approved! 🎉</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="success">
+      <p><strong>✅ Great news! Your restaurant "${restaurantName}" has been approved.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Restaurant:</strong> ${restaurantName}
+    </div>
+
+    <a href="${APP_URL}/owner/restaurant/status" class="button">Go to Dashboard</a>
+
+    <div class="divider"></div>
+
+    <h3>What's Next?</h3>
+    <ul>
+      <li>Add your equipment details</li>
+      <li>Book service requests for your kitchen equipment</li>
+      <li>Explore the marketplace for supplies</li>
+      <li>Set up AMC contracts for regular maintenance</li>
+    </ul>
+
+    <p>Welcome aboard! We're excited to help you manage your kitchen equipment.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Restaurant Approved - ${restaurantName}`,
+    html: emailTemplate(content, "Restaurant Approved"),
+  });
+}
+
+// 15. Restaurant Rejected Email (Owner)
+export async function sendRestaurantRejectedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  restaurantName: string,
+  reason: string
+): Promise<void> {
+  const content = `
+    <h2>Restaurant Application Update</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠️ Your restaurant "${restaurantName}" could not be approved at this time.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${reason}</p>
+    </div>
+
+    <a href="${APP_URL}/owner/restaurant/status" class="button">Review & Update Details</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Update your restaurant details accordingly</li>
+      <li>Resubmit for approval</li>
+    </ol>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Restaurant Application Rejected - ${restaurantName}`,
+    html: emailTemplate(content, "Restaurant Rejected"),
+  });
+}
+
+// 16. Vendor Approved Email
+export async function sendVendorApprovedEmail(
+  vendorEmail: string,
+  vendorName: string,
+  revenueModel: string,
+  commissionRate?: number
+): Promise<void> {
+  const modelInfo = revenueModel === "COMMISSION"
+    ? `<li><strong>Revenue Model:</strong> Commission (${commissionRate}%)</li>
+       <li>No subscription required — you earn on every sale!</li>`
+    : `<li><strong>Revenue Model:</strong> Subscription</li>
+       <li>You have a <strong>14-day free trial</strong> to get started!</li>`;
+
+  const content = `
+    <h2>Vendor Account Approved! 🎉</h2>
+    <p>Hello ${vendorName},</p>
+
+    <div class="success">
+      <p><strong>✅ Congratulations! Your vendor account has been approved.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Account Details:</strong>
+      <ul>
+        ${modelInfo}
+      </ul>
+    </div>
+
+    <a href="${APP_URL}/vendor/dashboard" class="button">Go to Vendor Dashboard</a>
+
+    <div class="divider"></div>
+
+    <h3>What's Next?</h3>
+    <ul>
+      <li>Add your products to the marketplace</li>
+      <li>Set competitive prices and stock quantities</li>
+      <li>Start receiving orders from restaurant owners</li>
+    </ul>
+
+    <p>Welcome to the KNI marketplace!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: vendorEmail,
+    subject: "Vendor Account Approved - KNI Super App",
+    html: emailTemplate(content, "Vendor Approved"),
+  });
+}
+
+// 17. Vendor Rejected Email
+export async function sendVendorRejectedEmail(
+  vendorEmail: string,
+  vendorName: string,
+  reason: string
+): Promise<void> {
+  const content = `
+    <h2>Vendor Application Update</h2>
+    <p>Hello ${vendorName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠��� Your vendor application could not be approved at this time.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${reason}</p>
+    </div>
+
+    <a href="${APP_URL}/vendor/pending" class="button">Review Application</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Update your vendor profile and documents</li>
+      <li>Resubmit for approval</li>
+    </ol>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: vendorEmail,
+    subject: "Vendor Application Rejected - KNI Super App",
+    html: emailTemplate(content, "Vendor Rejected"),
+  });
+}
+
+// 18. AMC Payment Verified Email (Owner)
+export async function sendAMCPaymentVerifiedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  restaurantName: string,
+  contractNumber: string,
+  contractUrl: string
+): Promise<void> {
+  const content = `
+    <h2>AMC Payment Verified! 🎉</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="success">
+      <p><strong>✅ Your AMC payment has been verified and your contract is now active!</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Contract Details:</strong>
+      <ul>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Contract Number:</strong> ${contractNumber}</li>
+      </ul>
+    </div>
+
+    <a href="${APP_URL}${contractUrl}" class="button">View Contract</a>
+
+    <div class="divider"></div>
+
+    <h3>What's Included:</h3>
+    <ul>
+      <li>Preventive maintenance visits as per schedule</li>
+      <li>Free breakdown visits as per contract</li>
+      <li>Priority SLA response times</li>
+    </ul>
+
+    <p>Thank you for choosing KNI for your equipment maintenance!</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `AMC Payment Verified - ${restaurantName}`,
+    html: emailTemplate(content, "AMC Payment Verified"),
+  });
+}
+
+// 19. AMC Payment Rejected Email (Owner)
+export async function sendAMCPaymentRejectedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  restaurantName: string,
+  reason: string,
+  reuploadUrl: string
+): Promise<void> {
+  const content = `
+    <h2>AMC Payment Rejected</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠️ Your AMC payment for "${restaurantName}" has been rejected.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${reason}</p>
+    </div>
+
+    <a href="${APP_URL}${reuploadUrl}" class="button">Re-upload Payment Proof</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Ensure you have made the correct payment</li>
+      <li>Upload a clear screenshot showing the payment confirmation</li>
+    </ol>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `AMC Payment Rejected - ${restaurantName}`,
+    html: emailTemplate(content, "AMC Payment Rejected"),
+  });
+}
+
+// 20. Vendor Subscription Activated Email
+export async function sendVendorSubscriptionActivatedEmail(
+  vendorEmail: string,
+  vendorName: string,
+  durationMonths: number
+): Promise<void> {
+  const durationLabel = durationMonths >= 12
+    ? `${Math.floor(durationMonths / 12)} year(s)`
+    : `${durationMonths} month(s)`;
+
+  const content = `
+    <h2>Subscription Activated! 🎉</h2>
+    <p>Hello ${vendorName},</p>
+
+    <div class="success">
+      <p><strong>✅ Your vendor subscription has been activated!</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Subscription Details:</strong>
+      <ul>
+        <li><strong>Duration:</strong> ${durationLabel}</li>
+        <li><strong>Status:</strong> Active</li>
+      </ul>
+    </div>
+
+    <a href="${APP_URL}/vendor/subscription" class="button">View Subscription</a>
+
+    <div class="divider"></div>
+
+    <p>You can now continue adding products and receiving orders on the marketplace.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: vendorEmail,
+    subject: "Subscription Activated - KNI Super App",
+    html: emailTemplate(content, "Subscription Activated"),
+  });
+}
+
+// 21. Vendor Subscription Rejected Email
+export async function sendVendorSubscriptionRejectedEmail(
+  vendorEmail: string,
+  vendorName: string,
+  reason: string
+): Promise<void> {
+  const content = `
+    <h2>Subscription Payment Rejected</h2>
+    <p>Hello ${vendorName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠️ Your subscription payment has been rejected.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${reason}</p>
+    </div>
+
+    <a href="${APP_URL}/vendor/subscription" class="button">Re-upload Payment</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Ensure the payment was made correctly</li>
+      <li>Upload a clear payment screenshot</li>
+    </ol>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: vendorEmail,
+    subject: "Subscription Payment Rejected - KNI Super App",
+    html: emailTemplate(content, "Subscription Payment Rejected"),
+  });
+}
+
+// 22. Marketplace Payment Verified Email (Owner)
+export async function sendMarketplacePaymentVerifiedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  orderId: string,
+  restaurantName: string
+): Promise<void> {
+  const content = `
+    <h2>Marketplace Payment Verified! 🎉</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="success">
+      <p><strong>✅ Your marketplace payment has been verified and your order is confirmed!</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Order Details:</strong>
+      <ul>
+        <li><strong>Order ID:</strong> #${orderId.substring(0, 8).toUpperCase()}</li>
+        <li><strong>Restaurant:</strong> ${restaurantName}</li>
+        <li><strong>Status:</strong> Confirmed</li>
+      </ul>
+    </div>
+
+    <a href="${APP_URL}/owner/marketplace/orders" class="button">View Orders</a>
+
+    <div class="divider"></div>
+
+    <p>Your order is being processed. You'll receive updates on the delivery status.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `Marketplace Payment Verified - Order #${orderId.substring(0, 8).toUpperCase()}`,
+    html: emailTemplate(content, "Marketplace Payment Verified"),
+  });
+}
+
+// 23. Marketplace Payment Rejected Email (Owner)
+export async function sendMarketplacePaymentRejectedEmail(
+  ownerEmail: string,
+  ownerName: string,
+  reason: string
+): Promise<void> {
+  const content = `
+    <h2>Marketplace Payment Rejected</h2>
+    <p>Hello ${ownerName},</p>
+
+    <div class="credentials">
+      <p><strong>⚠️ Your marketplace payment has been rejected.</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>Rejection Reason:</strong>
+      <p>${reason}</p>
+    </div>
+
+    <a href="${APP_URL}/owner/marketplace" class="button">Go to Marketplace</a>
+
+    <div class="divider"></div>
+
+    <h3>Next Steps:</h3>
+    <ol>
+      <li>Review the rejection reason above</li>
+      <li>Place a new order if needed</li>
+      <li>Ensure payment is made correctly</li>
+    </ol>
+
+    <p>If you have any questions, please contact our support team.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: "Marketplace Payment Rejected - KNI Super App",
+    html: emailTemplate(content, "Marketplace Payment Rejected"),
+  });
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -928,4 +1353,14 @@ export default {
   sendPasswordResetCode,
   sendLaunchPadResponseEmail,
   sendServicePinEmail,
+  sendRestaurantApprovedEmail,
+  sendRestaurantRejectedEmail,
+  sendVendorApprovedEmail,
+  sendVendorRejectedEmail,
+  sendAMCPaymentVerifiedEmail,
+  sendAMCPaymentRejectedEmail,
+  sendVendorSubscriptionActivatedEmail,
+  sendVendorSubscriptionRejectedEmail,
+  sendMarketplacePaymentVerifiedEmail,
+  sendMarketplacePaymentRejectedEmail,
 };

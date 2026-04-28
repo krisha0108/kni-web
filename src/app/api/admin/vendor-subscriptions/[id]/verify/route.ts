@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { createNotification } from "@/server/notifications/service";
 import { NotificationType } from "@prisma/client";
+import { sendVendorSubscriptionActivatedEmail } from "@/lib/email";
 
 /**
  * POST /api/admin/vendor-subscriptions/[id]/verify
@@ -19,7 +20,7 @@ export async function POST(
 
     const subRequest = await db.vendorSubscriptionRequest.findUnique({
       where: { id },
-      include: { vendor: { select: { name: true } } },
+      include: { vendor: { select: { name: true, email: true } } },
     });
 
     if (!subRequest) {
@@ -67,6 +68,17 @@ export async function POST(
       type: NotificationType.PAYMENT,
       linkUrl: "/vendor/subscription",
     });
+
+    // Send email (non-blocking)
+    if (subRequest.vendor.email) {
+      sendVendorSubscriptionActivatedEmail(
+        subRequest.vendor.email,
+        subRequest.vendor.name || "Vendor",
+        subRequest.durationMonths
+      ).catch((error) => {
+        console.error("Failed to send vendor subscription activated email:", error);
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

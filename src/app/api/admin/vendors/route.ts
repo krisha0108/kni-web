@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/rbac";
 import { VendorApprovalStatus, VendorSubscriptionStatus, VendorRevenueModel, VendorLocationRequestStatus } from "@prisma/client";
+import { sendVendorApprovedEmail, sendVendorRejectedEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -151,6 +152,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Send email (non-blocking)
+      sendVendorApprovedEmail(
+        vendor.email,
+        vendor.name,
+        revenueModel,
+        revenueModel === "COMMISSION" ? commissionRate : undefined
+      ).catch((error) => {
+        console.error("Failed to send vendor approved email:", error);
+      });
+
       return NextResponse.json({
         ok: true,
         message: revenueModel === "COMMISSION"
@@ -183,6 +194,15 @@ export async function POST(request: NextRequest) {
           message: `Your vendor application was rejected. Reason: ${rejectionReason.trim()}`,
           linkUrl: "/vendor/pending",
         },
+      });
+
+      // Send email (non-blocking)
+      sendVendorRejectedEmail(
+        vendor.email,
+        vendor.name,
+        rejectionReason.trim()
+      ).catch((error) => {
+        console.error("Failed to send vendor rejected email:", error);
       });
 
       return NextResponse.json({ ok: true, message: "Vendor rejected successfully" });

@@ -4,397 +4,225 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cancellation Policy - KNI</title>
-    <meta name="description" content="Cancellation Policy for Kitchen Network International (KNI) — covering services, AMC, installations, and marketplace product orders." />
+    <meta name="description" content="Cancellation Policy for Kitchen Network International (KNI) — covering services, AMC, installations, and marketplace orders. Cancel within 24-48 hours." />
     <link rel="icon" href="/landing/assests/Kni-red-logo.webp" type="image/x-icon" />
     <link rel="stylesheet" href="/landing/output.css" />
     <link rel="stylesheet" href="/landing/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap"
       rel="stylesheet"
     />
     <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
       html { scroll-behavior: smooth; }
-      body { font-family: 'Afacad', system-ui, sans-serif; }
+      body {
+        font-family: 'Afacad', system-ui, -apple-system, sans-serif;
+        line-height: 1.7;
+        color: #1f2937;
+        background: #f9fafb;
+        max-width: 1920px;
+        margin: 0 auto;
+      }
+      .nav {
+        background: #5A5758;
+        padding: 16px 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav img { height: 56px; width: auto; }
+      .nav a.back {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 500;
+      }
+      .nav a.back:hover { color: #E71720; }
+      .hero {
+        background: linear-gradient(135deg, #1D2254 0%, #2A2F5F 60%, #1D2254 100%);
+        color: white;
+        padding: 80px 64px;
+      }
+      .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 12px; }
+      .hero p { font-size: 18px; opacity: 0.85; max-width: 800px; }
+      .hero .meta { margin-top: 16px; font-size: 14px; opacity: 0.75; }
 
-      .policy-hero {
-        background:
-          radial-gradient(ellipse at top right, rgba(231, 23, 32, 0.35) 0%, transparent 50%),
-          radial-gradient(ellipse at bottom left, rgba(239, 58, 58, 0.25) 0%, transparent 55%),
-          linear-gradient(135deg, #1D2254 0%, #2A2F5F 60%, #1D2254 100%);
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 56px 24px;
+        background: white;
       }
-      .hero-pattern::before {
-        content: ""; position: absolute; inset: 0;
-        background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
-        background-size: 32px 32px; pointer-events: none;
+      main h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1D2254;
+        margin-top: 40px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #E71720;
+        padding-bottom: 8px;
       }
-      .section-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
-      .section-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 30px -10px rgba(231, 23, 32, 0.15);
-        border-color: rgba(231, 23, 32, 0.25);
+      main h2:first-child { margin-top: 0; }
+      main h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #111827;
+        margin-top: 24px;
+        margin-bottom: 8px;
       }
-      .section-card:target {
-        box-shadow: 0 0 0 3px rgba(231, 23, 32, 0.4), 0 12px 30px -10px rgba(231, 23, 32, 0.25);
+      main p {
+        font-size: 16px;
+        margin-bottom: 12px;
+        color: #374151;
       }
-      .num-badge {
-        background: linear-gradient(135deg, #EF3A3A, #E71720);
-        box-shadow: 0 6px 16px -4px rgba(231, 23, 32, 0.5);
+      main ul {
+        margin-left: 24px;
+        margin-bottom: 16px;
       }
-      .num-badge-blue {
-        background: linear-gradient(135deg, #2A2F5F, #1D2254);
-        box-shadow: 0 6px 16px -4px rgba(29, 34, 84, 0.5);
+      main li {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #374151;
       }
-      .toc-pill { transition: all 0.2s ease; }
-      .toc-pill:hover { background: #E71720; color: white; transform: translateY(-1px); }
-      .scroll-mt { scroll-margin-top: 90px; }
-      .part-divider { position: relative; margin: 48px 0 24px; text-align: center; }
-      .part-divider .label {
-        background: white; padding: 8px 24px; border: 2px solid; border-radius: 9999px;
-        font-weight: 700; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase;
-        position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px;
+      .last-updated {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 32px;
       }
-      .part-divider.red .label { color: #E71720; border-color: #E71720; }
-      .part-divider.blue .label { color: #1D2254; border-color: #1D2254; }
-      .part-divider .line {
-        position: absolute; top: 50%; left: 0; right: 0; height: 2px;
-        background: linear-gradient(to right, transparent, #E5E7EB 20%, #E5E7EB 80%, transparent);
-        z-index: 0;
+      .contact-box {
+        background: #f3f4f6;
+        border-left: 4px solid #E71720;
+        padding: 20px 24px;
+        margin-top: 24px;
+        border-radius: 8px;
       }
-      .contact-card {
-        background: linear-gradient(135deg, #1D2254 0%, #2A2F5F 100%);
-        position: relative; overflow: hidden;
+      .contact-box p { margin-bottom: 6px; }
+      .contact-box a { color: #E71720; text-decoration: none; font-weight: 600; }
+      .contact-box a:hover { text-decoration: underline; }
+
+      footer {
+        background: #5A5758;
+        color: white;
+        padding: 40px 24px;
+        margin-top: 48px;
+        text-align: center;
       }
-      .contact-card::before {
-        content: ""; position: absolute; top: -50%; right: -20%;
-        width: 400px; height: 400px;
-        background: radial-gradient(circle, rgba(231, 23, 32, 0.3) 0%, transparent 70%);
-        pointer-events: none;
+      footer img { width: 200px; margin-bottom: 24px; }
+      footer .links { margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+      footer a { color: white; text-decoration: none; font-size: 14px; }
+      footer a:hover { color: #E71720; }
+      footer .sep { color: #9ca3af; }
+      footer .copyright { font-size: 14px; }
+
+      @media (max-width: 768px) {
+        .nav { padding: 12px 20px; }
+        .hero { padding: 48px 20px; }
+        .hero h1 { font-size: 32px; }
+        main { padding: 32px 20px; }
+        main h2 { font-size: 22px; }
       }
-      .info-callout { background: linear-gradient(135deg, #FFF5F5, #FFFFFF); border-left: 4px solid #E71720; }
     </style>
   </head>
 
-  <body class="max-w-[1920px] mx-auto bg-gray-50">
-    <!-- NAVBAR -->
-    <nav class="bg-[#5A5758] px-5 py-3 lg:px-16 lg:py-4 sticky top-0 z-50 shadow-md">
-      <div class="container flex items-center justify-between mx-auto">
-        <a href="/" class="h-12 w-40 lg:w-48 lg:h-14">
-          <img src="/landing/assests/kniwhite-logo.png" alt="kni-logo" />
-        </a>
-        <a href="/" class="inline-flex items-center gap-2 text-white hover:text-[#E71720] transition-colors text-base lg:text-lg font-medium">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Home
-        </a>
-      </div>
+  <body>
+    <nav class="nav">
+      <a href="/"><img src="/landing/assests/kniwhite-logo.png" alt="KNI Logo" /></a>
+      <a class="back" href="/">← Back to Home</a>
     </nav>
 
-    <!-- HERO -->
-    <section class="policy-hero hero-pattern relative text-white py-16 lg:py-24 px-5 lg:px-16 overflow-hidden">
-      <div class="container mx-auto max-w-5xl relative z-10">
-        <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full text-sm mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Customer Policies
-        </div>
-        <h1 class="text-4xl lg:text-6xl font-bold leading-tight mb-4">Cancellation Policy</h1>
-        <p class="text-lg lg:text-xl text-white/80 max-w-3xl leading-relaxed mb-6">
-          Clear guidelines on cancelling services and orders — for both our
-          services (AMC / Projects / Installations) and marketplace orders.
-        </p>
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="inline-flex items-center gap-2 text-sm text-white/70">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Last updated: 2 May 2026
-          </div>
-          <a href="/landing/refund-policy.html" class="inline-flex items-center gap-2 text-sm bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full transition-colors">
-            See Refund Policy
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </a>
-        </div>
-      </div>
+    <section class="hero">
+      <h1>Cancellation Policy</h1>
+      <p>Clear guidelines for cancelling services and marketplace orders on the Kitchen Network International platform.</p>
+      <div class="meta">Last updated: 2 May 2026</div>
     </section>
 
-    <!-- TOC -->
-    <div class="bg-white border-b border-gray-200 sticky top-[72px] lg:top-[80px] z-40">
-      <div class="container mx-auto max-w-5xl px-5 lg:px-16 py-4 overflow-x-auto">
-        <div class="flex items-center gap-2 text-sm whitespace-nowrap">
-          <span class="text-gray-500 font-medium pr-2">Jump to:</span>
-          <a href="#part-a" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium">Part A — Services</a>
-          <a href="#part-b" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium">Part B — Marketplace</a>
-          <a href="#a-cancel" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">Service Cancellation</a>
-          <a href="#b-cancel" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">Order Cancellation</a>
-          <a href="#b-return" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">Returns</a>
-          <a href="#b-nonreturn" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">Non-Returnable</a>
-          <a href="#contact" class="toc-pill px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">Contact</a>
-        </div>
-      </div>
-    </div>
+    <main>
 
-    <!-- CONTENT -->
-    <main class="container mx-auto px-5 lg:px-16 py-12 lg:py-16 max-w-5xl">
+      <p>At <strong>Kitchen Network International Services Pvt. Ltd. (KNI)</strong>, we strive to provide high-quality services and ensure customer satisfaction. This Cancellation Policy outlines the terms and conditions under which customers can cancel orders and service bookings on our platform.</p>
 
-      <div class="info-callout rounded-2xl p-6 lg:p-7 mb-10 shadow-sm">
-        <div class="flex items-start gap-4">
-          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#E71720] flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <p class="text-gray-800 leading-relaxed">
-              At <strong>Kitchen Network International Services Pvt. Ltd. (KNI)</strong>, we strive to provide
-              high-quality services and ensure customer satisfaction. This policy outlines the terms under
-              which cancellations are processed across both our <strong>Services</strong>
-              (AMC / Projects / Installations) and our <strong>Marketplace</strong> (Product / Equipment Orders).
-              For refund details, see our <a href="/landing/refund-policy.html" class="text-[#E71720] font-semibold hover:underline">Refund Policy</a>.
-            </p>
-          </div>
-        </div>
-      </div>
+      <h2>1. Service Cancellation — AMC, Projects, Installations</h2>
 
-      <!-- PART A — SERVICES -->
-      <div id="part-a" class="part-divider red scroll-mt">
-        <div class="line"></div>
-        <span class="label">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Part A — Services (AMC / Projects / Installations)
-        </span>
-      </div>
+      <h3>Before Work Commencement</h3>
+      <p>Customers may cancel a confirmed service order within <strong>24 to 48 hours</strong> of order confirmation, provided no work has been started by KNI.</p>
 
-      <div class="space-y-6">
-        <article id="a-cancel" class="scroll-mt section-card bg-white rounded-2xl border border-gray-200 p-6 lg:p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="num-badge flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-base">1</div>
-            <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">Service Cancellation Rules</h2>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p class="font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-[#E71720]"></span>
-                    Service Orders
-                  </p>
-                  <p class="text-sm text-gray-600 leading-relaxed">Once a service order is confirmed and work has been initiated, cancellation requests may not be accepted.</p>
-                </div>
-                <div class="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <p class="font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
-                    <span class="text-green-600 font-bold">✓</span>
-                    Before Work Commencement
-                  </p>
-                  <p class="text-sm text-gray-700 leading-relaxed">Customers may request cancellation within 24–48 hours of order confirmation, provided no work has been started.</p>
-                </div>
-                <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                  <p class="font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
-                    <span class="text-amber-600 font-bold">◐</span>
-                    After Work Commencement
-                  </p>
-                  <p class="text-sm text-gray-700 leading-relaxed">Cancellation requests will be reviewed on a case-to-case basis. Charges for work already completed, manpower deployed, or materials procured will be deducted.</p>
-                </div>
-                <div class="bg-red-50 rounded-xl p-4 border border-red-100">
-                  <p class="font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
-                    <span class="text-red-600 font-bold">✗</span>
-                    Emergency / On-site
-                  </p>
-                  <p class="text-sm text-gray-700 leading-relaxed">Services booked for immediate or same-day execution are non-cancellable.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
+      <h3>After Work Commencement</h3>
+      <p>Once a service order is confirmed and work has been initiated, cancellation requests will be reviewed on a case-to-case basis. Charges for work already completed, manpower deployed, or materials procured will be deducted from any refund.</p>
 
-      <!-- PART B — MARKETPLACE -->
-      <div id="part-b" class="part-divider blue scroll-mt">
-        <div class="line"></div>
-        <span class="label">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          Part B — Products / Marketplace
-        </span>
-      </div>
+      <h3>Emergency / Same-Day Services</h3>
+      <p>Services booked for immediate or same-day execution are non-cancellable once confirmed.</p>
 
-      <div class="space-y-6">
-        <article id="b-cancel" class="scroll-mt section-card bg-white rounded-2xl border border-gray-200 p-6 lg:p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="num-badge-blue flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-base">1</div>
-            <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">Order Cancellation</h2>
-              <div class="grid gap-3 sm:grid-cols-3">
-                <div class="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <p class="text-xs uppercase tracking-wider text-green-700 font-bold mb-1">Allowed</p>
-                  <p class="font-semibold text-gray-900 mb-1">Before Dispatch</p>
-                  <p class="text-sm text-gray-600">Within 24 hours of placing the order or before dispatch (whichever is earlier).</p>
-                </div>
-                <div class="bg-red-50 rounded-xl p-4 border border-red-100">
-                  <p class="text-xs uppercase tracking-wider text-red-700 font-bold mb-1">Not Allowed</p>
-                  <p class="font-semibold text-gray-900 mb-1">After Dispatch</p>
-                  <p class="text-sm text-gray-600">Once the product has been shipped, cancellation is not allowed.</p>
-                </div>
-                <div class="bg-red-50 rounded-xl p-4 border border-red-100">
-                  <p class="text-xs uppercase tracking-wider text-red-700 font-bold mb-1">Not Allowed</p>
-                  <p class="font-semibold text-gray-900 mb-1">Custom Equipment</p>
-                  <p class="text-sm text-gray-600">Customized or fabricated equipment cannot be cancelled once confirmed.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
+      <h2>2. Order Cancellation — Marketplace Products</h2>
 
-        <article id="b-return" class="scroll-mt section-card bg-white rounded-2xl border border-gray-200 p-6 lg:p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="num-badge-blue flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-base">2</div>
-            <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">Return Policy</h2>
-              <p class="text-gray-700 mb-3">Returns are accepted only if:</p>
-              <ul class="space-y-2 text-gray-700 mb-5">
-                <li class="flex items-start gap-2"><span class="text-[#E71720] font-bold mt-1">›</span><span>Product is damaged during transit, OR</span></li>
-                <li class="flex items-start gap-2"><span class="text-[#E71720] font-bold mt-1">›</span><span>Wrong product is delivered.</span></li>
-              </ul>
-              <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p class="text-sm font-bold text-amber-900 mb-2">⏱ Inform within 48 hours of delivery</p>
-                <p class="text-sm text-amber-800 mb-2">Provide the following:</p>
-                <ul class="text-sm text-amber-800 space-y-1">
-                  <li>• Photos / videos as proof</li>
-                  <li>• Order details</li>
-                  <li>• Product must be unused, in original packaging, and with all accessories</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </article>
+      <h3>Before Dispatch</h3>
+      <p>Marketplace product orders can be cancelled within <strong>24 hours</strong> of placing the order, or at any time before dispatch (whichever is earlier).</p>
 
-        <article id="b-nonreturn" class="scroll-mt section-card bg-white rounded-2xl border border-gray-200 p-6 lg:p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="num-badge-blue flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-base">3</div>
-            <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900 mb-3">Non-Returnable Items</h2>
-              <div class="grid gap-2 sm:grid-cols-2">
-                <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><span class="text-red-500 text-lg">✗</span><span class="text-gray-700">Installed equipment</span></div>
-                <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><span class="text-red-500 text-lg">✗</span><span class="text-gray-700">Used or damaged products (after delivery)</span></div>
-                <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><span class="text-red-500 text-lg">✗</span><span class="text-gray-700">Custom-built / fabricated equipment</span></div>
-                <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><span class="text-red-500 text-lg">✗</span><span class="text-gray-700">Perishable or consumable items</span></div>
-              </div>
-            </div>
-          </div>
-        </article>
+      <h3>After Dispatch</h3>
+      <p>Once a product has been shipped, the order cannot be cancelled. The customer may return the product if it qualifies under the return policy below.</p>
 
-        <article id="b-shipping" class="scroll-mt section-card bg-white rounded-2xl border border-gray-200 p-6 lg:p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="num-badge-blue flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center text-base">4</div>
-            <div class="flex-1">
-              <h2 class="text-2xl font-bold text-gray-900 mb-3">Shipping &amp; Delivery</h2>
-              <ul class="space-y-2 text-gray-700">
-                <li class="flex items-start gap-2"><span class="text-[#E71720] font-bold mt-1">›</span><span>Delivery timelines are estimates and may vary.</span></li>
-                <li class="flex items-start gap-2"><span class="text-[#E71720] font-bold mt-1">›</span><span>KNI is not liable for delays caused by courier partners or unforeseen circumstances.</span></li>
-              </ul>
-            </div>
-          </div>
-        </article>
+      <h3>Custom or Made-to-Order Equipment</h3>
+      <p>Orders for customized or fabricated kitchen equipment cannot be cancelled once the order is confirmed and production has started.</p>
 
-        <!-- Cross-link to refund policy -->
-        <article class="bg-gradient-to-br from-red-50 to-white rounded-2xl border border-red-100 p-6 lg:p-7">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#E71720] flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold text-gray-900 mb-1">Looking for refund details?</h3>
-              <p class="text-gray-700 mb-3">Once a cancellation is approved, refund processing time, eligible cases, and partial refund rules are covered in our Refund Policy.</p>
-              <a href="/landing/refund-policy.html" class="inline-flex items-center gap-1 text-[#E71720] font-semibold hover:underline">
-                View Refund Policy
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </article>
+      <h2>3. Return Policy</h2>
+      <p>Returns are accepted only in the following situations:</p>
+      <ul>
+        <li>The product is damaged during transit.</li>
+        <li>The wrong product is delivered.</li>
+      </ul>
+      <p>To initiate a return, the customer must inform KNI within <strong>48 hours of delivery</strong> with the following:</p>
+      <ul>
+        <li>Photos and videos of the damaged or wrong product as proof.</li>
+        <li>Order details (Order ID, date of delivery).</li>
+      </ul>
+      <p>The product must be returned unused, in original packaging, with all accessories and labels intact.</p>
 
-        <!-- CONTACT CARD -->
-        <article id="contact" class="scroll-mt contact-card text-white rounded-2xl p-6 lg:p-10 mt-10">
-          <div class="relative z-10 max-w-3xl">
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 rounded-full text-xs mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Need help cancelling?
-            </div>
-            <h2 class="text-2xl lg:text-3xl font-bold mb-3">We're here to help</h2>
-            <p class="text-white/80 mb-6 leading-relaxed">
-              For any cancellation requests, reach out to our support team and we'll get back to you within one working day.
-            </p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <a href="mailto:info@kniservices.com" class="bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl p-4 transition-colors group">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-[#E71720] flex items-center justify-center flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p class="text-xs uppercase tracking-wider text-white/60">Email us</p>
-                    <p class="font-semibold group-hover:text-[#EF3A3A] transition-colors">info@kniservices.com</p>
-                  </div>
-                </div>
-              </a>
-              <a href="tel:+918001700002" class="bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl p-4 transition-colors group">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-[#E71720] flex items-center justify-center flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p class="text-xs uppercase tracking-wider text-white/60">Call us</p>
-                    <p class="font-semibold group-hover:text-[#EF3A3A] transition-colors">+91 80017 00002</p>
-                  </div>
-                </div>
-              </a>
-            </div>
-            <p class="mt-6 text-sm text-white/60">Kitchen Network International Services Pvt. Ltd.</p>
-          </div>
-        </article>
+      <h2>4. Non-Returnable Items</h2>
+      <p>The following items cannot be returned once delivered:</p>
+      <ul>
+        <li>Installed equipment.</li>
+        <li>Used or damaged products (after delivery, where damage is caused by the customer).</li>
+        <li>Custom-built or fabricated kitchen equipment.</li>
+        <li>Perishable or consumable items.</li>
+      </ul>
+
+      <h2>5. Shipping &amp; Delivery</h2>
+      <ul>
+        <li>Delivery timelines provided are estimates only and may vary.</li>
+        <li>KNI is not liable for delays caused by third-party courier partners or unforeseen circumstances.</li>
+      </ul>
+
+      <h2>6. How to Cancel an Order or Service</h2>
+      <p>To cancel an order or service booking, please contact our support team within the eligible time window:</p>
+      <ul>
+        <li>Provide the order ID or service booking ID.</li>
+        <li>Provide the reason for cancellation.</li>
+        <li>Cancellations must be requested in writing via email.</li>
+      </ul>
+      <p>Once the cancellation is approved, refunds will be processed as per our <a href="/landing/refund-policy.html" style="color:#E71720;font-weight:600;">Refund Policy</a> within 7 to 10 working days.</p>
+
+      <h2>7. Contact Us</h2>
+      <p>For any cancellation requests or questions about this policy, please contact us at:</p>
+      <div class="contact-box">
+        <p><strong>Kitchen Network International Services Pvt. Ltd.</strong></p>
+        <p>Email: <a href="mailto:info@kniservices.com">info@kniservices.com</a></p>
+        <p>Phone: <a href="tel:+918001700002">+91 80017 00002</a></p>
       </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-[#5A5758] py-10 px-4 mt-8">
-      <div class="container mx-auto max-w-6xl">
-        <div class="flex justify-center mb-6">
-          <img src="/landing/assests/footerknilogo.webp" alt="KNI logo" class="w-52 sm:w-auto" />
-        </div>
-        <div class="border-t-2 border-[#7F7C7D] max-w-6xl mx-auto mb-6"></div>
-        <div class="text-center">
-          <p class="text-white text-sm">
-            &copy; Copyright 2024 Kitchen Network International. All rights reserved.
-          </p>
-          <div class="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-2">
-            <a href="/" class="text-white hover:text-[#E71720] text-sm transition-colors">Home</a>
-            <span class="text-gray-400">|</span>
-            <a href="/landing/privacy-policy.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Privacy Policy</a>
-            <span class="text-gray-400">|</span>
-            <a href="/landing/terms.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Terms of Service</a>
-            <span class="text-gray-400">|</span>
-            <a href="/landing/refund-policy.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Refund Policy</a>
-            <span class="text-gray-400">|</span>
-            <a href="/landing/cancellation-policy.html" class="text-white hover:text-[#E71720] text-sm transition-colors">Cancellation Policy</a>
-          </div>
-        </div>
+    <footer>
+      <img src="/landing/assests/footerknilogo.webp" alt="KNI Logo" />
+      <p class="copyright">&copy; Copyright 2024 Kitchen Network International. All rights reserved.</p>
+      <div class="links">
+        <a href="/">Home</a>
+        <span class="sep">|</span>
+        <a href="/landing/privacy-policy.html">Privacy Policy</a>
+        <span class="sep">|</span>
+        <a href="/landing/terms.html">Terms of Service</a>
+        <span class="sep">|</span>
+        <a href="/landing/refund-policy.html">Refund Policy</a>
+        <span class="sep">|</span>
+        <a href="/landing/cancellation-policy.html">Cancellation Policy</a>
       </div>
     </footer>
   </body>

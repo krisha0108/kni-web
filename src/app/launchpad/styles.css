@@ -1,0 +1,22 @@
+/* Ported from public/landing/launchpad.html <style> (global resets stripped). */
+.gradient-bg { background: linear-gradient(135deg, #1D2254 0%, #2d3470 50%, #E71720 100%); }
+      .form-section { background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); }
+      .service-check:checked + label { background-color: #E71720; color: white; border-color: #E71720; }
+      .timeline-step { position: relative; }
+      .timeline-step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 2rem;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: #E71720;
+      }
+      @media (max-width: 768px) {
+        .timeline-step:not(:last-child)::after { display: none; }
+      }
+      .counter-value { transition: all 0.5s ease; }
+      .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+      .faq-answer.open { max-height: 500px; }
+      .faq-arrow { transition: transform 0.3s ease; }
+      .faq-arrow.open { transform: rotate(180deg); }

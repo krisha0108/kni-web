@@ -144,7 +144,7 @@ export default function CustomerPortalPage() {
             This link may be invalid or expired. Please check your email for the correct link.
           </p>
           <a
-            href="/landing/launchpad.html"
+            href="/launchpad"
             className="inline-block px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
           >
             Visit Launch Pad
@@ -169,7 +169,7 @@ export default function CustomerPortalPage() {
             </div>
           </div>
           <a
-            href="/landing/launchpad.html"
+            href="/launchpad"
             className="text-sm text-red-500 hover:text-red-600 font-medium"
           >
             Visit KNI
@@ -302,7 +302,7 @@ export default function CustomerPortalPage() {
       <footer className="max-w-3xl mx-auto px-4 py-8 text-center">
         <p className="text-xs text-gray-400">
           Powered by{" "}
-          <a href="/landing/launchpad.html" className="text-red-500 hover:text-red-600">
+          <a href="/launchpad" className="text-red-500 hover:text-red-600">
             Kitchen Network International
           </a>
         </p>

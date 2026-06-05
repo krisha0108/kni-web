@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SiteHeader from "../../_components/SiteHeader";
 import {
   UserPlus,
   LayoutDashboard,
@@ -139,6 +140,7 @@ function StatBox({
 export default function OwnerGuidePage() {
   return (
     <main className="min-h-screen bg-background">
+      <SiteHeader />
       <HeroSection />
 
       {/* ── Phase 01: Registration ─────────────────────────────── */}

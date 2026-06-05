@@ -1,17 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Ported from public/landing/styles.css for the React landing.
+   Global resets (body font, * reset, bare img) removed to avoid app-wide leak.
+   Font applied via next/font on the landing wrapper. */
 html {
-  scroll-padding-top: 60px; /* Adjust according to navbar height */
-}
-
-body {
-  font-family: "Afacad", serif;
-  font-optical-sizing: auto;
-}
-* {
-  margin: 0%;
-  padding: 0%;
+  scroll-padding-top: 70px; /* Adjust according to navbar height */
 }
 
 /* navbar css  */
@@ -362,10 +353,11 @@ ul.list-red > li::marker {
 } */
 .feature-box {
   position: relative;
+  z-index: 1; /* sit above the connector lines (which are now z-index:0) */
   background: #fff;
-  border: 2px solid #e6e6e6;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #efefef;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
   padding: 20px;
   margin-bottom: 30px;
   display: flex;
@@ -375,6 +367,12 @@ ul.list-red > li::marker {
   width: 100%;
   max-width: 450px; /* Optional max-width for consistency */
   gap: 20px; /* Space between icon and text */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-box:hover {
+  border-color: #E71720;
+  box-shadow: 0 12px 28px rgba(231, 23, 32, 0.14);
 }
 
 .feature-icon {
@@ -384,6 +382,13 @@ ul.list-red > li::marker {
   align-items: center;
   width: 80px;  /* Fixed width for icons */
   height: 80px; /* Fixed height for icons */
+  background: rgba(231, 23, 32, 0.07);
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.feature-box:hover .feature-icon {
+  background: rgba(231, 23, 32, 0.14);
 }
 
 .feature-icon img {
@@ -426,11 +431,11 @@ ul.list-red > li::marker {
   content: "";
   width: 200px;
   display: block;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   position: absolute;
   right: -200px;
   top: 50px;
-  z-index: -1;
+  z-index: 0;
 }
 
 .right .feature-box::before {
@@ -451,16 +456,16 @@ ul.list-red > li::marker {
   content: "";
   width: 200px;
   display: block;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   position: absolute;
   left: -200px;
   top: 46px;
-  z-index: -2;
+  z-index: 0;
 }
 
 .right .feature-box:nth-child(1):after {
   height: 150px;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   border-radius: 30px;
   border-right: 0;
   border-bottom: 0;
@@ -470,7 +475,7 @@ ul.list-red > li::marker {
 
 .left .feature-box:nth-child(1):after {
   height: 150px;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   border-radius: 30px;
   border-left: 0;
   border-bottom: 0;
@@ -480,11 +485,11 @@ ul.list-red > li::marker {
 .left .feature-box:nth-child(3):after {
   width: 220px;
   height: 150px;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   border-radius: 30px;
   right: -200px;
   top: -88px;
-  z-index: -2;
+  z-index: 0;
   border-top: 0;
   border-left: 0;
 }
@@ -492,11 +497,11 @@ ul.list-red > li::marker {
 .right .feature-box:nth-child(3):after {
   width: 220px;
   height: 150px;
-  border: 1px dashed gray;
+  border: 1px dashed #6b6b6b;
   border-radius: 30px;
   left: -200px;
   top: -88px;
-  z-index: -2;
+  z-index: 0;
   border-top: 0;
   border-right: 0;
 }
@@ -526,6 +531,7 @@ ul.list-red > li::marker {
   justify-content: center;
   align-items: center;
   position: relative;
+  z-index: 3; /* keep the logo + ripple ABOVE the connector lines */
   margin: 40px 0;
 }
 
@@ -545,7 +551,7 @@ ul.list-red > li::marker {
   background: rgba(0, 0, 255, 0.1);
   animation: 1s linear infinite ripple;
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   width: 80px; /* Smaller width */
   height: 80px; /* Smaller height */
 }
@@ -554,6 +560,8 @@ ul.list-red > li::marker {
   border-radius: 100%;
   position: relative;
   z-index: 1;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(231, 23, 32, 0.18);
 }
 
 .img_view .plus_arrow {
@@ -725,7 +733,7 @@ ul.list-red > li::marker {
 
   .right .feature-box:nth-child(1):after {
       height: 150px;
-      border: 1px dashed gray;
+      border: 1px dashed #6b6b6b;
       border-radius: 30px;
       width: 220px;
   }

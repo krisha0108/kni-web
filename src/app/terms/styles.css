@@ -1,0 +1,60 @@
+/* Ported from public/landing/terms.html <style> (global resets stripped). */
+.policy-hero {
+        background:
+          radial-gradient(ellipse at top right, rgba(231, 23, 32, 0.35) 0%, transparent 50%),
+          radial-gradient(ellipse at bottom left, rgba(239, 58, 58, 0.25) 0%, transparent 55%),
+          linear-gradient(135deg, #1D2254 0%, #2A2F5F 60%, #1D2254 100%);
+      }
+      .hero-pattern::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
+        background-size: 32px 32px;
+        pointer-events: none;
+      }
+
+      .section-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      }
+      .section-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px -10px rgba(231, 23, 32, 0.15);
+        border-color: rgba(231, 23, 32, 0.25);
+      }
+      .section-card:target {
+        box-shadow: 0 0 0 3px rgba(231, 23, 32, 0.4), 0 12px 30px -10px rgba(231, 23, 32, 0.25);
+      }
+
+      .num-badge {
+        background: linear-gradient(135deg, #EF3A3A, #E71720);
+        box-shadow: 0 6px 16px -4px rgba(231, 23, 32, 0.5);
+      }
+
+      .toc-pill {
+        transition: all 0.2s ease;
+      }
+      .toc-pill:hover {
+        background: #E71720;
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .scroll-mt { scroll-margin-top: 90px; }
+
+      .contact-card {
+        background: linear-gradient(135deg, #1D2254 0%, #2A2F5F 100%);
+        position: relative;
+        overflow: hidden;
+      }
+      .contact-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(231, 23, 32, 0.3) 0%, transparent 70%);
+        pointer-events: none;
+      }

@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Long-lived caching for static landing assets (images, video, fonts, svgs).
+        // These have stable filenames and rarely change; bump the filename if one is replaced.
+        source: "/landing/assests/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=2592000" },
+        ],
+      },
+      {
         source: "/firebase-messaging-sw.js",
         headers: [
           {
@@ -58,6 +66,27 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(self)",
+          },
+          {
+            // Content-Security-Policy — allows the app's known services
+            // (Razorpay payments, Firebase/FCM, Google Fonts) while blocking
+            // untrusted script/object sources. TEST the dashboard (payments,
+            // push notifications) before deploy; adjust the allowlist if needed.
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://www.gstatic.com https://*.googleapis.com https://www.youtube.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https://*.razorpay.com https://*.googleapis.com https://*.firebaseio.com https://fcm.googleapis.com wss://*.firebaseio.com",
+              "frame-src 'self' https://*.razorpay.com https://www.youtube.com",
+              "media-src 'self' blob:",
+              "worker-src 'self'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
           },
         ],
       },

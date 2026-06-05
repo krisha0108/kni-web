@@ -1,0 +1,99 @@
+/* Ported from public/landing/refund-policy.html <style> (global resets stripped). */
+.nav {
+        background: #5A5758;
+        padding: 16px 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav img { height: 56px; width: auto; }
+      .nav a.back {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 500;
+      }
+      .nav a.back:hover { color: #E71720; }
+      .hero {
+        background: linear-gradient(135deg, #1D2254 0%, #2A2F5F 60%, #1D2254 100%);
+        color: white;
+        padding: 80px 64px;
+      }
+      .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 12px; }
+      .hero p { font-size: 18px; opacity: 0.85; max-width: 800px; }
+      .hero .meta { margin-top: 16px; font-size: 14px; opacity: 0.75; }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 56px 24px;
+        background: white;
+      }
+      main h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1D2254;
+        margin-top: 40px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #E71720;
+        padding-bottom: 8px;
+      }
+      main h2:first-child { margin-top: 0; }
+      main h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #111827;
+        margin-top: 24px;
+        margin-bottom: 8px;
+      }
+      main p {
+        font-size: 16px;
+        margin-bottom: 12px;
+        color: #374151;
+      }
+      main ul {
+        margin-left: 24px;
+        margin-bottom: 16px;
+      }
+      main li {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #374151;
+      }
+      .last-updated {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 32px;
+      }
+      .contact-box {
+        background: #f3f4f6;
+        border-left: 4px solid #E71720;
+        padding: 20px 24px;
+        margin-top: 24px;
+        border-radius: 8px;
+      }
+      .contact-box p { margin-bottom: 6px; }
+      .contact-box a { color: #E71720; text-decoration: none; font-weight: 600; }
+      .contact-box a:hover { text-decoration: underline; }
+
+      footer {
+        background: #5A5758;
+        color: white;
+        padding: 40px 24px;
+        margin-top: 48px;
+        text-align: center;
+      }
+      footer img { width: 200px; margin-bottom: 24px; }
+      footer .links { margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+      footer a { color: white; text-decoration: none; font-size: 14px; }
+      footer a:hover { color: #E71720; }
+      footer .sep { color: #9ca3af; }
+      footer .copyright { font-size: 14px; }
+
+      @media (max-width: 768px) {
+        .nav { padding: 12px 20px; }
+        .hero { padding: 48px 20px; }
+        .hero h1 { font-size: 32px; }
+        main { padding: 32px 20px; }
+        main h2 { font-size: 22px; }
+      }

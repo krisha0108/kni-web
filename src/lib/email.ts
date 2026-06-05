@@ -48,6 +48,39 @@ async function sendEmail(options: EmailOptions): Promise<void> {
   }
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// Sends a contact-form inquiry from the public website to the KNI team inbox.
+export async function sendContactInquiryEmail(data: {
+  name: string;
+  email: string;
+  phone: string;
+  subject?: string;
+  message?: string;
+}): Promise<void> {
+  const to =
+    process.env.CONTACT_INQUIRY_EMAIL || process.env.SMTP_USER || "info@kniservices.com";
+  const html = `
+    <h2>New Contact Inquiry — KNI Website</h2>
+    <p><strong>Name:</strong> ${escapeHtml(data.name)}</p>
+    <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
+    <p><strong>Phone:</strong> ${escapeHtml(data.phone)}</p>
+    <p><strong>Subject:</strong> ${escapeHtml(data.subject || "—")}</p>
+    <p><strong>Message:</strong><br/>${escapeHtml(data.message || "—").replace(/\n/g, "<br/>")}</p>
+  `;
+  await sendEmail({
+    to,
+    subject: `Contact Inquiry: ${data.subject || data.name}`,
+    html,
+  });
+}
+
 // Email template wrapper
 function emailTemplate(content: string, title: string): string {
   return `
@@ -853,7 +886,7 @@ export async function sendLaunchPadResponseEmail(
       <li><strong>Manpower Sourcing</strong> — Trained kitchen professionals</li>
     </ul>
 
-    <a href="${APP_URL}/landing/launchpad.html" class="button">Visit Launch Pad</a>
+    <a href="${APP_URL}/launchpad" class="button">Visit Launch Pad</a>
 
     <div class="divider"></div>
 

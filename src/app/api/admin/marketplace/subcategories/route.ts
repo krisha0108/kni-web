@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
     if (categoryId) {
       where.categoryId = categoryId;
     }
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true },
           },
           _count: {
-            select: { products: true },
+            // Only count live products; soft-deleted ones must not block deletion
+            select: { products: { where: { deletedAt: null } } },
           },
         },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
       where: { id: validation.data.categoryId },
     });
 
-    if (!category) {
+    if (!category || category.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found" },
         { status: 404 }
@@ -100,11 +101,12 @@ export async function POST(request: NextRequest) {
 
     const slug = generateSlug(validation.data.name);
 
-    // Check for duplicate within same category
+    // Check for duplicate within same category (ignore soft-deleted)
     const existing = await db.marketplaceSubCategory.findFirst({
       where: {
         categoryId: validation.data.categoryId,
         slug,
+        deletedAt: null,
       },
     });
 

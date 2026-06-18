@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       where: {
         id: { in: categoryIds },
         isActive: true,
+        deletedAt: null,
       },
     });
 

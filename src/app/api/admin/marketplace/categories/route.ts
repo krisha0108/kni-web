@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
     if (search) {
       where.name = { contains: search };
     }
@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
         include: {
           _count: {
             select: {
-              subCategories: true,
-              products: true,
+              // Only count live subcategories/products; soft-deleted ones excluded
+              subCategories: { where: { deletedAt: null } },
+              products: { where: { deletedAt: null } },
               vendorCategories: true,
             },
           },
@@ -85,10 +86,11 @@ export async function POST(request: NextRequest) {
 
     const slug = generateSlug(validation.data.name);
 
-    // Check for duplicate name or slug
+    // Check for duplicate name or slug (ignore soft-deleted)
     const existing = await db.marketplaceCategory.findFirst({
       where: {
         OR: [{ name: validation.data.name }, { slug }],
+        deletedAt: null,
       },
     });
 

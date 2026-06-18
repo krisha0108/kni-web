@@ -121,7 +121,7 @@ export async function PATCH(
         where: { id: marketplaceCategoryId },
       });
 
-      if (!category) {
+      if (!category || category.deletedAt) {
         return NextResponse.json(
           { ok: false, error: "Category not found" },
           { status: 404 }
@@ -136,6 +136,7 @@ export async function PATCH(
         where: {
           id: marketplaceSubCategoryId,
           categoryId: targetCategoryId,
+          deletedAt: null,
         },
       });
 

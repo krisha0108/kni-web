@@ -785,6 +785,7 @@ model MarketplaceCategory {
   sortOrder Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete: non-null means hidden/removed
 
   subCategories   MarketplaceSubCategory[]
   products        MarketplaceProduct[]
@@ -792,6 +793,7 @@ model MarketplaceCategory {
 
   @@index([isActive])
   @@index([sortOrder])
+  @@index([deletedAt])
 }
 
 model MarketplaceSubCategory {
@@ -804,6 +806,7 @@ model MarketplaceSubCategory {
   sortOrder  Int       @default(0)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime? // Soft delete: non-null means hidden/removed
 
   category MarketplaceCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products MarketplaceProduct[]
@@ -811,6 +814,7 @@ model MarketplaceSubCategory {
   @@unique([categoryId, slug])
   @@index([categoryId])
   @@index([isActive])
+  @@index([deletedAt])
 }
 
 // Many-to-Many: Vendor selects categories they serve

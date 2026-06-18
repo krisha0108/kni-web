@@ -9,15 +9,15 @@ export async function GET(request: NextRequest) {
 
     // Get all active marketplace categories
     const categories = await db.marketplaceCategory.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       include: {
         subCategories: {
-          where: { isActive: true },
+          where: { isActive: true, deletedAt: null },
           orderBy: { sortOrder: "asc" },
           select: { id: true, name: true },
         },
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

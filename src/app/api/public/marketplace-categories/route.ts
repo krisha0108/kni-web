@@ -5,13 +5,13 @@ import { db } from "@/server/db";
 export async function GET() {
   try {
     const categories = await db.marketplaceCategory.findMany({
-      where: { isActive: true },
+      where: { isActive: true, deletedAt: null },
       select: {
         id: true,
         name: true,
         imageUrl: true,
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

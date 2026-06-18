@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       where: { id: marketplaceCategoryId },
     });
 
-    if (!category) {
+    if (!category || category.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found" },
         { status: 404 }
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
         where: {
           id: marketplaceSubCategoryId,
           categoryId: marketplaceCategoryId,
+          deletedAt: null,
         },
       });
 

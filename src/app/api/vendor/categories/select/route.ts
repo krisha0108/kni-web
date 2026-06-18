@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       where: { id: categoryId },
     });
 
-    if (!category || !category.isActive) {
+    if (!category || !category.isActive || category.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found or not active" },
         { status: 404 }
@@ -94,6 +94,7 @@ export async function PUT(request: NextRequest) {
       where: {
         id: { in: categoryIds },
         isActive: true,
+        deletedAt: null,
       },
     });
 

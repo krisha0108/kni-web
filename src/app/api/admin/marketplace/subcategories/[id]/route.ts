@@ -37,7 +37,7 @@ export async function PATCH(
     }
 
     const existing = await db.marketplaceSubCategory.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing || existing.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Subcategory not found" },
         { status: 404 }
@@ -57,6 +57,7 @@ export async function PATCH(
           categoryId: targetCategoryId,
           slug: updateData.slug,
           NOT: { id },
+          deletedAt: null,
         },
       });
 
@@ -96,34 +97,33 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
 
-    // Check if subcategory has products
-    const subCategory = await db.marketplaceSubCategory.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
+    const subCategory = await db.marketplaceSubCategory.findUnique({ where: { id } });
 
-    if (!subCategory) {
+    if (!subCategory || subCategory.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Subcategory not found" },
         { status: 404 }
       );
     }
 
-    if (subCategory._count.products > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Cannot delete subcategory with products. Remove products first.",
-        },
-        { status: 400 }
-      );
-    }
+    // Soft delete the subcategory. Its products are NOT deleted — they stay
+    // under the parent category, just detached from this subcategory.
+    const deletedAt = new Date();
+    // Free up the unique [categoryId, slug] so it can be recreated later
+    const suffix = `__del_${deletedAt.getTime()}`;
 
-    await db.marketplaceSubCategory.delete({ where: { id } });
+    await db.$transaction([
+      // Detach products from this subcategory (keep them under their category)
+      db.marketplaceProduct.updateMany({
+        where: { marketplaceSubCategoryId: id },
+        data: { marketplaceSubCategoryId: null },
+      }),
+      // Soft delete the subcategory and free its unique slug
+      db.marketplaceSubCategory.update({
+        where: { id },
+        data: { deletedAt, isActive: false, slug: `${subCategory.slug}${suffix}` },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

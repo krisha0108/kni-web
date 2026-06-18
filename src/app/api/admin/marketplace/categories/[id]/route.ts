@@ -29,19 +29,20 @@ export async function GET(
       where: { id },
       include: {
         subCategories: {
-          where: { isActive: true },
+          where: { isActive: true, deletedAt: null },
           orderBy: { sortOrder: "asc" },
         },
         _count: {
           select: {
-            products: true,
+            // Only count live products; soft-deleted ones are excluded
+            products: { where: { deletedAt: null } },
             vendorCategories: true,
           },
         },
       },
     });
 
-    if (!category) {
+    if (!category || category.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found" },
         { status: 404 }
@@ -77,7 +78,7 @@ export async function PATCH(
     }
 
     const existing = await db.marketplaceCategory.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing || existing.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found" },
         { status: 404 }
@@ -95,6 +96,7 @@ export async function PATCH(
         where: {
           OR: [{ name: validation.data.name }, { slug: updateData.slug }],
           NOT: { id },
+          deletedAt: null,
         },
       });
 
@@ -129,34 +131,62 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
 
-    // Check if category has products
-    const category = await db.marketplaceCategory.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { products: true, subCategories: true },
-        },
-      },
-    });
+    const category = await db.marketplaceCategory.findUnique({ where: { id } });
 
-    if (!category) {
+    if (!category || category.deletedAt) {
       return NextResponse.json(
         { ok: false, error: "Category not found" },
         { status: 404 }
       );
     }
 
-    if (category._count.products > 0 || category._count.subCategories > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Cannot delete category with products or subcategories. Remove them first.",
-        },
-        { status: 400 }
-      );
-    }
+    // Soft delete: hide the category and cascade-hide everything under it.
+    // Nothing is physically removed, so order history (MarketplaceOrderItem)
+    // and any FK references stay intact and can be audited/restored.
+    const deletedAt = new Date();
+    // Free up the unique name/slug so an identical category can be created later
+    const suffix = `__del_${deletedAt.getTime()}`;
 
-    await db.marketplaceCategory.delete({ where: { id } });
+    // Collect live products under this category to also hide their vendor offers
+    const products = await db.marketplaceProduct.findMany({
+      where: { marketplaceCategoryId: id, deletedAt: null },
+      select: { id: true },
+    });
+    const productIds = products.map((p) => p.id);
+
+    await db.$transaction([
+      // 1. Hide vendor products (vendor pricing) for these products
+      ...(productIds.length
+        ? [
+            db.vendorProduct.updateMany({
+              where: { productId: { in: productIds }, deletedAt: null },
+              data: { deletedAt, isActive: false },
+            }),
+          ]
+        : []),
+      // 2. Soft delete the master products in this category
+      db.marketplaceProduct.updateMany({
+        where: { marketplaceCategoryId: id, deletedAt: null },
+        data: { deletedAt, isActive: false },
+      }),
+      // 3. Soft delete the subcategories in this category
+      db.marketplaceSubCategory.updateMany({
+        where: { categoryId: id, deletedAt: null },
+        data: { deletedAt, isActive: false },
+      }),
+      // 4. Remove vendor category selections (join rows, safe to hard delete)
+      db.vendorCategorySelection.deleteMany({ where: { categoryId: id } }),
+      // 5. Soft delete the category itself and free its unique name/slug
+      db.marketplaceCategory.update({
+        where: { id },
+        data: {
+          deletedAt,
+          isActive: false,
+          name: `${category.name}${suffix}`,
+          slug: `${category.slug}${suffix}`,
+        },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

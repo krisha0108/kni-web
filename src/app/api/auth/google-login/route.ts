@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { email },
-          { phone: firebaseUid }, // Store Firebase UID in phone field temporarily
+          { firebaseUid }, // Match returning Google users by their Firebase UID
         ],
       },
       include: {
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: fullName,
           email,
-          phone: firebaseUid, // Store Firebase UID temporarily
+          firebaseUid, // Store Firebase UID in its own field (phone stays empty until user adds it)
           passwordHash: "", // No password for OAuth users
           role: "OWNER",
           isActive: true,

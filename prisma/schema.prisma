@@ -225,6 +225,7 @@ model User {
   name           String
   email          String    @unique
   phone          String?
+  firebaseUid    String?   @unique
   passwordHash   String
   role           Role
   emailVerified  Boolean   @default(false)

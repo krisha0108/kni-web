@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +69,7 @@ interface PaymentSettings {
   instructions?: string;
 }
 
-export default function RequestServicePage() {
+function RequestServiceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -1327,5 +1327,13 @@ export default function RequestServicePage() {
         )}
       </div>
     </ClientOnly>
+  );
+}
+
+export default function RequestServicePage() {
+  return (
+    <Suspense>
+      <RequestServiceContent />
+    </Suspense>
   );
 }

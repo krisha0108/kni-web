@@ -6,7 +6,7 @@ import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ShieldAlert, Pencil } from "lucide-react";
 
 export default async function RestaurantStatusPage() {
   const session = await getSession();
@@ -15,6 +15,13 @@ export default async function RestaurantStatusPage() {
   const restaurant = await db.restaurant.findFirst({
     where: { ownerId: session.id },
     orderBy: { createdAt: "desc" },
+    include: {
+      deletionRequests: {
+        where: { status: "PENDING" },
+        take: 1,
+        select: { id: true, reason: true, createdAt: true },
+      },
+    },
   });
 
   if (!restaurant) {
@@ -102,6 +109,38 @@ export default async function RestaurantStatusPage() {
               <AlertTitle>{config.title}</AlertTitle>
               <AlertDescription>
                 <p>{restaurant.rejectionReason || "No reason provided."}</p>
+                <div className="mt-4">
+                  <Button asChild variant="destructive" size="sm">
+                    <Link href={`/owner/restaurant/${restaurant.id}/edit`}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit &amp; Resubmit
+                    </Link>
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {restaurant.deletionRequests.length > 0 && (
+            <Alert className="border-amber-500">
+              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Deletion Requested</AlertTitle>
+              <AlertDescription>
+                You requested deletion of this restaurant on{" "}
+                {restaurant.deletionRequests[0].createdAt.toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+                . It will be permanently deleted once an admin approves the request.
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Reason: {restaurant.deletionRequests[0].reason}
+                </p>
+                <div className="mt-4">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/owner/restaurants">Manage or Cancel Request</Link>
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}

@@ -45,8 +45,9 @@ interface PriceRequest {
   currentPrice: number;
   quantity: number | null;
   message: string | null;
-  status: "PENDING" | "UNLOCKED" | "DECLINED";
+  status: "PENDING" | "COUNTERED" | "UNLOCKED" | "DECLINED";
   unlockedPrice: number | null;
+  ownerCounterPrice: number | null;
   validUntil: string | null;
   adminNote: string | null;
   createdAt: string;
@@ -105,7 +106,11 @@ export default function PriceRequestsPage() {
   const openRespondDialog = (request: PriceRequest) => {
     setSelectedRequest(request);
     setRespondForm({
-      unlockedPrice: request.unlockedPrice?.toString() || request.currentPrice?.toString() || "",
+      unlockedPrice:
+        request.ownerCounterPrice?.toString() ||
+        request.unlockedPrice?.toString() ||
+        request.currentPrice?.toString() ||
+        "",
       validUntil: "",
       adminNote: request.adminNote || "",
     });
@@ -160,6 +165,8 @@ export default function PriceRequestsPage() {
     switch (status) {
       case "PENDING":
         return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50">Pending</Badge>;
+      case "COUNTERED":
+        return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50">Countered</Badge>;
       case "UNLOCKED":
         return <Badge variant="success">Unlocked</Badge>;
       case "DECLINED":
@@ -204,6 +211,7 @@ export default function PriceRequestsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="COUNTERED">Countered</SelectItem>
                 <SelectItem value="UNLOCKED">Unlocked</SelectItem>
                 <SelectItem value="DECLINED">Declined</SelectItem>
               </SelectContent>
@@ -243,7 +251,7 @@ export default function PriceRequestsPage() {
                 </TableHeader>
                 <TableBody>
                   {requests.map((req) => (
-                    <TableRow key={req.id} className={req.status === "PENDING" ? "bg-yellow-50/50" : ""}>
+                    <TableRow key={req.id} className={req.status === "PENDING" || req.status === "COUNTERED" ? "bg-yellow-50/50" : ""}>
                       <TableCell className="px-2 sm:px-4">
                         <div className="flex items-center gap-2">
                           {req.productImage ? (
@@ -284,12 +292,12 @@ export default function PriceRequestsPage() {
                       </TableCell>
                       <TableCell className="px-2 sm:px-4">
                         <Button
-                          variant={req.status === "PENDING" ? "default" : "outline"}
+                          variant={req.status === "PENDING" || req.status === "COUNTERED" ? "default" : "outline"}
                           size="sm"
                           onClick={() => openRespondDialog(req)}
                           className="text-xs"
                         >
-                          {req.status === "PENDING" ? "Respond" : "View"}
+                          {req.status === "PENDING" ? "Respond" : req.status === "COUNTERED" ? "Review Counter" : "View"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -317,7 +325,9 @@ export default function PriceRequestsPage() {
           <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {selectedRequest?.status === "PENDING" ? "Respond to Price Request" : "Price Request Details"}
+                {selectedRequest?.status === "PENDING" || selectedRequest?.status === "COUNTERED"
+                  ? "Respond to Price Request"
+                  : "Price Request Details"}
               </DialogTitle>
               <DialogDescription>
                 Set a custom price for this owner
@@ -372,7 +382,18 @@ export default function PriceRequestsPage() {
                   </div>
                 )}
 
-                {selectedRequest.status === "PENDING" && (
+                {selectedRequest.status === "COUNTERED" && selectedRequest.ownerCounterPrice && (
+                  <div className="p-3 bg-orange-50 rounded-lg text-sm">
+                    <span className="font-medium text-orange-800">
+                      {selectedRequest.owner.name} countered your price of {selectedRequest.unlockedPrice ? formatPrice(selectedRequest.unlockedPrice) : "-"} with:
+                    </span>
+                    <p className="text-orange-900 font-bold text-lg mt-1">
+                      {formatPrice(selectedRequest.ownerCounterPrice)}
+                    </p>
+                  </div>
+                )}
+
+                {(selectedRequest.status === "PENDING" || selectedRequest.status === "COUNTERED") && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="unlockedPrice">Your Price for this Owner (₹) *</Label>
@@ -415,7 +436,7 @@ export default function PriceRequestsPage() {
                   </>
                 )}
 
-                {selectedRequest.status !== "PENDING" && (
+                {selectedRequest.status === "UNLOCKED" || selectedRequest.status === "DECLINED" ? (
                   <div className="space-y-2">
                     {selectedRequest.unlockedPrice && (
                       <div className="p-3 bg-green-50 rounded-lg">
@@ -435,12 +456,12 @@ export default function PriceRequestsPage() {
                       </div>
                     )}
                   </div>
-                )}
+                ) : null}
               </div>
             )}
 
             <DialogFooter className="gap-2">
-              {selectedRequest?.status === "PENDING" ? (
+              {selectedRequest?.status === "PENDING" || selectedRequest?.status === "COUNTERED" ? (
                 <>
                   <Button
                     variant="destructive"

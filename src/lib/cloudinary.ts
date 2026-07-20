@@ -50,3 +50,44 @@ export async function deleteImage(publicId: string): Promise<void> {
     throw error;
   }
 }
+
+// Helper function to upload a video from buffer (e.g. candidate intro videos)
+export async function uploadVideo(
+  fileBuffer: Buffer,
+  folder: string,
+  options?: {
+    public_id?: string;
+  }
+): Promise<{ url: string; public_id: string }> {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `kni-super-app/${folder}`,
+        resource_type: "video",
+        ...options,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else if (result) {
+          resolve({
+            url: result.secure_url,
+            public_id: result.public_id,
+          });
+        } else {
+          reject(new Error("Upload failed"));
+        }
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+}
+
+// Helper function to delete a video
+export async function deleteVideo(publicId: string): Promise<void> {
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+  } catch (error) {
+    console.error("Error deleting video from Cloudinary:", error);
+    throw error;
+  }
+}

@@ -23,15 +23,15 @@ export async function GET(request: NextRequest) {
         db.notification.count({ where }),
       ]);
 
-      const mapped = notifications.map((n: any) => ({
+      const mapped = notifications.map((n) => ({
         id: n.id,
         title: n.title,
-        message: n.message || n.body,
-        type: n.type || "INFO",
-        isRead: n.isRead || n.read || false,
-        is_read: n.isRead || n.read || false,
-        createdAt: n.createdAt?.toISOString() || new Date().toISOString(),
-        metadata: n.metadata || {},
+        message: n.message,
+        type: n.type,
+        linkUrl: n.linkUrl,
+        isRead: n.isRead,
+        is_read: n.isRead,
+        createdAt: n.createdAt.toISOString(),
       }));
 
       return NextResponse.json({

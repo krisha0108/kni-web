@@ -38,6 +38,7 @@ import {
   MessageSquare,
   Truck,
   PieChart,
+  Trash2,
   FileCheck,
   User,
   UserCircle,
@@ -47,6 +48,7 @@ import {
   QrCode,
   Rocket,
   CalendarPlus,
+  Gift,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -235,6 +237,7 @@ export const adminSidebarItems: SidebarEntry[] = [
     icon: UserCircle,
     children: [
       { title: "Restaurant Requests", href: "/admin/restaurants/requests", icon: Building2 },
+      { title: "Deletion Requests", href: "/admin/restaurants/deletion-requests", icon: Trash2 },
       { title: "Owners", href: "/admin/owners", icon: UserCircle },
       { title: "Category Requests", href: "/admin/category-requests", icon: FileText },
     ],
@@ -251,6 +254,8 @@ export const adminSidebarItems: SidebarEntry[] = [
     ],
   },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
+  { title: "Recruitment", href: "/admin/recruitment", icon: UserCheck },
+  { title: "Training & Seminars", href: "/admin/training", icon: BookOpen },
   { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
   { title: "Direct Booking", href: "/admin/direct-booking", icon: CalendarPlus },
 
@@ -340,6 +345,7 @@ export const ownerSidebarItems: SidebarEntry[] = [
   // ── Services ──
   { sectionTitle: "Services" },
   { title: "My Bookings", href: "/owner/bookings", icon: ClipboardList },
+  { title: "Offers", href: "/owner/offers", icon: Gift },
   { title: "Pending Approvals", href: "/owner/pending-approvals", icon: FileCheck },
   {
     title: "AMC",

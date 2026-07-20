@@ -66,7 +66,7 @@ export default function ExpenseReportsPage() {
 
   const fetchTrendData = async () => {
     try {
-      const response = await fetch(`/api/owner/expenses?restaurantId=${selectedRestaurant?.restaurantId}`);
+      const response = await fetch(`/api/owner/expenses?restaurantId=${selectedRestaurant?.restaurantId}&pageSize=500`);
       const data = await response.json();
       if (data.ok) {
         const expenses = data.data.expenses || [];
@@ -83,7 +83,7 @@ export default function ExpenseReportsPage() {
 
         const monthlyTotals = last6Months.map(({ year, month, monthName }) => {
           const monthExpenses = expenses.filter((exp: any) => {
-            const expDate = new Date(exp.date);
+            const expDate = new Date(exp.expenseDate);
             return expDate.getFullYear() === year && expDate.getMonth() + 1 === month;
           });
           const total = monthExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);

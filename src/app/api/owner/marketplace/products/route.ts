@@ -140,32 +140,41 @@ export async function GET(request: NextRequest) {
       page > 0 ? db.vendorProduct.count({ where: vpWhere }) : Promise.resolve(-1),
     ]);
 
-    // Batch-fetch active price unlocks for this owner (for price-on-request products)
-    const priceOnRequestProductIds = vendorProducts
-      .filter((vp) => vp.priceOnRequest && vp.vendor.vendorProfile?.isSystemVendor)
+    // Batch-fetch active price unlocks/negotiations for this owner. Negotiation
+    // is available for any KNI Official Store product, not just ones flagged
+    // priceOnRequest (that flag only controls whether the price is hidden
+    // until unlocked).
+    const systemVendorProductIds = vendorProducts
+      .filter((vp) => vp.vendor.vendorProfile?.isSystemVendor)
       .map((vp) => vp.id);
 
-    let unlockMap = new Map<string, { status: string; unlockedPrice: number | null; validUntil: Date | null }>();
+    let unlockMap = new Map<string, { id: string; status: string; unlockedPrice: number | null; ownerCounterPrice: number | null; validUntil: Date | null; quantity: number | null }>();
 
-    if (priceOnRequestProductIds.length > 0) {
+    if (systemVendorProductIds.length > 0) {
       const unlocks = await db.priceUnlockRequest.findMany({
         where: {
           ownerId: session.id,
-          vendorProductId: { in: priceOnRequestProductIds },
+          vendorProductId: { in: systemVendorProductIds },
         },
         select: {
+          id: true,
           vendorProductId: true,
           status: true,
           unlockedPrice: true,
+          ownerCounterPrice: true,
           validUntil: true,
+          quantity: true,
         },
       });
 
       for (const u of unlocks) {
         unlockMap.set(u.vendorProductId, {
+          id: u.id,
           status: u.status,
           unlockedPrice: u.unlockedPrice,
+          ownerCounterPrice: u.ownerCounterPrice,
           validUntil: u.validUntil,
+          quantity: u.quantity,
         });
       }
     }
@@ -180,7 +189,7 @@ export async function GET(request: NextRequest) {
 
       // Determine price visibility based on unlock status
       let price: number | null = vp.price;
-      let priceUnlock: { status: string; unlockedPrice: number | null; validUntil: Date | null; isExpired: boolean } | null = null;
+      let priceUnlock: { id: string; status: string; unlockedPrice: number | null; ownerCounterPrice: number | null; validUntil: Date | null; isExpired: boolean; quantity: number | null } | null = null;
       let canPurchase = vp.isActive && vp.stockQuantity > 0;
 
       if (isPriceOnRequest) {
@@ -201,6 +210,17 @@ export async function GET(request: NextRequest) {
           // No request yet — hide price
           price = null;
           canPurchase = false;
+        }
+      } else if (isAdminStore) {
+        // Regular-priced KNI Official Store product — negotiation is optional,
+        // never hides the listed price.
+        const unlock = unlockMap.get(vp.id);
+        if (unlock) {
+          const isExpired = unlock.status === "UNLOCKED" && unlock.validUntil ? unlock.validUntil < now : false;
+          priceUnlock = { ...unlock, isExpired };
+          if (unlock.status === "UNLOCKED" && !isExpired && unlock.unlockedPrice) {
+            price = unlock.unlockedPrice;
+          }
         }
       }
 

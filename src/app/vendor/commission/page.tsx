@@ -135,6 +135,17 @@ export default function VendorCommissionPage() {
     }
   }, [router]);
 
+  // Hooks must run unconditionally on every render — computed before the
+  // loading/error early returns below, with safe fallbacks while data is null.
+  const totalPages = useMemo(
+    () => Math.ceil((data?.commissions.length ?? 0) / PAGE_SIZE) || 1,
+    [data?.commissions.length]
+  );
+  const paginatedCommissions = useMemo(
+    () => data?.commissions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [],
+    [data?.commissions, page]
+  );
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -251,9 +262,6 @@ export default function VendorCommissionPage() {
   // ── Derived state ────────────────────────────────────────────────────────────
 
   const { vendorProfile, commissions, totalCommission, pendingCommission, paidCommission, collections } = data;
-
-  const totalPages = useMemo(() => Math.ceil(commissions.length / PAGE_SIZE) || 1, [commissions.length]);
-  const paginatedCommissions = useMemo(() => commissions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [commissions, page]);
 
   const uploadedCollection = collections.find((c) => c.status === "PAYMENT_UPLOADED");
 

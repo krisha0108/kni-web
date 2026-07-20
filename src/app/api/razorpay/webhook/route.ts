@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { db } from "@/server/db";
 import { getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { createNotification } from "@/server/notifications/service";
+import { finalizeRecruitmentPayment } from "@/server/recruitment/onboarding";
+import { activateAMCContract } from "@/server/amc/activate-contract";
 
 /**
  * Razorpay Webhook Handler
@@ -56,6 +58,7 @@ async function handlePaymentCaptured(payment: any) {
   const notes = payment.notes || {};
   const type = notes.type;
   const userId = notes.userId;
+  const referenceId = notes.referenceId;
 
   if (!type || !orderId) {
     console.warn("Webhook: missing type or orderId in notes", { notes });
@@ -73,7 +76,7 @@ async function handlePaymentCaptured(payment: any) {
 
   switch (type) {
     case "SERVICE_BOOKING":
-      await handleServiceBookingWebhook(paymentId, orderId, payment, userId);
+      await handleServiceBookingWebhook(paymentId, orderId, payment, userId, referenceId);
       break;
     case "AMC_PAYMENT":
       await handleAMCPaymentWebhook(paymentId, orderId, payment);
@@ -84,63 +87,105 @@ async function handlePaymentCaptured(payment: any) {
     case "VENDOR_SUBSCRIPTION":
       await handleVendorSubscriptionWebhook(paymentId, orderId, payment);
       break;
+    case "RECRUITMENT_FEE":
+      await finalizeRecruitmentPayment(orderId, paymentId);
+      break;
     case "MARKETPLACE":
-      // Marketplace requires items data not available in notes.
-      // Log for admin review — the client retry mechanism should handle most cases.
-      console.warn(`Webhook: MARKETPLACE payment ${paymentId} received but cannot auto-process (items not in notes). Admin review needed.`);
-      // Notify admins about unprocessed marketplace payment
-      const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
-      for (const admin of admins) {
-        createNotification({
-          userId: admin.id,
-          title: "Unprocessed Marketplace Payment",
-          message: `Razorpay payment ${paymentId} (₹${(payment.amount / 100).toLocaleString("en-IN")}) was captured but could not be auto-verified. Please check Razorpay dashboard.`,
-          type: "PAYMENT",
-          linkUrl: "/admin/marketplace",
-        }).catch(console.error);
-      }
+    case "MARKETPLACE_INSTALLMENT":
+      // Marketplace (cart checkout, and negotiated advance/final installments)
+      // can't be safely auto-processed from webhook notes alone — cart orders
+      // need item data that isn't in notes, and installments need the
+      // originating PriceUnlockRequest/MarketplacePayment record resolved
+      // under the same validation the sync verify path applies. Log for
+      // admin review — the client retry mechanism should handle most cases.
+      console.warn(`Webhook: ${type} payment ${paymentId} received but cannot auto-process. Admin review needed.`);
+      await notifyAdminsOfUnprocessedPayment(type, paymentId, payment.amount);
       break;
     default:
       console.warn("Webhook: unknown payment type", type);
   }
 }
 
+async function notifyAdminsOfUnprocessedPayment(type: string, paymentId: string, amountPaise: number) {
+  const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+  for (const admin of admins) {
+    createNotification({
+      userId: admin.id,
+      title: "Unprocessed Payment",
+      message: `Razorpay payment ${paymentId} (${type}, ₹${(amountPaise / 100).toLocaleString("en-IN")}) was captured but could not be auto-verified. Please check Razorpay dashboard.`,
+      type: "PAYMENT",
+      linkUrl: "/admin/marketplace",
+    }).catch(console.error);
+  }
+}
+
 async function isPaymentAlreadyProcessed(razorpayPaymentId: string): Promise<boolean> {
-  const [mp, pp, amc, comm, sub] = await Promise.all([
+  const [mp, pp, amc, comm, sub, rec] = await Promise.all([
     db.marketplacePayment.findFirst({ where: { razorpayPaymentId } }),
     db.paymentProof.findFirst({ where: { razorpayPaymentId } }),
     db.aMCPayment.findFirst({ where: { razorpayPaymentId } }),
     db.vendorCommissionCollection.findFirst({ where: { razorpayPaymentId } }),
     db.vendorSubscriptionRequest.findFirst({ where: { razorpayPaymentId } }),
+    db.recruitmentPayment.findFirst({ where: { razorpayPaymentId } }),
   ]);
-  return !!(mp || pp || amc || comm || sub);
+  return !!(mp || pp || amc || comm || sub || rec);
 }
 
 async function handleServiceBookingWebhook(
   paymentId: string,
   razorpayOrderId: string,
   payment: any,
-  userId?: string
+  userId?: string,
+  referenceId?: string
 ) {
-  // Find booking by looking at recent SLOT_SELECTED bookings for this user
-  // The bookingId is not in notes, so we search by owner
-  if (!userId) {
-    console.warn("Webhook: SERVICE_BOOKING missing userId");
-    return;
+  let booking;
+
+  if (referenceId) {
+    // Preferred path: the order's notes carry the exact bookingId (set at
+    // order-creation time), so there's no ambiguity about which booking this
+    // payment belongs to.
+    booking = await db.serviceBooking.findUnique({
+      where: { id: referenceId },
+      include: { restaurant: { select: { name: true, ownerId: true } } },
+    });
+    if (!booking) {
+      console.warn(`Webhook: SERVICE_BOOKING referenceId ${referenceId} not found`);
+      return;
+    }
+    if (booking.status !== "SLOT_SELECTED" && booking.status !== "PAYMENT_REJECTED") {
+      console.warn(`Webhook: SERVICE_BOOKING ${booking.id} is not payable (status: ${booking.status}), skipping`);
+      return;
+    }
+  } else {
+    // Fallback for orders created before referenceId notes existed: guess the
+    // most recent SLOT_SELECTED booking for this user. This is unsafe if the
+    // owner has more than one pending booking at once, so it's always
+    // amount-checked below before anything is marked verified.
+    if (!userId) {
+      console.warn("Webhook: SERVICE_BOOKING missing both referenceId and userId");
+      return;
+    }
+    booking = await db.serviceBooking.findFirst({
+      where: { restaurant: { ownerId: userId }, status: "SLOT_SELECTED" },
+      orderBy: { createdAt: "desc" },
+      include: { restaurant: { select: { name: true, ownerId: true } } },
+    });
+    if (!booking) {
+      console.warn(`Webhook: No SLOT_SELECTED booking found for user ${userId}`);
+      return;
+    }
   }
 
-  // Find the most recent SLOT_SELECTED booking for this user
-  const booking = await db.serviceBooking.findFirst({
-    where: {
-      restaurant: { ownerId: userId },
-      status: "SLOT_SELECTED",
-    },
-    orderBy: { createdAt: "desc" },
-    include: { restaurant: { select: { name: true, ownerId: true } } },
-  });
-
-  if (!booking) {
-    console.warn(`Webhook: No SLOT_SELECTED booking found for user ${userId}`);
+  // Never trust the lookup alone - confirm Razorpay actually captured the
+  // exact amount this booking expects before marking it paid. This is the
+  // last line of defense against crediting the wrong booking (most relevant
+  // for the fallback path above, but cheap insurance either way).
+  const expectedPaise = Math.round(booking.totalAmount * 100);
+  if (payment.amount !== expectedPaise) {
+    console.error(
+      `Webhook: SERVICE_BOOKING ${booking.id} amount mismatch - captured ₹${payment.amount / 100}, expected ₹${booking.totalAmount}. Not auto-verifying.`
+    );
+    await notifyAdminsOfUnprocessedPayment("SERVICE_BOOKING", paymentId, payment.amount);
     return;
   }
 
@@ -194,16 +239,20 @@ async function handleAMCPaymentWebhook(
     return;
   }
 
-  await db.aMCPayment.update({
-    where: { id: amcPayment.id },
-    data: {
-      status: "VERIFIED",
-      razorpayPaymentId: paymentId,
-      verifiedAt: new Date(),
-    },
-  });
-
-  console.log(`Webhook: AMC payment ${amcPayment.id} verified`);
+  try {
+    await activateAMCContract(amcPayment.id, {
+      paymentMethod: "RAZORPAY",
+      razorpay: {
+        orderId: razorpayOrderId,
+        paymentId,
+      },
+    });
+    console.log(`Webhook: AMC payment ${amcPayment.id} verified, contract activated`);
+  } catch (error) {
+    // Never throw from a webhook handler - log and let Razorpay's retry (or
+    // the sync verify path, if it eventually completes) resolve it instead.
+    console.error(`Webhook: failed to activate AMC contract for payment ${amcPayment.id}:`, error);
+  }
 }
 
 async function handleVendorCommissionWebhook(

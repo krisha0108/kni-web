@@ -5,6 +5,8 @@ import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/res
 import { z } from "zod";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 import { createNotification, createNotificationForRole } from "@/server/notifications/service";
+import { computeBookingTotal, computeCategorySubtotals } from "@/lib/booking-pricing";
+import { getEffectiveDiscount } from "@/server/pricing/discount";
 
 const itemSchema = z.object({
   itemType: z.enum(["SERVICE", "PART"]),
@@ -23,6 +25,13 @@ const createBookingSchema = z.object({
   tip: z.number().optional(),
   // Optional items array for direct booking (without cart)
   items: z.array(itemSchema).optional(),
+  // Only used for direct (non-cart) bookings - cart-based bookings read
+  // Cart.promoCode instead (set via PATCH /api/owner/cart/promo-code).
+  promoCode: z.string().trim().optional(),
+  // Owner's explicit pick from the /api/owner/effective-discount `candidates`
+  // list (offerId, "custom-rate", or null for "no discount"). Omit to keep
+  // auto-best-offer behavior.
+  offerId: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -59,7 +68,7 @@ export async function GET(request: NextRequest) {
           },
           paymentProof: true,
           engineerAssignments: {
-            include: { engineer: { select: { id: true, name: true } } },
+            include: { engineer: { select: { id: true, name: true, phone: true } } },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -95,7 +104,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { restaurantId, equipmentId, slotStartDateTime, slotEndDateTime, problemDescription, paymentScreenshotUrl, tip, items: directItems } = validation.data;
+    const { restaurantId, equipmentId, slotStartDateTime, slotEndDateTime, problemDescription, paymentScreenshotUrl, tip, items: directItems, promoCode: bodyPromoCode, offerId: selectedOfferId } = validation.data;
 
     // Check restaurant access with bookings:create permission
     await requireRestaurantAccess(session, restaurantId, "bookings:create");
@@ -136,13 +145,15 @@ export async function POST(request: NextRequest) {
     let totalAmount = 0;
     let cart: any = null;
 
+    const categoryAmounts: Array<{ categoryId: string; amount: number }> = [];
+
     if (directItems && directItems.length > 0) {
       // Direct item-based booking (from equipment request service)
       for (const item of directItems) {
         if (item.itemType === "SERVICE") {
           const serviceItem = await db.serviceItem.findUnique({
             where: { id: item.itemId },
-            select: { id: true, name: true, price: true },
+            select: { id: true, name: true, price: true, categoryId: true },
           });
           if (!serviceItem) {
             return NextResponse.json(
@@ -158,10 +169,11 @@ export async function POST(request: NextRequest) {
             priceSnapshot: item.priceSnapshot,
             itemName: serviceItem.name,
           });
+          categoryAmounts.push({ categoryId: serviceItem.categoryId, amount: item.priceSnapshot * item.qty });
         } else {
           const partItem = await db.partItem.findUnique({
             where: { id: item.itemId },
-            select: { id: true, name: true, price: true },
+            select: { id: true, name: true, price: true, categoryId: true },
           });
           if (!partItem) {
             return NextResponse.json(
@@ -177,6 +189,7 @@ export async function POST(request: NextRequest) {
             priceSnapshot: item.priceSnapshot,
             itemName: partItem.name,
           });
+          categoryAmounts.push({ categoryId: partItem.categoryId, amount: item.priceSnapshot * item.qty });
         }
         totalAmount += item.priceSnapshot * item.qty;
       }
@@ -188,8 +201,8 @@ export async function POST(request: NextRequest) {
         include: {
           items: {
             include: {
-              serviceItem: { select: { name: true } },
-              partItem: { select: { name: true } },
+              serviceItem: { select: { name: true, categoryId: true } },
+              partItem: { select: { name: true, categoryId: true } },
             },
           },
         },
@@ -202,8 +215,8 @@ export async function POST(request: NextRequest) {
           include: {
             items: {
               include: {
-                serviceItem: { select: { name: true } },
-                partItem: { select: { name: true } },
+                serviceItem: { select: { name: true, categoryId: true } },
+                partItem: { select: { name: true, categoryId: true } },
               },
             },
           },
@@ -234,6 +247,11 @@ export async function POST(request: NextRequest) {
         itemName: item.serviceItem?.name || item.partItem?.name,
       }));
 
+      for (const item of cart.items as any[]) {
+        const categoryId = item.serviceItem?.categoryId || item.partItem?.categoryId;
+        if (categoryId) categoryAmounts.push({ categoryId, amount: item.priceSnapshot * item.qty });
+      }
+
       totalAmount = cart.items.reduce((sum: number, item: any) => sum + item.priceSnapshot * item.qty, 0);
     }
 
@@ -247,64 +265,91 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Calculate GST (18%) and total with tip
-    const GST_RATE = 0.18;
-    const gstAmount = Math.round(totalAmount * GST_RATE);
-    const tipAmount = tip || 0;
-    const finalAmount = totalAmount + gstAmount + tipAmount;
-
     const ownerId = await getRestaurantOwnerId(restaurantId);
+    const tipAmount = tip || 0;
+    const categorySubtotals = computeCategorySubtotals(categoryAmounts);
+    const promoCode = bodyPromoCode || cart?.promoCode || undefined;
 
-    console.log("Creating booking with data:", {
+    // Discount resolution + redemption-cap check + booking create + redemption
+    // row all happen in one transaction, so a maxRedemptions/onePerOwner cap
+    // can't be raced past by two concurrent bookings.
+    const { booking, discountSource, discountAmount } = await db.$transaction(async (tx) => {
+      const discount = await getEffectiveDiscount(
+        { ownerId, restaurantId, totalAmount, categorySubtotals, promoCode, selectedOfferId },
+        tx
+      );
+
+      if (promoCode && discount.promoCodeError) {
+        throw Object.assign(new Error(discount.promoCodeError), { isClientError: true });
+      }
+
+      if (discount.selectedOfferInvalid) {
+        throw Object.assign(
+          new Error("The selected offer is no longer available. Please choose a different one."),
+          { isClientError: true }
+        );
+      }
+
+      const pricing = computeBookingTotal(totalAmount, discount.amount, tipAmount);
+
+      const booking = await tx.serviceBooking.create({
+        data: {
+          ownerId,
+          restaurantId,
+          equipmentId: equipmentId || null,
+          slotStartDateTime: new Date(slotStartDateTime),
+          slotEndDateTime: slotEndDateTime
+            ? new Date(slotEndDateTime)
+            : null,
+          status: paymentScreenshotUrl ? "PAYMENT_UPLOADED" : "SLOT_SELECTED",
+          totalAmount: Math.round(pricing.totalAmount),
+          discountPercent: pricing.discountPercent,
+          discountAmount: pricing.discountAmount,
+          discountSource: pricing.discountAmount > 0 ? discount.source : null,
+          gstAmount: pricing.gstAmount,
+          tipAmount: tipAmount,
+          problemDescription: problemDescription || null,
+          items: {
+            create: bookingItems.map((item) => ({
+              itemType: item.itemType,
+              serviceItemId: item.serviceItemId,
+              partItemId: item.partItemId,
+              qty: item.qty,
+              priceSnapshot: Math.round(item.priceSnapshot),
+            })),
+          },
+        },
+      });
+
+      if (discount.offerId) {
+        await tx.bookingOfferRedemption.create({
+          data: { offerId: discount.offerId, ownerId, bookingId: booking.id },
+        });
+      }
+
+      if (paymentScreenshotUrl) {
+        await tx.paymentProof.create({
+          data: {
+            bookingId: booking.id,
+            ownerId,
+            screenshotUrl: paymentScreenshotUrl,
+            status: "UPLOADED",
+          },
+        });
+      }
+
+      return { booking, discountSource: discount.source, discountAmount: pricing.discountAmount };
+    });
+
+    console.log("Created booking:", {
       ownerId,
       restaurantId,
       equipmentId: equipmentId || null,
-      totalAmount: Math.round(finalAmount),
+      totalAmount: booking.totalAmount,
       itemsCount: bookingItems.length,
-      bookingItems: bookingItems.map(i => ({
-        itemType: i.itemType,
-        serviceItemId: i.serviceItemId,
-        partItemId: i.partItemId
-      })),
+      discountAmount,
+      discountSource: discountAmount > 0 ? discountSource : null,
     });
-
-    const booking = await db.serviceBooking.create({
-      data: {
-        ownerId,
-        restaurantId,
-        equipmentId: equipmentId || null,
-        slotStartDateTime: new Date(slotStartDateTime),
-        slotEndDateTime: slotEndDateTime
-          ? new Date(slotEndDateTime)
-          : null,
-        status: paymentScreenshotUrl ? "PAYMENT_UPLOADED" : "SLOT_SELECTED",
-        totalAmount: Math.round(finalAmount),
-        gstAmount: gstAmount,
-        tipAmount: tipAmount,
-        problemDescription: problemDescription || null,
-        items: {
-          create: bookingItems.map((item) => ({
-            itemType: item.itemType,
-            serviceItemId: item.serviceItemId,
-            partItemId: item.partItemId,
-            qty: item.qty,
-            priceSnapshot: Math.round(item.priceSnapshot),
-          })),
-        },
-      },
-    });
-
-    // Create payment proof if screenshot provided
-    if (paymentScreenshotUrl) {
-      await db.paymentProof.create({
-        data: {
-          bookingId: booking.id,
-          ownerId,
-          screenshotUrl: paymentScreenshotUrl,
-          status: "UPLOADED",
-        },
-      });
-    }
 
     // Clear all carts for this owner after booking
     // Due to unique constraint [ownerId, restaurantId, status], we need to delete old carts first
@@ -344,7 +389,7 @@ export async function POST(request: NextRequest) {
       session.name,
       booking.id,
       restaurant.name,
-      finalAmount,
+      booking.totalAmount,
       items
     ).catch((error) => {
       console.error("Failed to send booking confirmation email:", error);
@@ -354,7 +399,7 @@ export async function POST(request: NextRequest) {
     createNotificationForRole(
       "ADMIN",
       "New Booking - Payment Pending",
-      `${session.name} created a booking for ${restaurant.name}. Amount: ₹${finalAmount.toLocaleString('en-IN')}`,
+      `${session.name} created a booking for ${restaurant.name}. Amount: ₹${booking.totalAmount.toLocaleString('en-IN')}`,
       "BOOKING",
       `/admin/bookings/${booking.id}`
     ).catch(console.error);
@@ -372,6 +417,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: booking });
   } catch (error) {
     console.error("Create booking error:", error);
+    if (error instanceof Error && "isClientError" in error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    }
     // Return more detailed error for debugging
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     const errorDetails = error instanceof Error && 'code' in error ? (error as Record<string, unknown>).code : undefined;

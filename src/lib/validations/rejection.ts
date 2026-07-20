@@ -36,6 +36,18 @@ export const cancellationReasonSchema = z
 export const optionalCancellationReasonSchema = cancellationReasonSchema.optional();
 
 /**
+ * Restaurant deletion request reason (owner-provided, same length rules as rejection)
+ */
+export const deletionReasonSchema = z
+  .string()
+  .min(10, 'Deletion reason must be at least 10 characters')
+  .max(500, 'Deletion reason must not exceed 500 characters')
+  .trim()
+  .refine((val) => val.length >= 10, {
+    message: 'Deletion reason cannot be empty or just whitespace',
+  });
+
+/**
  * Common rejection reason templates for quick selection
  */
 export const REJECTION_REASON_TEMPLATES = {

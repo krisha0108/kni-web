@@ -16,6 +16,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -37,7 +47,7 @@ interface SalaryRecord {
   deductions: number;
   totalPayable: number;
   totalPaid: number;
-  status: "PENDING" | "PARTIAL" | "PAID";
+  status: "PENDING" | "PARTIALLY_PAID" | "PAID";
   staff: {
     id: string;
     name: string;
@@ -53,13 +63,13 @@ const monthNames = [
 
 const statusColors: Record<string, "default" | "success" | "warning"> = {
   PENDING: "warning",
-  PARTIAL: "default",
+  PARTIALLY_PAID: "default",
   PAID: "success",
 };
 
 const statusLabels = {
   PENDING: "Pending",
-  PARTIAL: "Partially Paid",
+  PARTIALLY_PAID: "Partially Paid",
   PAID: "Paid",
 };
 
@@ -68,6 +78,8 @@ export default function StaffSalaryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false);
+  const [deleteRecordTarget, setDeleteRecordTarget] = useState<{ id: string; staffName: string } | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<SalaryRecord | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
@@ -129,11 +141,6 @@ export default function StaffSalaryPage() {
 
   const handleGenerateSalary = async () => {
     if (!selectedRestaurant) return;
-
-    const monthName = monthNames[parseInt(selectedMonth) - 1];
-    if (!confirm(`Generate salary for all active staff for ${monthName} ${selectedYear}?`)) {
-      return;
-    }
 
     setIsGenerating(true);
 
@@ -244,11 +251,7 @@ export default function StaffSalaryPage() {
     }
   };
 
-  const handleDeleteRecord = async (recordId: string, staffName: string) => {
-    if (!confirm(`Delete salary record for ${staffName}? This action cannot be undone.`)) {
-      return;
-    }
-
+  const handleDeleteRecord = async (recordId: string) => {
     try {
       const response = await fetch(`/api/owner/staff-salary/${recordId}`, {
         method: "DELETE",
@@ -348,7 +351,7 @@ export default function StaffSalaryPage() {
             </div>
             {canCreate && <div className="flex items-end">
               <Button
-                onClick={handleGenerateSalary}
+                onClick={() => setIsGenerateConfirmOpen(true)}
                 disabled={isGenerating || salaryRecords.length > 0}
                 className="w-full sm:w-auto"
               >
@@ -491,7 +494,7 @@ export default function StaffSalaryPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleDeleteRecord(record.id, record.staff.name)}
+                              onClick={() => setDeleteRecordTarget({ id: record.id, staffName: record.staff.name })}
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
@@ -587,6 +590,50 @@ export default function StaffSalaryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isGenerateConfirmOpen} onOpenChange={setIsGenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate Salary</AlertDialogTitle>
+            <AlertDialogDescription>
+              Generate salary for all active staff for {monthNames[parseInt(selectedMonth) - 1]} {selectedYear}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setIsGenerateConfirmOpen(false);
+                handleGenerateSalary();
+              }}
+            >
+              Generate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteRecordTarget} onOpenChange={(open) => !open && setDeleteRecordTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Salary Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete salary record for {deleteRecordTarget?.staffName}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteRecordTarget) handleDeleteRecord(deleteRecordTarget.id);
+                setDeleteRecordTarget(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

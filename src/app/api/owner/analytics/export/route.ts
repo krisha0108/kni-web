@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { db } from "@/server/db";
+import { generateAnalyticsReport } from "@/server/pdf/analytics-report-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -148,9 +149,14 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    return NextResponse.json({
-      ok: true,
-      data: analyticsData,
+    const pdfBuffer = await generateAnalyticsReport(analyticsData);
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="analytics-${restaurant.name.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf"`,
+        "Content-Length": pdfBuffer.length.toString(),
+      },
     });
   } catch (error) {
     console.error("Export analytics error:", error);

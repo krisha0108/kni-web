@@ -92,8 +92,48 @@ export default function SpendingReportsPage() {
   };
 
   const downloadReport = async () => {
+    if (!selectedRestaurant?.restaurantId) return;
     toast({ title: "Downloading", description: "Preparing your spending report..." });
-    // In production, this would call an API to generate PDF/CSV
+    try {
+      const year = new Date().getFullYear();
+      const response = await fetch(
+        `/api/owner/spending-reports/export?restaurantId=${selectedRestaurant.restaurantId}&year=${year}`
+      );
+      const result = await response.json();
+      if (!result.ok) {
+        toast({ title: "Error", description: result.error || "Failed to generate report", variant: "destructive" });
+        return;
+      }
+
+      const { restaurantName, period, summary, bookings } = result.data;
+      const rows = [
+        [`Spending Report - ${restaurantName}`],
+        [`Period: ${period}`],
+        [`Total Spent: ${summary.totalSpent}`, `Total Services: ${summary.totalServices}`],
+        [],
+        ["Date", "Status", "Equipment", "Amount"],
+        ...bookings.map((b: { date: string; status: string; equipment: string; amount: number }) => [
+          new Date(b.date).toLocaleDateString("en-IN"),
+          b.status,
+          b.equipment,
+          b.amount,
+        ]),
+      ];
+      const csv = rows.map((row) => row.map((cell: string | number) => `"${cell}"`).join(",")).join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `spending-report-${restaurantName}-${year}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download spending report error:", error);
+      toast({ title: "Error", description: "Failed to download report", variant: "destructive" });
+    }
   };
 
   const spendingChange = useMemo(() => {

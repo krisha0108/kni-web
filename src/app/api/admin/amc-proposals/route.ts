@@ -21,15 +21,13 @@ export async function POST(request: NextRequest) {
       resolutionTimeSLA,
       exclusions,
       sparePartsPolicy,
-      monthlyPrice,
-      quarterlyPrice,
-      annualPrice,
+      price,
       contractPeriod,
     } = body;
 
-    if (!requestId || !preventiveVisits || !monthlyPrice) {
+    if (!requestId || !preventiveVisits || !price) {
       return NextResponse.json(
-        { ok: false, error: "Request ID, preventive visits, and monthly price are required" },
+        { ok: false, error: "Request ID, preventive visits, and price are required" },
         { status: 400 }
       );
     }
@@ -64,9 +62,7 @@ export async function POST(request: NextRequest) {
         resolutionTimeSLA: resolutionTimeSLA || null,
         exclusions: exclusions || [],
         sparePartsPolicy: sparePartsPolicy || null,
-        monthlyPrice,
-        quarterlyPrice: quarterlyPrice || null,
-        annualPrice: annualPrice || null,
+        price,
         contractPeriod: contractPeriod || "1 YEAR",
         status: "DRAFT",
       },

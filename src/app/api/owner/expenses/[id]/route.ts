@@ -116,8 +116,8 @@ export async function PATCH(
   } catch (error) {
     console.error("Update expense error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -158,8 +158,8 @@ export async function DELETE(
   } catch (error) {
     console.error("Delete expense error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

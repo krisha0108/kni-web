@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         _sum: { totalAmount: true },
       }),
       db.vendorProduct.count({
-        where: { vendorId: session.id, isActive: true },
+        where: { vendorId: session.id, isActive: true, deletedAt: null },
       }),
       db.vendorLocationRequest.count({
         where: { vendorId: session.id, status: "APPROVED" },

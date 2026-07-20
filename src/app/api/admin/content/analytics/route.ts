@@ -19,26 +19,6 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Banner Analytics
-    const [totalBanners, publishedBanners, draftBanners, archivedBanners] = await Promise.all([
-      db.banner.count(),
-      db.banner.count({ where: { status: "PUBLISHED" } }),
-      db.banner.count({ where: { status: "DRAFT" } }),
-      db.banner.count({ where: { status: "ARCHIVED" } }),
-    ]);
-
-    const recentBanners = await db.banner.findMany({
-      where: { createdAt: { gte: startDate } },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-
     // Feed Analytics
     const [totalFeeds, activeFeeds] = await Promise.all([
       db.feed.count(),
@@ -137,11 +117,6 @@ export async function GET(request: NextRequest) {
 
     // Content creation trends (last 30 days)
     const contentTrends = await Promise.all([
-      db.banner.groupBy({
-        by: ["createdAt"],
-        _count: { id: true },
-        where: { createdAt: { gte: startDate } },
-      }),
       db.feed.groupBy({
         by: ["createdAt"],
         _count: { id: true },
@@ -163,12 +138,6 @@ export async function GET(request: NextRequest) {
       ok: true,
       data: {
         overview: {
-          banners: {
-            total: totalBanners,
-            published: publishedBanners,
-            draft: draftBanners,
-            archived: archivedBanners,
-          },
           feeds: {
             total: totalFeeds,
             active: activeFeeds,
@@ -196,7 +165,6 @@ export async function GET(request: NextRequest) {
           },
         },
         recent: {
-          banners: recentBanners,
           feeds: recentFeeds,
           guides: recentGuides,
         },
@@ -208,10 +176,9 @@ export async function GET(request: NextRequest) {
         },
         trends: {
           last30Days: {
-            banners: contentTrends[0].length,
-            feeds: contentTrends[1].length,
-            guides: contentTrends[2].length,
-            sponsored: contentTrends[3].length,
+            feeds: contentTrends[0].length,
+            guides: contentTrends[1].length,
+            sponsored: contentTrends[2].length,
           },
         },
       },

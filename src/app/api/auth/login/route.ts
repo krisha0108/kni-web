@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       where: { email },
       include: {
         vendorProfile: true,
+        ownerProfile: true,
         restaurants: {
           where: { status: "APPROVED" },
           take: 1,
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
             restaurant: { status: "APPROVED" },
           },
           take: 1,
+        },
+        vendorLocationRequests: {
+          where: { status: "APPROVED" },
+          take: 1,
+        },
+        _count: {
+          select: { restaurants: true },
         },
       },
     });
@@ -77,6 +85,30 @@ export async function POST(request: NextRequest) {
             error: "Email not verified. A new verification code has been sent to your email.",
             code: "EMAIL_NOT_VERIFIED",
             email: user.email,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Block login for owners whose registration is not approved yet
+    if (user.role === "OWNER" && user.ownerProfile) {
+      if (user.ownerProfile.approvalStatus === "PENDING") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration is pending admin approval. You'll be notified once it's reviewed.",
+            code: "OWNER_PENDING_APPROVAL",
+          },
+          { status: 403 }
+        );
+      }
+      if (user.ownerProfile.approvalStatus === "REJECTED") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration was rejected. Please contact support for more information.",
+            code: "OWNER_REJECTED",
           },
           { status: 403 }
         );
@@ -164,7 +196,10 @@ export async function POST(request: NextRequest) {
       isActive: user.isActive,
       vendorApprovalStatus: user.vendorProfile?.approvalStatus ?? null,
       vendorSubscriptionStatus: user.vendorProfile?.subscriptionStatus ?? null,
+      ownerApprovalStatus: user.ownerProfile?.approvalStatus ?? null,
       hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
+      hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
+      hasApprovedLocation: user.vendorLocationRequests.length > 0,
     };
 
     const redirectUrl = getRoleDashboardUrl(user.role, sessionData);

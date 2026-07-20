@@ -599,3 +599,18 @@ export async function sendOrderDeliveredSMS(
     purpose: "ORDER_DELIVERED",
   });
 }
+
+/**
+ * Send the same or personalized SMS to a list of recipients (e.g. recruitment CRM bulk actions)
+ */
+export async function sendBulkSMS(
+  recipients: { phone: string; message: string }[],
+  purpose?: string
+): Promise<{ phone: string; success: boolean }[]> {
+  return Promise.all(
+    recipients.map(async (r) => {
+      const result = await sendSMS({ phone: r.phone, message: r.message, purpose });
+      return { phone: r.phone, success: result.success };
+    })
+  );
+}

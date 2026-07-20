@@ -84,10 +84,12 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/me");
+      // /api/auth/me only returns the session shape (no phone) - fetch the
+      // full profile record instead, which is what actually has phone (same
+      // gotcha already worked around in /owner/profile/edit).
+      const response = await fetch("/api/owner/profile");
       const data = await response.json();
-      // API returns { ok: true, data: { user: ... } }
-      const user = data.data?.user || data.user;
+      const user = data.data;
       if (data.ok && user) {
         setProfile(user);
         setFormData({

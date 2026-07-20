@@ -82,9 +82,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Payment status check error:", error);
+    const message = error instanceof Error ? error.message : "Failed to check payment status";
+    const isAuthError = message.includes("Unauthorized") || message.includes("Forbidden");
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to check payment status" },
-      { status: 500 }
+      { ok: false, error: message },
+      { status: isAuthError ? 401 : 500 }
     );
   }
 }

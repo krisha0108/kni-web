@@ -34,17 +34,10 @@ export async function POST(
 
     const engProfile = await db.engineerProfile.findUnique({ where: { userId: session.id } });
 
-    if (assignment.status !== "ACCEPTED") {
+    // Also guards against double-completion, since status is "COMPLETED" once this endpoint has run.
+    if (assignment.status !== "ACCEPTED" && assignment.status !== "IN_PROGRESS") {
       return NextResponse.json(
-        { ok: false, error: "Job must be accepted to complete" },
-        { status: 400 }
-      );
-    }
-
-    // Check if already completed
-    if (assignment.workLog) {
-      return NextResponse.json(
-        { ok: false, error: "Job has already been completed" },
+        { ok: false, error: assignment.status === "COMPLETED" ? "Job has already been completed" : "Job must be accepted or in progress to complete" },
         { status: 400 }
       );
     }
@@ -86,11 +79,41 @@ export async function POST(
         where: { id: assignment.bookingId },
         data: { status: "COMPLETED" },
       }),
-      db.engineerWorkLog.create({
-        data: {
+      db.engineerWorkLog.upsert({
+        where: { assignmentId: id },
+        create: {
           assignmentId: id,
           completionNote: workNotes || "",
           proofImageUrls: proofImageUrls,
+        },
+        update: {
+          completionNote: workNotes || "",
+          proofImageUrls: proofImageUrls,
+        },
+      }),
+      // AUTO-SYNC: Create Expense entry (mirrors the web completion route)
+      db.expense.create({
+        data: {
+          ownerId: assignment.booking.ownerId,
+          restaurantId: assignment.booking.restaurantId,
+          category: "MAINTENANCE",
+          amount: assignment.booking.totalAmount,
+          expenseDate: new Date(),
+          description: `Equipment service completed - ${(workNotes || "").substring(0, 100)}`,
+        },
+      }),
+      // AUTO-SYNC: Create Cashbook entry (expense = cash out)
+      db.cashbookEntry.create({
+        data: {
+          ownerId: assignment.booking.ownerId,
+          restaurantId: assignment.booking.restaurantId,
+          entryDate: new Date(),
+          entryType: "CASH_OUT",
+          amount: assignment.booking.totalAmount,
+          paymentMode: "CASH",
+          description: `Equipment service payment - Booking #${assignment.booking.id.substring(0, 8)}`,
+          category: "MAINTENANCE",
+          createdBy: assignment.booking.ownerId,
         },
       }),
     ];

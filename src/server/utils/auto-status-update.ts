@@ -5,41 +5,6 @@ import { db } from "@/server/db";
  * Called automatically when fetching data to ensure statuses are always current
  */
 
-export async function autoUpdateBannerStatuses() {
-  const now = new Date();
-  let updated = { published: 0, archived: 0 };
-
-  try {
-    // Auto-publish banners that have reached their start date
-    const publishResult = await db.banner.updateMany({
-      where: {
-        status: "DRAFT",
-        startDate: { lte: now, not: null },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: now } },
-        ],
-      },
-      data: { status: "PUBLISHED" },
-    });
-    updated.published = publishResult.count;
-
-    // Auto-archive banners that have passed their end date
-    const archiveResult = await db.banner.updateMany({
-      where: {
-        status: "PUBLISHED",
-        endDate: { lt: now, not: null },
-      },
-      data: { status: "ARCHIVED" },
-    });
-    updated.archived = archiveResult.count;
-  } catch (error) {
-    console.error("Auto-update banner statuses error:", error);
-  }
-
-  return updated;
-}
-
 export async function autoUpdateSponsoredContentStatuses() {
   const now = new Date();
   let updated = { activated: 0, deactivated: 0 };
@@ -91,11 +56,10 @@ export async function autoUpdateSupportTicketStatuses() {
 }
 
 export async function autoUpdateAllStatuses() {
-  const [banners, sponsored, tickets] = await Promise.all([
-    autoUpdateBannerStatuses(),
+  const [sponsored, tickets] = await Promise.all([
     autoUpdateSponsoredContentStatuses(),
     autoUpdateSupportTicketStatuses(),
   ]);
 
-  return { banners, sponsored, tickets };
+  return { sponsored, tickets };
 }

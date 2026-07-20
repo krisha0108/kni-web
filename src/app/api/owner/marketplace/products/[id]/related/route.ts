@@ -90,8 +90,8 @@ export async function GET(
   } catch (error) {
     console.error("Get related products error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

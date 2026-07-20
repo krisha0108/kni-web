@@ -67,48 +67,58 @@ export default function OwnerDashboardPage() {
   const [period, setPeriod] = useState("30");
   const { selectedRestaurant } = useRestaurant();
 
+  // Aborts any in-flight fetch when the restaurant/period changes again or
+  // the component unmounts (e.g. the owner navigates away before these
+  // resolve) - without this, a cancelled fetch rejects with a "Failed to
+  // fetch" TypeError that got logged as a real error even though it's just
+  // the browser dropping a request nobody needs the result of anymore.
   useEffect(() => {
-    if (selectedRestaurant) {
-      fetchAnalytics();
-      fetchRevenueAnalytics();
-    }
+    if (!selectedRestaurant) return;
+    const controller = new AbortController();
+    fetchAnalytics(controller.signal);
+    fetchRevenueAnalytics(controller.signal);
+    return () => controller.abort();
   }, [selectedRestaurant, period]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (signal: AbortSignal) => {
     if (!selectedRestaurant) return;
 
     try {
       setIsLoading(true);
       const response = await fetch(
-        `/api/owner/analytics?restaurantId=${selectedRestaurant.restaurantId}&period=${period}`
+        `/api/owner/analytics?restaurantId=${selectedRestaurant.restaurantId}&period=${period}`,
+        { signal }
       );
       const data = await response.json();
       if (data.ok) {
         setAnalyticsData(data.data);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error("Failed to fetch analytics:", error);
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) setIsLoading(false);
     }
   };
 
-  const fetchRevenueAnalytics = async () => {
+  const fetchRevenueAnalytics = async (signal: AbortSignal) => {
     if (!selectedRestaurant) return;
 
     try {
       setIsRevenueLoading(true);
       const response = await fetch(
-        `/api/owner/analytics/revenue?restaurantId=${selectedRestaurant.restaurantId}&period=${period}`
+        `/api/owner/analytics/revenue?restaurantId=${selectedRestaurant.restaurantId}&period=${period}`,
+        { signal }
       );
       const data = await response.json();
       if (data.ok) {
         setRevenueData(data.data);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error("Failed to fetch revenue analytics:", error);
     } finally {
-      setIsRevenueLoading(false);
+      if (!signal.aborted) setIsRevenueLoading(false);
     }
   };
 

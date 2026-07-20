@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { db } from "@/server/db";
 import { v4 as uuidv4 } from "uuid";
-import type { User, Role, VendorApprovalStatus, VendorSubscriptionStatus, VendorRevenueModel } from "@prisma/client";
+import type { User, Role, VendorApprovalStatus, VendorSubscriptionStatus, VendorRevenueModel, OwnerApprovalStatus } from "@prisma/client";
 
 const SESSION_COOKIE_NAME = "kni_session";
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -17,7 +17,9 @@ export interface SessionUser {
   vendorRevenueModel?: VendorRevenueModel | null;
   vendorTrialEndsAt?: Date | null;
   vendorActiveUntil?: Date | null;
+  ownerApprovalStatus?: OwnerApprovalStatus | null;
   hasApprovedRestaurant?: boolean;
+  hasAnyRestaurant?: boolean;
   hasApprovedLocation?: boolean;
 }
 
@@ -59,6 +61,7 @@ export async function getSession(): Promise<SessionUser | null> {
       user: {
         include: {
           vendorProfile: true,
+          ownerProfile: true,
           restaurants: {
             where: { status: "APPROVED" },
             take: 1,
@@ -73,6 +76,9 @@ export async function getSession(): Promise<SessionUser | null> {
           vendorLocationRequests: {
             where: { status: "APPROVED" },
             take: 1,
+          },
+          _count: {
+            select: { restaurants: true },
           },
         },
       },
@@ -101,7 +107,9 @@ export async function getSession(): Promise<SessionUser | null> {
     vendorRevenueModel: session.user.vendorProfile?.revenueModel ?? null,
     vendorTrialEndsAt: session.user.vendorProfile?.trialEndsAt ?? null,
     vendorActiveUntil: session.user.vendorProfile?.activeUntil ?? null,
+    ownerApprovalStatus: session.user.ownerProfile?.approvalStatus ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
+    hasAnyRestaurant: session.user._count.restaurants > 0 || session.user.restaurantMemberships.length > 0,
     hasApprovedLocation: session.user.vendorLocationRequests.length > 0,
   };
 }

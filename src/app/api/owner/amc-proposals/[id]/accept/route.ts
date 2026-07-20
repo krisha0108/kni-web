@@ -41,14 +41,6 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Proposal cannot be accepted in current state" }, { status: 400 });
     }
 
-    // Determine payment amount (use annual > quarterly > monthly)
-    let paymentAmount = proposal.monthlyPrice;
-    if (proposal.annualPrice) {
-      paymentAmount = proposal.annualPrice;
-    } else if (proposal.quarterlyPrice) {
-      paymentAmount = proposal.quarterlyPrice;
-    }
-
     // Determine payment type
     const isRenewal = !!proposal.request.renewalOfContractId;
     const paymentType = isRenewal ? "RENEWAL" : "PROPOSAL";
@@ -75,7 +67,7 @@ export async function POST(
                 requestId: proposal.requestId,
                 ownerId,
                 paymentType,
-                amount: paymentAmount,
+                amount: proposal.price,
               },
             }),
           ]),

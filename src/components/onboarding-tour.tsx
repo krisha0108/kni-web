@@ -206,6 +206,11 @@ export function OnboardingTour() {
     });
   }, [isActive, step, targetRect]);
 
+  const completeTour = useCallback(() => {
+    localStorage.setItem(STORAGE_KEY, "true");
+    setIsActive(false);
+  }, []);
+
   // ESC key handler
   useEffect(() => {
     if (!isActive) return;
@@ -216,12 +221,7 @@ export function OnboardingTour() {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isActive]);
-
-  const completeTour = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, "true");
-    setIsActive(false);
-  }, []);
+  }, [isActive, completeTour]);
 
   const goNext = () => {
     if (currentStep < TOUR_STEPS.length - 1) {

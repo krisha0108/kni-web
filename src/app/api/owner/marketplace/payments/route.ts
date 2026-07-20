@@ -5,6 +5,7 @@ import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/res
 import { createNotification } from "@/server/notifications/service";
 import { MarketplacePaymentStatus } from "@prisma/client";
 import { z } from "zod";
+import { resolveNegotiatedPrice } from "@/lib/marketplace-pricing";
 
 const submitPaymentSchema = z.object({
   restaurantId: z.string().min(1, "Restaurant ID is required"),
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       .filter((p) => p.priceOnRequest && p.vendor.vendorProfile?.isSystemVendor)
       .map((p) => p.id);
 
-    let unlockMap = new Map<string, number>();
+    let unlockMap = new Map<string, { unlockedPrice: number | null; validUntil: Date | null; quantity: number | null }>();
     if (priceOnRequestIds.length > 0) {
       const unlocks = await db.priceUnlockRequest.findMany({
         where: {
@@ -100,17 +101,11 @@ export async function POST(request: NextRequest) {
           vendorProductId: { in: priceOnRequestIds },
           status: "UNLOCKED",
         },
-        select: { vendorProductId: true, unlockedPrice: true, validUntil: true },
+        select: { vendorProductId: true, unlockedPrice: true, validUntil: true, quantity: true },
       });
 
       for (const u of unlocks) {
-        if (u.validUntil && u.validUntil < new Date()) {
-          const pName = productMap.get(u.vendorProductId)?.product?.name || "product";
-          throw new Error(`Your price quote for "${pName}" has expired. Please request a new price.`);
-        }
-        if (u.unlockedPrice) {
-          unlockMap.set(u.vendorProductId, u.unlockedPrice);
-        }
+        unlockMap.set(u.vendorProductId, u);
       }
     }
 
@@ -127,11 +122,19 @@ export async function POST(request: NextRequest) {
       // Use unlocked price for price-on-request products
       let itemPrice = product.price;
       if (product.priceOnRequest && product.vendor.vendorProfile?.isSystemVendor) {
-        const unlockedPrice = unlockMap.get(product.id);
-        if (!unlockedPrice) {
-          throw new Error(`Price not unlocked for "${productName}". Please request a price first.`);
+        const unlock = unlockMap.get(product.id);
+        const resolved = resolveNegotiatedPrice(product, unlock ?? null);
+        if (!resolved.isNegotiated) {
+          throw new Error(
+            resolved.expired
+              ? `Your price quote for "${productName}" has expired. Please request a new price.`
+              : `Price not unlocked for "${productName}". Please request a price first.`
+          );
         }
-        itemPrice = unlockedPrice;
+        if (unlock?.quantity != null && item.qty > unlock.quantity) {
+          throw new Error(`Your negotiated price for "${productName}" is only valid for up to ${unlock.quantity} units`);
+        }
+        itemPrice = resolved.price;
       }
 
       totalAmount += itemPrice * item.qty;

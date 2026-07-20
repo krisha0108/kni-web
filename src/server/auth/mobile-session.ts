@@ -32,6 +32,7 @@ export async function getMobileSession(request?: NextRequest): Promise<SessionUs
       user: {
         include: {
           vendorProfile: true,
+          ownerProfile: true,
           restaurants: {
             where: { status: "APPROVED" },
             take: 1,
@@ -42,6 +43,9 @@ export async function getMobileSession(request?: NextRequest): Promise<SessionUs
               restaurant: { status: "APPROVED" },
             },
             take: 1,
+          },
+          _count: {
+            select: { restaurants: true },
           },
         },
       },
@@ -68,6 +72,8 @@ export async function getMobileSession(request?: NextRequest): Promise<SessionUs
     vendorApprovalStatus: session.user.vendorProfile?.approvalStatus ?? null,
     vendorSubscriptionStatus: session.user.vendorProfile?.subscriptionStatus ?? null,
     vendorRevenueModel: session.user.vendorProfile?.revenueModel ?? null,
+    ownerApprovalStatus: session.user.ownerProfile?.approvalStatus ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
+    hasAnyRestaurant: session.user._count.restaurants > 0 || session.user.restaurantMemberships.length > 0,
   };
 }

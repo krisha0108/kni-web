@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     // Test database connection
     const userCount = await db.user.count();
     const restaurantCount = await db.restaurant.count();
-    const bannerCount = await db.banner.count();
     const feedCount = await db.feed.count();
     const guideCount = await db.guide.count();
     const sponsoredCount = await db.sponsoredContent.count();
@@ -24,7 +23,6 @@ export async function GET(request: NextRequest) {
         counts: {
           users: userCount,
           restaurants: restaurantCount,
-          banners: bannerCount,
           feeds: feedCount,
           guides: guideCount,
           sponsored: sponsoredCount,
@@ -32,7 +30,6 @@ export async function GET(request: NextRequest) {
       },
       endpoints: {
         public: [
-          "GET /api/app_api/banners",
           "GET /api/app_api/feeds",
           "GET /api/app_api/guides",
           "GET /api/app_api/sponsored",

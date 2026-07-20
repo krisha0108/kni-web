@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
@@ -62,11 +63,12 @@ interface AMCRequestDetail {
     resolutionTimeSLA: string | null;
     exclusions: any;
     sparePartsPolicy: string | null;
-    monthlyPrice: number;
-    quarterlyPrice: number | null;
-    annualPrice: number | null;
+    price: number;
     contractPeriod: string;
     sentAt: string | null;
+    ownerCounterPrice: number | null;
+    ownerCounterMessage: string | null;
+    adminNote: string | null;
     contract?: {
       id: string;
       contractNumber: string;
@@ -149,6 +151,10 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
   const [rejectReason, setRejectReason] = useState("");
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [showCounter, setShowCounter] = useState(false);
+  const [counterPrice, setCounterPrice] = useState("");
+  const [counterMessage, setCounterMessage] = useState("");
+  const [isCountering, setIsCountering] = useState(false);
 
   // Payment states
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -291,6 +297,40 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
       toast({ title: "Error", description: "Failed to accept", variant: "destructive" });
     } finally {
       setIsAccepting(false);
+    }
+  };
+
+  const handleCounterProposal = async () => {
+    if (!request?.proposal || !counterPrice.trim()) {
+      toast({ title: "Error", description: "Please enter your proposed price", variant: "destructive" });
+      return;
+    }
+    const value = Number(counterPrice);
+    if (!value || value <= 0) {
+      toast({ title: "Error", description: "Enter a valid price", variant: "destructive" });
+      return;
+    }
+    setIsCountering(true);
+    try {
+      const res = await fetch(`/api/owner/amc-proposals/${request.proposal.id}/counter`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ counterPrice: value, message: counterMessage || undefined }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast({ title: "Counter-offer Sent", description: "Admin will review your proposed price." });
+        setShowCounter(false);
+        setCounterPrice("");
+        setCounterMessage("");
+        fetchRequest();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to send counter-offer", variant: "destructive" });
+    } finally {
+      setIsCountering(false);
     }
   };
 
@@ -539,6 +579,7 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
               </span>
               <Badge variant={
                 request.proposal.status === "SENT" ? "warning" :
+                request.proposal.status === "COUNTERED" ? "secondary" :
                 request.proposal.status === "ACCEPTED" ? "success" :
                 request.proposal.status === "REJECTED" ? "destructive" : "default"
               }>
@@ -550,23 +591,9 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
             {/* Pricing */}
             <div>
               <h4 className="font-semibold text-sm mb-2 flex items-center gap-1"><IndianRupee className="h-3.5 w-3.5" /> Pricing</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
-                  <p className="text-lg font-bold text-blue-700">{formatPrice(request.proposal.monthlyPrice)}</p>
-                  <p className="text-xs text-blue-600">Per Month</p>
-                </div>
-                {request.proposal.quarterlyPrice && (
-                  <div className="bg-green-50 rounded-lg p-3 text-center">
-                    <p className="text-lg font-bold text-green-700">{formatPrice(request.proposal.quarterlyPrice)}</p>
-                    <p className="text-xs text-green-600">Per Quarter</p>
-                  </div>
-                )}
-                {request.proposal.annualPrice && (
-                  <div className="bg-purple-50 rounded-lg p-3 text-center">
-                    <p className="text-lg font-bold text-purple-700">{formatPrice(request.proposal.annualPrice)}</p>
-                    <p className="text-xs text-purple-600">Per Year</p>
-                  </div>
-                )}
+              <div className="bg-blue-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-blue-700">{formatPrice(request.proposal.price)}</p>
+                <p className="text-xs text-blue-600">For {request.proposal.contractPeriod === "2 YEAR" ? "2 years" : "1 year"}</p>
               </div>
             </div>
 
@@ -632,17 +659,45 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
               </div>
             )}
 
-            {/* Accept / Reject Buttons */}
+            {request.proposal.adminNote && (
+              <div className="bg-blue-50 rounded-lg p-3 text-sm">
+                <span className="font-medium text-blue-800">Note from admin: </span>
+                <span className="text-blue-700">{request.proposal.adminNote}</span>
+              </div>
+            )}
+
+            {/* Accept / Reject / Negotiate Buttons */}
             {request.proposal.status === "SENT" && canCreate && (
-              <div className="flex gap-3 pt-4 border-t">
-                <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleAcceptProposal} disabled={isAccepting}>
-                  {isAccepting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                  Accept Proposal
+              <div className="space-y-2 pt-4 border-t">
+                <div className="flex gap-3">
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleAcceptProposal} disabled={isAccepting}>
+                    {isAccepting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                    Accept Proposal
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => setShowReject(true)} disabled={isAccepting}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject Proposal
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowCounter(true)}
+                  disabled={isAccepting}
+                >
+                  Found it cheaper? Negotiate Price
                 </Button>
-                <Button variant="destructive" className="flex-1" onClick={() => setShowReject(true)} disabled={isAccepting}>
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Reject Proposal
-                </Button>
+              </div>
+            )}
+
+            {request.proposal.status === "COUNTERED" && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 pt-4 mt-2 text-sm">
+                <p className="font-medium text-orange-800">
+                  You proposed {formatPrice(request.proposal.ownerCounterPrice)} — awaiting admin's response.
+                </p>
+                {request.proposal.ownerCounterMessage && (
+                  <p className="text-orange-700 mt-1">{request.proposal.ownerCounterMessage}</p>
+                )}
               </div>
             )}
 
@@ -788,6 +843,45 @@ export default function OwnerAMCRequestDetailPage({ params }: { params: Promise<
             <Button variant="destructive" onClick={handleRejectProposal} disabled={isRejecting}>
               {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
               Reject Proposal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Counter Proposal Dialog */}
+      <Dialog open={showCounter} onOpenChange={setShowCounter}>
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Negotiate Price</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Admin's price: {request?.proposal ? formatPrice(request.proposal.price) : ""}. Propose your own price below — admin will review and may send a revised proposal.
+            </p>
+            <div>
+              <Label>Your Proposed Price (₹) *</Label>
+              <Input
+                type="number"
+                value={counterPrice}
+                onChange={(e) => setCounterPrice(e.target.value)}
+                placeholder="e.g., 40000"
+              />
+            </div>
+            <div>
+              <Label>Message (optional)</Label>
+              <Textarea
+                value={counterMessage}
+                onChange={(e) => setCounterMessage(e.target.value)}
+                placeholder="e.g., found a similar AMC plan cheaper elsewhere"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCounter(false)} disabled={isCountering}>Cancel</Button>
+            <Button onClick={handleCounterProposal} disabled={isCountering}>
+              {isCountering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Send Offer
             </Button>
           </DialogFooter>
         </DialogContent>

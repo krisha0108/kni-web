@@ -88,12 +88,14 @@ export async function getRestaurantAccess(
   userId: string,
   restaurantId: string
 ): Promise<RestaurantAccess | null> {
-  // Check if user is the restaurant owner
+  // Check if user is the restaurant owner - ownership grants access regardless
+  // of approval status (PENDING/REJECTED restaurants still belong to their
+  // owner and must remain viewable/editable/deletable by them). Only team
+  // members are gated on the restaurant being APPROVED (see below).
   const restaurant = await db.restaurant.findFirst({
     where: {
       id: restaurantId,
       ownerId: userId,
-      status: "APPROVED",
     },
   });
 
@@ -155,6 +157,17 @@ export async function getUserRestaurants(
       city: true,
       pincode: true,
       restaurantImageUrl: true,
+      status: true,
+      createdAt: true,
+      fssaiNumber: true,
+      fssaiCertificateUrl: true,
+      outletType: true,
+      rejectionReason: true,
+      deletionRequests: {
+        where: { status: "PENDING" },
+        take: 1,
+        select: { id: true, reason: true, createdAt: true },
+      },
     },
   });
 
@@ -173,21 +186,39 @@ export async function getUserRestaurants(
           city: true,
           pincode: true,
           restaurantImageUrl: true,
+          status: true,
+          createdAt: true,
+          fssaiNumber: true,
+          fssaiCertificateUrl: true,
+          outletType: true,
+          rejectionReason: true,
+          deletionRequests: {
+            where: { status: "PENDING" },
+            take: 1,
+            select: { id: true, reason: true, createdAt: true },
+          },
         },
       },
     },
   });
 
+  const withPendingDeletion = <T extends { deletionRequests: { id: string; reason: string; createdAt: Date }[] }>(
+    r: T
+  ) => {
+    const { deletionRequests, ...rest } = r;
+    return { ...rest, pendingDeletionRequest: deletionRequests[0] ?? null };
+  };
+
   return [
     ...ownedRestaurants.map((r) => ({
       restaurantId: r.id,
       role: RestaurantRole.OWNER,
-      restaurant: r,
+      restaurant: withPendingDeletion(r),
     })),
     ...memberships.map((m) => ({
       restaurantId: m.restaurantId,
       role: m.role,
-      restaurant: m.restaurant,
+      restaurant: withPendingDeletion(m.restaurant),
     })),
   ];
 }
@@ -216,6 +247,15 @@ export async function requireRestaurantAccess(
   restaurantId: string,
   permission: Permission
 ): Promise<RestaurantAccess> {
+  const restaurantExists = await db.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { id: true },
+  });
+
+  if (!restaurantExists) {
+    throw new Error("Restaurant not found");
+  }
+
   const access = await getRestaurantAccess(session.id, restaurantId);
 
   if (!access) {

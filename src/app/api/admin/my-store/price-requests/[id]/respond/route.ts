@@ -72,6 +72,7 @@ export async function PATCH(
         data: {
           status: "UNLOCKED",
           unlockedPrice,
+          ownerCounterPrice: null,
           validUntil: validUntil ? new Date(validUntil) : null,
           adminNote: adminNote || null,
         },
@@ -95,6 +96,7 @@ export async function PATCH(
         where: { id },
         data: {
           status: "DECLINED",
+          ownerCounterPrice: null,
           adminNote: adminNote || null,
         },
       });

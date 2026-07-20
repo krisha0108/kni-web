@@ -12,6 +12,7 @@ const updateStaffSchema = z.object({
   status: z.enum(["ACTIVE", "ON_LEAVE", "RESIGNED", "TERMINATED"]).optional(),
   monthlySalary: z.number().positive().optional().nullable(),
   dailyWage: z.number().positive().optional().nullable(),
+  joiningDate: z.string().optional(),
 });
 
 // GET /api/owner/staff/[id] - Get single staff member
@@ -107,6 +108,7 @@ export async function PATCH(
     if (validated.dailyWage !== undefined) {
       updateData.dailyWage = validated.dailyWage || null;
     }
+    if (validated.joiningDate) updateData.joiningDate = new Date(validated.joiningDate);
 
     const staff = await db.staff.update({
       where: { id },
@@ -120,7 +122,7 @@ export async function PATCH(
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
-        { ok: false, error: error.errors[0].message },
+        { ok: false, error: error.issues[0].message },
         { status: 400 }
       );
     }

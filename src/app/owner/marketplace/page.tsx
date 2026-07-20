@@ -24,6 +24,7 @@ import {
   Store,
   Building2,
   Clock,
+  Tag,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
@@ -306,14 +307,29 @@ export default function OwnerMarketplacePage() {
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {product.priceOnRequest && !product.canPurchase ? (
+                  {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired && product.priceUnlock.unlockedPrice ? (
+                    // Negotiated price is unlocked — purchasing must go through the
+                    // advance+delivery split-payment flow in the detail dialog, not a
+                    // direct Add to Cart here.
+                    <>
+                      <span className="text-lg font-bold">{formatPrice(product.priceUnlock.unlockedPrice)}</span>
+                      {canCreate && (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(product);
+                            setIsProductDetailOpen(true);
+                          }}
+                        >
+                          Confirm Quote
+                        </Button>
+                      )}
+                    </>
+                  ) : product.priceOnRequest && !product.canPurchase ? (
                     <>
                       <div>
-                        {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired ? (
-                          <span className="text-lg font-bold">{formatPrice(product.priceUnlock.unlockedPrice)}</span>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">Price on Request</Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs">Price on Request</Badge>
                       </div>
                       {canCreate && (
                         <>
@@ -331,6 +347,8 @@ export default function OwnerMarketplacePage() {
                             </Button>
                           ) : product.priceUnlock.status === "PENDING" ? (
                             <Badge variant="secondary" className="text-xs">Requested</Badge>
+                          ) : product.priceUnlock.status === "COUNTERED" ? (
+                            <Badge variant="secondary" className="text-xs">Counter Sent</Badge>
                           ) : product.priceUnlock.status === "DECLINED" ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="destructive" className="text-xs">Declined</Badge>
@@ -366,52 +384,73 @@ export default function OwnerMarketplacePage() {
                       )}
                     </>
                   ) : (
-                    <>
-                      <span className="text-lg font-bold">
-                        {product.priceUnlock?.unlockedPrice
-                          ? formatPrice(product.priceUnlock.unlockedPrice)
-                          : formatPrice(product.price)}
-                      </span>
-                      {canCreate && (cartQty > 0 ? (
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-lg font-bold">{formatPrice(product.price)}</span>
+                        {canCreate && (cartQty > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateCartQuantity(product.id, -1);
+                              }}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center">{cartQty}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateCartQuantity(product.id, 1);
+                              }}
+                              disabled={cartQty >= product.stockQuantity}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              updateCartQuantity(product.id, -1);
+                              addToCart(product);
                             }}
+                            disabled={product.stockQuantity === 0}
                           >
-                            <Minus className="h-4 w-4" />
+                            Add to Cart
                           </Button>
-                          <span className="w-8 text-center">{cartQty}</span>
+                        ))}
+                      </div>
+                      {/* Negotiate entry point — KNI Official Store products only.
+                          Shown directly on the card so it's discoverable while
+                          browsing, not just inside the detail dialog. */}
+                      {canCreate && product.isAdminStore && (
+                        product.priceUnlock?.status === "PENDING" ? (
+                          <Badge variant="secondary" className="text-xs w-fit">Price negotiation requested</Badge>
+                        ) : product.priceUnlock?.status === "COUNTERED" ? (
+                          <Badge variant="secondary" className="text-xs w-fit">Counter-offer sent</Badge>
+                        ) : (
                           <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
+                            variant="ghost"
+                            className="h-auto p-0 text-xs text-blue-600 hover:text-blue-700 justify-start"
                             onClick={(e) => {
                               e.stopPropagation();
-                              updateCartQuantity(product.id, 1);
+                              setPriceRequestProduct(product);
+                              setIsPriceRequestOpen(true);
                             }}
-                            disabled={cartQty >= product.stockQuantity}
                           >
-                            <Plus className="h-4 w-4" />
+                            <Tag className="h-3 w-3 mr-1" /> Found it cheaper? Negotiate this price
                           </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(product);
-                          }}
-                          disabled={product.stockQuantity === 0}
-                        >
-                          Add to Cart
-                        </Button>
-                      ))}
-                    </>
+                        )
+                      )}
+                    </div>
                   )}
                 </CardFooter>
               </Card>
@@ -434,6 +473,9 @@ export default function OwnerMarketplacePage() {
           setIsProductDetailOpen(false);
           setPriceRequestProduct(product);
           setIsPriceRequestOpen(true);
+        }}
+        onCountered={() => {
+          fetchProducts();
         }}
       />
 

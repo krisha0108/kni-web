@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
-  purpose: z.enum(["EMAIL_VERIFICATION", "PASSWORD_RESET"]),
+  purpose: z.enum(["EMAIL_VERIFICATION", "PASSWORD_RESET", "CANDIDATE_VERIFICATION"]),
 });
 
 export async function POST(request: NextRequest) {

@@ -11,10 +11,13 @@ export interface Product {
   isAdminStore?: boolean;
   priceOnRequest?: boolean;
   priceUnlock?: {
+    id: string;
     status: string;
     unlockedPrice: number | null;
+    ownerCounterPrice: number | null;
     validUntil: string | null;
     isExpired: boolean;
+    quantity: number | null;
   } | null;
   canPurchase?: boolean;
 }

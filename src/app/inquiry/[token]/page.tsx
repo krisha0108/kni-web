@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 interface Thread {
   id: string;
@@ -35,6 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function CustomerPortalPage() {
   const params = useParams();
   const token = params.token as string;
+  const { toast } = useToast();
 
   const [inquiry, setInquiry] = useState<InquiryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,10 +102,10 @@ export default function CustomerPortalPage() {
           });
         }
       } else {
-        alert(data.error || "Failed to send reply");
+        toast({ title: "Error", description: data.error || "Failed to send reply", variant: "destructive" });
       }
     } catch {
-      alert("Failed to send reply. Please try again.");
+      toast({ title: "Error", description: "Failed to send reply. Please try again.", variant: "destructive" });
     } finally {
       setIsSending(false);
     }

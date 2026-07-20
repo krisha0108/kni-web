@@ -9,6 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@/components/client-only";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,6 +51,7 @@ export default function OwnerExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -50,6 +61,8 @@ export default function OwnerExpensesPage() {
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
@@ -97,6 +110,8 @@ export default function OwnerExpensesPage() {
         const pSize = data.data?.pageSize || 20;
         setExpenses(Array.isArray(items) ? items : []);
         setTotalPages(data.totalPages || Math.ceil(total / pSize) || 1);
+        setTotalAmount(data.data?.totalAmount ?? 0);
+        setTotalCount(total);
       } else {
         toast({
           title: "Error",
@@ -226,8 +241,6 @@ export default function OwnerExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this expense?")) return;
-
     try {
       const response = await fetch(`/api/owner/expenses/${id}`, {
         method: "DELETE",
@@ -257,7 +270,9 @@ export default function OwnerExpensesPage() {
   };
 
   const handleExport = () => {
+    if (!selectedRestaurant) return;
     const params = new URLSearchParams();
+    params.append("restaurantId", selectedRestaurant.restaurantId);
     if (categoryFilter !== "all") params.append("category", categoryFilter);
     if (startDate) params.append("startDate", new Date(startDate).toISOString());
     if (endDate) params.append("endDate", new Date(endDate).toISOString());
@@ -282,8 +297,6 @@ export default function OwnerExpensesPage() {
     setViewingExpense(expense);
     setIsViewOpen(true);
   };
-
-  const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const userRole = selectedRestaurant?.role;
   const canCreate = userRole === "OWNER" || userRole === "MANAGER" || userRole === "ACCOUNTANT";
@@ -417,7 +430,7 @@ export default function OwnerExpensesPage() {
         <CardContent>
           <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{formatPrice(totalAmount)}</div>
           <p className="text-sm text-muted-foreground mt-1">
-            Based on {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
+            Based on {totalCount} expense{totalCount !== 1 ? "s" : ""}
           </p>
         </CardContent>
       </Card>
@@ -532,7 +545,7 @@ export default function OwnerExpensesPage() {
                       {canDelete && <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(expense.id)}
+                        onClick={() => setDeleteId(expense.id)}
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -711,6 +724,28 @@ export default function OwnerExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this expense? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId) handleDelete(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

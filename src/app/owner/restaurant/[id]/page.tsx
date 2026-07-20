@@ -18,9 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, ArrowLeft, MapPin, Building2, FileText, Pencil, Trash2, Loader2, ShieldAlert } from "lucide-react";
 
 interface Restaurant {
   id: string;
@@ -36,6 +46,7 @@ interface Restaurant {
   rejectionReason: string | null;
   createdAt: string;
   userRole?: "OWNER" | "MANAGER" | "ACCOUNTANT" | "VIEWER";
+  pendingDeletionRequest?: { id: string; reason: string; createdAt: string } | null;
 }
 
 export default function RestaurantDetailPage({
@@ -48,31 +59,37 @@ export default function RestaurantDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRequestDeleteDialog, setShowRequestDeleteDialog] = useState(false);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
+  const [showCancelRequestDialog, setShowCancelRequestDialog] = useState(false);
+  const [isCancellingRequest, setIsCancellingRequest] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchRestaurant = async () => {
-      try {
-        const response = await fetch(`/api/owner/restaurants/${id}`);
-        const data = await response.json();
+  const fetchRestaurant = async () => {
+    try {
+      const response = await fetch(`/api/owner/restaurants/${id}`);
+      const data = await response.json();
 
-        if (data.ok) {
-          setRestaurant(data.data);
-        } else {
-          toast({ title: "Error", description: data.error, variant: "destructive" });
-          router.push("/owner/restaurants");
-        }
-      } catch {
-        toast({ title: "Error", description: "Failed to fetch restaurant", variant: "destructive" });
+      if (data.ok) {
+        setRestaurant(data.data);
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
         router.push("/owner/restaurants");
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch {
+      toast({ title: "Error", description: "Failed to fetch restaurant", variant: "destructive" });
+      router.push("/owner/restaurants");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRestaurant();
-  }, [id, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -93,6 +110,54 @@ export default function RestaurantDetailPage({
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (deletionReason.trim().length < 10) return;
+    setIsRequestingDeletion(true);
+    try {
+      const response = await fetch(`/api/owner/restaurants/${id}/deletion-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deletionReason }),
+      });
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({ title: "Request submitted", description: "An admin will review your deletion request." });
+        fetchRestaurant();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to submit deletion request", variant: "destructive" });
+    } finally {
+      setIsRequestingDeletion(false);
+      setShowRequestDeleteDialog(false);
+      setDeletionReason("");
+    }
+  };
+
+  const handleCancelDeletionRequest = async () => {
+    setIsCancellingRequest(true);
+    try {
+      const response = await fetch(`/api/owner/restaurants/${id}/deletion-request`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({ title: "Cancelled", description: "Your deletion request has been cancelled." });
+        fetchRestaurant();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to cancel deletion request", variant: "destructive" });
+    } finally {
+      setIsCancellingRequest(false);
+      setShowCancelRequestDialog(false);
     }
   };
 
@@ -133,8 +198,10 @@ export default function RestaurantDetailPage({
   const StatusIcon = config.icon;
 
   const isOwner = !restaurant.userRole || restaurant.userRole === "OWNER";
-  // Can only delete owned restaurants that are PENDING or REJECTED
+  // Can instantly delete owned restaurants that are PENDING or REJECTED (no real data yet)
   const canDelete = isOwner && (restaurant.status === "PENDING" || restaurant.status === "REJECTED");
+  // Approved restaurants can only be removed via an admin-approved deletion request
+  const canRequestDeletion = isOwner && restaurant.status === "APPROVED" && !restaurant.pendingDeletionRequest;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -162,6 +229,26 @@ export default function RestaurantDetailPage({
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
+            </Button>
+          )}
+          {canRequestDeletion && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowRequestDeleteDialog(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Request Deletion
+            </Button>
+          )}
+          {isOwner && restaurant.pendingDeletionRequest && (
+            <Button
+              variant="outline"
+              className="text-amber-600 border-amber-300 hover:bg-amber-50"
+              onClick={() => setShowCancelRequestDialog(true)}
+              disabled={isCancellingRequest}
+            >
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Cancel Deletion Request
             </Button>
           )}
         </div>
@@ -306,6 +393,34 @@ export default function RestaurantDetailPage({
             </Alert>
           )}
 
+          {restaurant.pendingDeletionRequest && (
+            <Alert className="border-amber-500">
+              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Deletion Requested</AlertTitle>
+              <AlertDescription>
+                You requested deletion of this restaurant on{" "}
+                {new Date(restaurant.pendingDeletionRequest.createdAt).toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+                . It will be permanently deleted once an admin approves the request.
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Reason: {restaurant.pendingDeletionRequest.reason}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-amber-700 border-amber-400 hover:bg-amber-100"
+                  onClick={() => setShowCancelRequestDialog(true)}
+                  disabled={isCancellingRequest}
+                >
+                  Cancel Request
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {restaurant.status === "REJECTED" && (
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
@@ -342,6 +457,77 @@ export default function RestaurantDetailPage({
                 </>
               ) : (
                 "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Request Deletion Dialog - approved restaurants require admin approval */}
+      <Dialog
+        open={showRequestDeleteDialog}
+        onOpenChange={(open) => { setShowRequestDeleteDialog(open); if (!open) setDeletionReason(""); }}
+      >
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Request Deletion</DialogTitle>
+            <DialogDescription>
+              &quot;{restaurant.name}&quot; is a live, approved restaurant. Deleting it requires admin
+              approval. Your request will only take effect once an admin reviews and approves it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for deletion</Label>
+              <Textarea
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder="Explain why this restaurant should be deleted (min 10 characters)..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRequestDeleteDialog(false)} disabled={isRequestingDeletion}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRequestDeletion}
+              disabled={isRequestingDeletion || deletionReason.trim().length < 10}
+            >
+              {isRequestingDeletion ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Request"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Deletion Request Confirmation */}
+      <AlertDialog open={showCancelRequestDialog} onOpenChange={setShowCancelRequestDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Deletion Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this deletion request? &quot;{restaurant.name}&quot; will remain
+              active as normal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancellingRequest}>No, keep request</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelDeletionRequest} disabled={isCancellingRequest}>
+              {isCancellingRequest ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                "Yes, cancel request"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

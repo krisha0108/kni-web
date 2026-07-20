@@ -20,6 +20,7 @@ interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
 }
 
 // Base email sender
@@ -40,6 +41,7 @@ async function sendEmail(options: EmailOptions): Promise<void> {
       subject: options.subject,
       html: options.html,
       text: options.text || options.html.replace(/<[^>]*>/g, ""),
+      attachments: options.attachments,
     });
     console.log(`Email sent successfully to ${options.to}`);
   } catch (error) {
@@ -573,7 +575,7 @@ export async function sendTeamInvitationEmail(
   isNewUser: boolean,
   tempPassword?: string
 ): Promise<void> {
-  const acceptUrl = `${APP_URL}/owner/team/accept?token=${inviteToken}`;
+  const acceptUrl = `${APP_URL}/team/accept?token=${inviteToken}`;
 
   const roleDescriptions: Record<string, string> = {
     MANAGER: "Full access to manage bookings, equipment, expenses, and AMC subscriptions",
@@ -809,6 +811,42 @@ export async function sendEmailVerificationCode(
     to: email,
     subject: `${code} - Email Verification Code | KNI Super App`,
     html: emailTemplate(content, "Email Verification"),
+  });
+}
+
+// 10b. Candidate Registration Email Verification Code
+export async function sendCandidateVerificationCode(
+  email: string,
+  name: string,
+  code: string
+): Promise<void> {
+  const content = `
+    <h2>Verify Your Email Address</h2>
+    <p>Hello ${name},</p>
+    <p>Thank you for applying to KNI Services. Please use the following verification code to verify your email address and continue your technician registration:</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <div style="display: inline-block; background: #f0f4ff; border: 2px dashed #EF3A3A; border-radius: 12px; padding: 20px 40px;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #EF3A3A;">${code}</span>
+      </div>
+    </div>
+
+    <div class="credentials">
+      <strong>Important:</strong>
+      <ul>
+        <li>This code is valid for <strong>10 minutes</strong></li>
+        <li>Do not share this code with anyone</li>
+        <li>If you didn't apply to KNI Services, please ignore this email</li>
+      </ul>
+    </div>
+
+    <p>Best regards,<br>KNI Services Recruitment Team</p>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: `${code} - Your KNI Services Verification Code`,
+    html: emailTemplate(content, "Verify Your Email"),
   });
 }
 
@@ -1372,6 +1410,45 @@ export async function sendMarketplacePaymentRejectedEmail(
   });
 }
 
+// Send the candidate's Digital Welcome Kit (PDF) after registration payment is verified
+export async function sendWelcomeKitEmail(
+  email: string,
+  name: string,
+  registrationId: string,
+  pdfBuffer: Buffer
+): Promise<void> {
+  const content = `
+    <h2>Welcome to KNI Services, ${name}!</h2>
+    <p>Congratulations on completing your registration. Your Technician ID is <strong>${registrationId}</strong>.</p>
+    <p>Your Digital Welcome Kit is attached to this email — please keep it for your records.</p>
+  `;
+  await sendEmail({
+    to: email,
+    subject: "Your KNI Services Digital Welcome Kit",
+    html: emailTemplate(content, "Welcome to KNI Services"),
+    attachments: [
+      { filename: `KNI-Welcome-Kit-${registrationId}.pdf`, content: pdfBuffer, contentType: "application/pdf" },
+    ],
+  });
+}
+
+// Send the same or personalized emails to a list of recipients (e.g. recruitment CRM bulk actions)
+export async function sendBulkEmail(
+  recipients: { email: string; subject: string; html: string; text?: string }[]
+): Promise<{ email: string; success: boolean }[]> {
+  return Promise.all(
+    recipients.map(async (r) => {
+      try {
+        await sendEmail({ to: r.email, subject: r.subject, html: emailTemplate(r.html, r.subject), text: r.text });
+        return { email: r.email, success: true };
+      } catch (error) {
+        console.error(`Bulk email failed for ${r.email}:`, error);
+        return { email: r.email, success: false };
+      }
+    })
+  );
+}
+
 export default {
   sendEngineerWelcomeEmail,
   sendBookingConfirmationEmail,
@@ -1383,6 +1460,7 @@ export default {
   sendTeamInvitationEmail,
   sendOrderStatusUpdateEmail,
   sendEmailVerificationCode,
+  sendCandidateVerificationCode,
   sendPasswordResetCode,
   sendLaunchPadResponseEmail,
   sendServicePinEmail,

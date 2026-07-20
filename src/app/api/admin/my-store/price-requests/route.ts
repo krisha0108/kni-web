@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    if (status && ["PENDING", "UNLOCKED", "DECLINED"].includes(status)) {
+    if (status && ["PENDING", "COUNTERED", "UNLOCKED", "DECLINED"].includes(status)) {
       where.status = status;
     }
 
@@ -69,15 +69,17 @@ export async function GET(request: NextRequest) {
       message: r.message,
       status: r.status,
       unlockedPrice: r.unlockedPrice,
+      ownerCounterPrice: r.ownerCounterPrice,
       validUntil: r.validUntil,
       adminNote: r.adminNote,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     }));
 
-    // Get pending count for badge
+    // Get pending count for badge (PENDING = new request, COUNTERED = owner
+    // countered and is waiting on admin again - both need admin action)
     const pendingCount = await db.priceUnlockRequest.count({
-      where: { status: "PENDING" },
+      where: { status: { in: ["PENDING", "COUNTERED"] } },
     });
 
     return NextResponse.json({

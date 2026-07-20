@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/register-owner", "/register-vendor", "/forgot-password", "/verify-email", "/", "/guide", "/launchpad", "/privacy-policy", "/terms", "/refund-policy", "/cancellation-policy", "/blog"];
+const PUBLIC_ROUTES = ["/login", "/register-owner", "/register-vendor", "/forgot-password", "/verify-email", "/", "/guide", "/launchpad", "/apply", "/pay", "/privacy-policy", "/terms", "/refund-policy", "/cancellation-policy", "/blog", "/team/accept", "/inquiry"];
 const API_ROUTES = ["/api"];
 
 const ROLE_ROUTES = {
@@ -22,8 +22,11 @@ const RATE_LIMITS: Record<string, { max: number; windowMs: number }> = {
   "/api/auth/register": { max: 5, windowMs: 60_000 },
   "/api/auth/send-otp": { max: 5, windowMs: 60_000 },
   "/api/auth/verify-otp": { max: 5, windowMs: 60_000 },
+  "/api/auth/send-email-code": { max: 5, windowMs: 60_000 },
+  "/api/public/candidate-verify-email": { max: 5, windowMs: 60_000 },
   "/api/support/tickets": { max: 10, windowMs: 60_000 },
   "/api/public/contact": { max: 5, windowMs: 60_000 },
+  "/api/public/candidate-registration": { max: 5, windowMs: 60_000 },
 };
 // Catch-all for upload endpoints
 const UPLOAD_RATE_LIMIT = { max: 20, windowMs: 60_000 };

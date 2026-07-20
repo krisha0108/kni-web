@@ -12,6 +12,7 @@ const NAV = [
   { label: "Blog", href: "/blog" },
   { label: "Owner Guide", href: "/guide/owner" },
   { label: "Launch Pad", href: "/launchpad" },
+  { label: "Careers", href: "/apply" },
   { label: "Contact", href: "/#contact" },
 ];
 

@@ -12,25 +12,12 @@ import {
   User,
   Mail,
   Phone,
-  Building2,
-  MapPin,
   Lock,
   Eye,
   EyeOff,
   Save,
   Loader2,
 } from "lucide-react";
-
-interface OwnerProfile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  name: string;
-  email: string;
-  phone: string;
-  restaurant_name: string;
-  locations: number;
-}
 
 export default function EditOwnerProfilePage() {
   const router = useRouter();
@@ -45,8 +32,6 @@ export default function EditOwnerProfilePage() {
     email: "",
     phone: "",
     password: "",
-    restaurantName: "",
-    locations: "0",
   });
 
   useEffect(() => {
@@ -56,26 +41,20 @@ export default function EditOwnerProfilePage() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/me");
+      // /api/auth/me only returns the session shape (no phone) - fetch the
+      // full profile record instead, which is what actually has phone/first_name/last_name.
+      const response = await fetch("/api/owner/profile");
       if (!response.ok) throw new Error("Failed to fetch");
 
       const data = await response.json();
-      // API returns { ok: true, data: { user: ... } }
-      const user = data.data?.user || data.user;
+      const user = data.data;
       if (data.ok && user) {
-        const fullName = user.name || "";
-        const nameParts = fullName.split(" ");
-        const firstName = user.first_name || nameParts[0] || "";
-        const lastName = user.last_name || nameParts.slice(1).join(" ") || "";
-
         setFormData({
-          firstName,
-          lastName,
+          firstName: user.first_name || "",
+          lastName: user.last_name || "",
           email: user.email || "",
           phone: user.phone || "",
           password: "",
-          restaurantName: user.restaurant_name || "",
-          locations: String(user.locations || user.stats?.hotels_count || 0),
         });
       }
     } catch (error) {
@@ -116,14 +95,12 @@ export default function EditOwnerProfilePage() {
 
     setIsSaving(true);
     try {
-      const payload: any = {
+      const payload: Record<string, string> = {
         first_name: formData.firstName,
         last_name: formData.lastName,
         name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         phone: formData.phone,
-        restaurant_name: formData.restaurantName || null,
-        locations: parseInt(formData.locations || "0", 10) || 0,
       };
 
       if (formData.password) {
@@ -278,36 +255,6 @@ export default function EditOwnerProfilePage() {
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Restaurant Name */}
-          <div className="space-y-2">
-            <Label htmlFor="restaurantName" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Restaurant Name
-            </Label>
-            <Input
-              id="restaurantName"
-              value={formData.restaurantName}
-              onChange={(e) => setFormData({ ...formData, restaurantName: e.target.value })}
-              placeholder="Enter restaurant name"
-            />
-          </div>
-
-          {/* Locations Count */}
-          <div className="space-y-2">
-            <Label htmlFor="locations" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Number of Locations
-            </Label>
-            <Input
-              id="locations"
-              type="number"
-              min="0"
-              value={formData.locations}
-              onChange={(e) => setFormData({ ...formData, locations: e.target.value })}
-              placeholder="e.g. 3"
-            />
           </div>
 
           {/* Save Button */}

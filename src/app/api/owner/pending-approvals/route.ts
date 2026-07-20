@@ -133,6 +133,33 @@ export async function GET(request: NextRequest) {
         });
       });
 
+      // Check for pending restaurant deletion requests (across accessible restaurants)
+      const pendingDeletions = await db.restaurantDeletionRequest.findMany({
+        where: {
+          restaurantId: restaurantId
+            ? restaurantId
+            : { in: accessibleRestaurantIds },
+          status: "PENDING",
+        },
+        select: {
+          id: true,
+          restaurantName: true,
+          createdAt: true,
+        },
+      });
+
+      pendingDeletions.forEach((del) => {
+        items.push({
+          id: `deletion-${del.id}`,
+          type: "RESTAURANT_DELETION",
+          title: "Restaurant Deletion Request",
+          description: `Your deletion request for '${del.restaurantName}' is awaiting admin approval`,
+          status: "PENDING",
+          createdAt: del.createdAt?.toISOString() || new Date().toISOString(),
+          metadata: { restaurantName: del.restaurantName },
+        });
+      });
+
       return NextResponse.json({ ok: true, data: items });
     } catch (dbError) {
       console.error("Database error in pending-approvals:", dbError);

@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Eye,
   MousePointerClick,
-  Image,
   MessageSquare,
   BookOpen,
   Megaphone,
@@ -28,7 +27,6 @@ import { formatDate } from "@/lib/utils";
 
 interface Analytics {
   overview: {
-    banners: { total: number; published: number; draft: number; archived: number };
     feeds: { total: number; active: number; inactive: number };
     guides: { total: number; active: number; inactive: number };
     sponsored: { total: number; active: number; expired: number };
@@ -50,7 +48,6 @@ interface Analytics {
     };
   };
   recent: {
-    banners: Array<any>;
     feeds: Array<any>;
     guides: Array<any>;
   };
@@ -59,7 +56,6 @@ interface Analytics {
   };
   trends: {
     last30Days: {
-      banners: number;
       feeds: number;
       guides: number;
       sponsored: number;
@@ -134,21 +130,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Banners</CardTitle>
-            <Image className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.banners.total}</div>
-            <div className="flex gap-2 mt-2 text-xs">
-              <Badge variant="default">{analytics.overview.banners.published} Published</Badge>
-              <Badge variant="secondary">{analytics.overview.banners.draft} Draft</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Feeds</CardTitle>
@@ -308,11 +290,7 @@ export default function AnalyticsPage() {
           <CardDescription>New content created in the last month</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Banners</span>
-              <span className="text-2xl font-bold">{analytics.trends.last30Days.banners}</span>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="flex flex-col">
               <span className="text-sm text-muted-foreground">Feeds</span>
               <span className="text-2xl font-bold">{analytics.trends.last30Days.feeds}</span>

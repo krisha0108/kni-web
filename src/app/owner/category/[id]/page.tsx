@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Wrench, Tag, Plus, ArrowLeft } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import Link from "next/link";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface ServiceItem {
   id: string;
@@ -48,6 +49,7 @@ export default function OwnerCategoryDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [addingItem, setAddingItem] = useState<string | null>(null);
   const { toast } = useToast();
+  const { selectedRestaurant } = useRestaurant();
 
   useEffect(() => {
     fetchCategory();
@@ -79,6 +81,10 @@ export default function OwnerCategoryDetailPage() {
   };
 
   const handleAddToCart = async (itemType: "SERVICE" | "PART", itemId: string, itemName: string) => {
+    if (!selectedRestaurant) {
+      toast({ title: "Error", description: "Select a restaurant first", variant: "destructive" });
+      return;
+    }
     setAddingItem(itemId);
     try {
       const response = await fetch("/api/owner/cart", {
@@ -88,6 +94,7 @@ export default function OwnerCategoryDetailPage() {
           itemType,
           [itemType === "SERVICE" ? "serviceItemId" : "partItemId"]: itemId,
           qty: 1,
+          restaurantId: selectedRestaurant.restaurantId,
         }),
       });
       const data = await response.json();

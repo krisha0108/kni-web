@@ -5,6 +5,7 @@ import { z } from "zod";
 import { MarketplaceOrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { cancellationReasonSchema } from "@/lib/validations/rejection";
+import { maybeCreateFinalMarketplacePayment, maybeRefundAdvanceOnCancel } from "@/server/marketplace/final-payment";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -191,6 +192,16 @@ export async function PATCH(
       );
     } catch (emailError) {
       console.error("Failed to send status update email:", emailError);
+    }
+
+    if (newStatus === "DELIVERED") {
+      maybeCreateFinalMarketplacePayment(orderId).catch((error) =>
+        console.error("Failed to create final marketplace payment:", error)
+      );
+    } else if (newStatus === "CANCELLED") {
+      maybeRefundAdvanceOnCancel(orderId).catch((error) =>
+        console.error("Failed to refund advance on cancel:", error)
+      );
     }
 
     return NextResponse.json({

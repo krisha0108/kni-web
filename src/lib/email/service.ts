@@ -73,7 +73,7 @@ export async function sendTeamInvitationEmail(params: {
     tempPassword,
   } = params;
 
-  const acceptUrl = `${APP_URL}/owner/team/accept?token=${inviteToken}`;
+  const acceptUrl = `${APP_URL}/team/accept?token=${inviteToken}`;
 
   const subject = `Invitation to join ${restaurantName} team on KNI Super App`;
 

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2, ShoppingCart, ArrowRight, Minus, Plus, Wrench, Package, Grid3X3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Category {
   id: string;
@@ -62,11 +63,13 @@ export default function OwnerCartPage() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant } = useRestaurant();
 
   const fetchCart = async () => {
+    if (!selectedRestaurant) return;
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/cart");
+      const response = await fetch(`/api/owner/cart?restaurantId=${selectedRestaurant.restaurantId}`);
       const data = await response.json();
       if (data.ok) {
         setCart(data.data);
@@ -84,7 +87,7 @@ export default function OwnerCartPage() {
 
   useEffect(() => {
     fetchCart();
-  }, []);
+  }, [selectedRestaurant]);
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;

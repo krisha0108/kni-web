@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     const month = request.nextUrl.searchParams.get("month");
     const year = request.nextUrl.searchParams.get("year");
     const status = request.nextUrl.searchParams.get("status");
+    const page = parseInt(request.nextUrl.searchParams.get("page") || "0");
+    const pageSize = parseInt(request.nextUrl.searchParams.get("pageSize") || "20");
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -48,28 +50,33 @@ export async function GET(request: NextRequest) {
     if (year) { const y = parseInt(year, 10); if (!isNaN(y)) where.year = y; }
     if (status) where.status = status;
 
-    const salaryRecords = await db.staffSalary.findMany({
-      where,
-      include: {
-        staff: {
-          select: {
-            id: true,
-            name: true,
-            designation: true,
-            staffType: true,
+    const [salaryRecords, total] = await Promise.all([
+      db.staffSalary.findMany({
+        where,
+        include: {
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              designation: true,
+              staffType: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { year: "desc" },
-        { month: "desc" },
-        { createdAt: "desc" },
-      ],
-    });
+        orderBy: [
+          { year: "desc" },
+          { month: "desc" },
+          { createdAt: "desc" },
+        ],
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      db.staffSalary.count({ where }),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: salaryRecords,
+      data: page > 0 ? { items: salaryRecords, total } : salaryRecords,
+      total,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -161,7 +168,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
-        { ok: false, error: error.errors[0].message },
+        { ok: false, error: error.issues[0].message },
         { status: 400 }
       );
     }

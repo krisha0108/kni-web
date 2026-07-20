@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
       where: { email },
       data: { emailVerified: true },
       include: {
+        ownerProfile: true,
+        vendorProfile: true,
         restaurants: {
           where: { status: "APPROVED" },
           take: 1,
@@ -54,8 +56,34 @@ export async function POST(request: NextRequest) {
           },
           take: 1,
         },
+        vendorLocationRequests: {
+          where: { status: "APPROVED" },
+          take: 1,
+        },
+        _count: {
+          select: { restaurants: true },
+        },
       },
     });
+
+    // Owners whose registration is still pending/rejected don't get a session yet —
+    // they're sent to the approval-status page instead of being logged in.
+    if (user.role === "OWNER" && user.ownerProfile && user.ownerProfile.approvalStatus !== "APPROVED") {
+      return NextResponse.json({
+        ok: true,
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+          requiresApproval: true,
+          ownerApprovalStatus: user.ownerProfile.approvalStatus,
+          redirectUrl: "/register-owner/success",
+        },
+      });
+    }
 
     // Create session (user gets logged in after verification)
     const token = await createSession(user.id);
@@ -66,7 +94,12 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      ownerApprovalStatus: user.ownerProfile?.approvalStatus ?? null,
+      vendorApprovalStatus: user.vendorProfile?.approvalStatus ?? null,
+      vendorSubscriptionStatus: user.vendorProfile?.subscriptionStatus ?? null,
       hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
+      hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
+      hasApprovedLocation: user.vendorLocationRequests.length > 0,
     };
 
     const redirectUrl = getRoleDashboardUrl(user.role, sessionData);
@@ -83,6 +116,7 @@ export async function POST(request: NextRequest) {
         token,
         restaurants: user.restaurants,
         hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
+        hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
         redirectUrl,
       },
     });

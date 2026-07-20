@@ -42,7 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Lock } from "lucide-react";
 import { ClientOnly } from "@/components/client-only";
 
 interface TeamMember {
@@ -67,6 +67,7 @@ export default function TeamManagementPage() {
   const { selectedRestaurant } = useRestaurant();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -92,6 +93,7 @@ export default function TeamManagementPage() {
 
     try {
       setIsLoading(true);
+      setLoadError(null);
       const response = await fetch(
         `/api/owner/team?restaurantId=${selectedRestaurant.restaurantId}&page=${page}&pageSize=20`
       );
@@ -102,6 +104,9 @@ export default function TeamManagementPage() {
         const total = data.data?.total || 0;
         setMembers(Array.isArray(items) ? items : []);
         setTotalPages(Math.ceil(total / 20) || 1);
+      } else {
+        setMembers([]);
+        setLoadError(data.error || "You don't have permission to view this restaurant's team.");
       }
     } catch (error) {
       toast({
@@ -239,6 +244,14 @@ export default function TeamManagementPage() {
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Loading...</p>
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg text-muted-foreground">Can&apos;t view team</p>
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+          </CardContent>
+        </Card>
       ) : members.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">

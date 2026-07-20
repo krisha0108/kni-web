@@ -15,6 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { Calendar, CheckCircle, XCircle, Clock, Coffee } from "lucide-react";
@@ -73,6 +83,7 @@ export default function StaffAttendancePage() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [bulkMarkStatus, setBulkMarkStatus] = useState<"PRESENT" | "ABSENT" | "WEEKLY_OFF" | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendanceForm, setAttendanceForm] = useState<AttendanceFormData>({});
   const [page, setPage] = useState(1);
@@ -225,7 +236,6 @@ export default function StaffAttendancePage() {
 
   const handleBulkMark = async (status: "PRESENT" | "ABSENT" | "WEEKLY_OFF") => {
     if (!selectedRestaurant) return;
-    if (!confirm(`Mark all staff as ${attendanceStatusLabels[status]}?`)) return;
 
     setIsSaving(true);
     let successCount = 0;
@@ -324,7 +334,7 @@ export default function StaffAttendancePage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleBulkMark("PRESENT")}
+                onClick={() => setBulkMarkStatus("PRESENT")}
                 disabled={isSaving || attendance.length === staff.length}
               >
                 <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
@@ -333,7 +343,7 @@ export default function StaffAttendancePage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleBulkMark("WEEKLY_OFF")}
+                onClick={() => setBulkMarkStatus("WEEKLY_OFF")}
                 disabled={isSaving || attendance.length === staff.length}
               >
                 <Coffee className="mr-2 h-4 w-4" />
@@ -502,6 +512,29 @@ export default function StaffAttendancePage() {
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
         </div>
       )}
+
+      <AlertDialog open={!!bulkMarkStatus} onOpenChange={(open) => !open && setBulkMarkStatus(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Mark Attendance</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mark all staff as {bulkMarkStatus ? attendanceStatusLabels[bulkMarkStatus] : ""}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const status = bulkMarkStatus;
+                setBulkMarkStatus(null);
+                if (status) handleBulkMark(status);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

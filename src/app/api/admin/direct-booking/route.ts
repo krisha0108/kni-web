@@ -8,6 +8,8 @@ import {
   createNotificationForRole,
 } from "@/server/notifications/service";
 import { sendSMS } from "@/server/sms/service";
+import { computeBookingTotal, computeCategorySubtotals } from "@/lib/booking-pricing";
+import { getEffectiveDiscount } from "@/server/pricing/discount";
 
 // --- Zod Schema ---
 const directBookingSchema = z
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest) {
             role: "OWNER",
             isActive: true,
             emailVerified: true,
-            ownerProfile: { create: {} },
+            ownerProfile: { create: { approvalStatus: "APPROVED", approvedAt: new Date() } },
           },
         });
         ownerId = owner.id;
@@ -252,6 +254,7 @@ export async function POST(req: NextRequest) {
         qty: number;
         priceSnapshot: number;
       }[] = [];
+      const categoryAmounts: Array<{ categoryId: string; amount: number }> = [];
 
       for (const item of data.items) {
         let priceSnapshot: number;
@@ -264,6 +267,7 @@ export async function POST(req: NextRequest) {
             throw new Error(`Service item not found or inactive: ${item.serviceItemId}`);
           }
           priceSnapshot = serviceItem.price;
+          categoryAmounts.push({ categoryId: serviceItem.categoryId, amount: priceSnapshot * item.qty });
         } else {
           const partItem = await tx.partItem.findUnique({
             where: { id: item.partItemId! },
@@ -272,6 +276,7 @@ export async function POST(req: NextRequest) {
             throw new Error(`Part item not found or inactive: ${item.partItemId}`);
           }
           priceSnapshot = partItem.price;
+          categoryAmounts.push({ categoryId: partItem.categoryId, amount: priceSnapshot * item.qty });
         }
 
         itemTotal += priceSnapshot * item.qty;
@@ -284,8 +289,12 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const gstAmount = Math.round(itemTotal * 0.18);
-      const totalAmount = itemTotal + gstAmount;
+      const discount = await getEffectiveDiscount(
+        { ownerId, restaurantId, totalAmount: itemTotal, categorySubtotals: computeCategorySubtotals(categoryAmounts) },
+        tx
+      );
+      const { source: discountSource } = discount;
+      const pricing = computeBookingTotal(itemTotal, discount.amount, 0);
 
       // Step 5: Create ServiceBooking
       const booking = await tx.serviceBooking.create({
@@ -296,8 +305,11 @@ export async function POST(req: NextRequest) {
           slotStartDateTime: new Date(data.slotStartDateTime),
           slotEndDateTime: new Date(data.slotEndDateTime),
           status: "PAYMENT_VERIFIED",
-          totalAmount,
-          gstAmount,
+          totalAmount: pricing.totalAmount,
+          discountPercent: pricing.discountPercent,
+          discountAmount: pricing.discountAmount,
+          discountSource: pricing.discountAmount > 0 ? discountSource : null,
+          gstAmount: pricing.gstAmount,
           tipAmount: 0,
           problemDescription: data.problemDescription || null,
           isDirectBooking: true,
@@ -314,6 +326,12 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      if (discount.offerId) {
+        await tx.bookingOfferRedemption.create({
+          data: { offerId: discount.offerId, ownerId, bookingId: booking.id },
+        });
+      }
 
       // Step 6: Create PaymentProof (required for booking detail page to work)
       await tx.paymentProof.create({
@@ -332,8 +350,10 @@ export async function POST(req: NextRequest) {
         ownerId,
         restaurantId,
         equipmentId,
-        totalAmount,
-        gstAmount,
+        totalAmount: pricing.totalAmount,
+        discountPercent: pricing.discountPercent,
+        discountAmount: pricing.discountAmount,
+        gstAmount: pricing.gstAmount,
         itemTotal,
       };
     });

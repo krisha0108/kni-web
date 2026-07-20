@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
+import { getEffectiveDiscount } from "@/server/pricing/discount";
+import { computeCategorySubtotals } from "@/lib/booking-pricing";
 import { z } from "zod";
 
 const addItemSchema = z.object({
@@ -8,15 +10,30 @@ const addItemSchema = z.object({
   serviceItemId: z.string().optional(),
   partItemId: z.string().optional(),
   qty: z.number().int().positive(),
+  restaurantId: z.string().optional(),
 });
+
+/**
+ * Resolves which restaurant a cart operation applies to. Prefers the
+ * caller-supplied restaurantId (validated to belong to this owner and be
+ * approved) so an owner with multiple restaurants doesn't silently have
+ * their cart/discount operate on the wrong one. Falls back to "first
+ * approved restaurant" only for legacy callers that don't pass one yet.
+ */
+async function resolveOwnerRestaurant(ownerId: string, requestedRestaurantId?: string | null) {
+  if (requestedRestaurantId) {
+    return db.restaurant.findFirst({
+      where: { id: requestedRestaurantId, ownerId, status: "APPROVED" },
+    });
+  }
+  return db.restaurant.findFirst({ where: { ownerId, status: "APPROVED" } });
+}
 
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
-
-    const restaurant = await db.restaurant.findFirst({
-      where: { ownerId: session.id, status: "APPROVED" },
-    });
+    const requestedRestaurantId = request.nextUrl.searchParams.get("restaurantId");
+    const restaurant = await resolveOwnerRestaurant(session.id, requestedRestaurantId);
 
     if (!restaurant) {
       return NextResponse.json(
@@ -60,7 +77,33 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ok: true, data: cart });
+    const totalAmount = cart.items.reduce((sum, item) => sum + item.priceSnapshot * item.qty, 0);
+    const categorySubtotals = computeCategorySubtotals(
+      cart.items.map((item) => ({
+        categoryId: (item.serviceItem?.category.id || item.partItem?.category.id)!,
+        amount: item.priceSnapshot * item.qty,
+      }))
+    );
+
+    const { percent: discountPercent, amount: discountAmount, source: discountSource, promoCodeError, promoCodeOutbidBy } = await getEffectiveDiscount({
+      ownerId: session.id,
+      restaurantId: restaurant.id,
+      totalAmount,
+      categorySubtotals,
+      promoCode: cart.promoCode || undefined,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        ...cart,
+        discountPercent,
+        discountAmount,
+        discountSource: discountAmount > 0 ? discountSource : null,
+        promoCodeError: promoCodeError || null,
+        promoCodeOutbidBy: promoCodeOutbidBy || null,
+      },
+    });
   } catch (error) {
     console.error("Get cart error:", error);
     return NextResponse.json(
@@ -84,11 +127,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { itemType, serviceItemId, partItemId, qty } = validation.data;
+    const { itemType, serviceItemId, partItemId, qty, restaurantId } = validation.data;
 
-    const restaurant = await db.restaurant.findFirst({
-      where: { ownerId: session.id, status: "APPROVED" },
-    });
+    const restaurant = await resolveOwnerRestaurant(session.id, restaurantId);
 
     if (!restaurant) {
       return NextResponse.json(
@@ -167,12 +208,11 @@ export async function DELETE(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const itemId = searchParams.get("itemId");
     const clearAll = searchParams.get("clearAll");
+    const requestedRestaurantId = searchParams.get("restaurantId");
 
     // Clear all cart items
     if (clearAll === "true") {
-      const restaurant = await db.restaurant.findFirst({
-        where: { ownerId: session.id, status: "APPROVED" },
-      });
+      const restaurant = await resolveOwnerRestaurant(session.id, requestedRestaurantId);
 
       if (!restaurant) {
         return NextResponse.json({ ok: false, error: "No approved restaurant" }, { status: 400 });

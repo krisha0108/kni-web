@@ -21,6 +21,12 @@ export async function GET(
       include: {
         owner: { select: { id: true, name: true, email: true, phone: true } },
         restaurant: { select: { id: true, name: true, city: true, address: true } },
+        survey: {
+          include: { engineer: { select: { name: true, phone: true } } },
+        },
+        proposal: {
+          include: { contract: { select: { id: true, contractNumber: true, status: true } } },
+        },
       },
     });
 

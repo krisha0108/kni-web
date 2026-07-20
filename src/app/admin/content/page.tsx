@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Image, MessageSquare, BookOpen, Megaphone, BarChart3, Sparkles, Clock } from "lucide-react";
+import { ArrowRight, Gift, MessageSquare, BookOpen, Megaphone, BarChart3, Sparkles, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default function ContentManagementPage() {
@@ -11,35 +11,35 @@ export default function ContentManagementPage() {
       <div className="mb-8">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Mobile App Content Management</h1>
         <p className="text-muted-foreground mt-1">
-          Manage banners, feeds, guides, and sponsored content for your mobile applications
+          Manage offers, feeds, guides, and sponsored content for your mobile applications
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Banners */}
+        {/* Offers */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <Image className="h-8 w-8 text-primary" />
+              <Gift className="h-8 w-8 text-primary" />
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/content/banners">
+                <Link href="/admin/content/offers">
                   Manage
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
-            <CardTitle>Banners</CardTitle>
+            <CardTitle>Offers</CardTitle>
             <CardDescription>
-              Hero banners for mobile app home screen carousel
+              Real discount campaigns shown with an image on the app/web home screen
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              <li>• Publish/Draft/Archive status</li>
+              <li>• Auto-applies a % discount to bookings</li>
+              <li>• Optional category scoping &amp; promo codes</li>
               <li>• Auto-scheduling with start/end dates</li>
               <li>• Custom sort order</li>
               <li>• Image upload support</li>
-              <li>• Bulk operations</li>
             </ul>
           </CardContent>
         </Card>

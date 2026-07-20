@@ -83,15 +83,28 @@ export async function GET(request: NextRequest) {
     // Get product details for top products
     const topProductDetails = await Promise.all(
       topProducts.map(async (item) => {
-        const product = await db.vendorProduct.findUnique({
+        const vendorProduct = await db.vendorProduct.findUnique({
           where: { id: item.vendorProductId },
           select: {
             id: true,
             name: true,
             price: true,
             unit: true,
+            product: { select: { name: true, unit: true } },
           },
         });
+
+        // VendorProduct.name/unit are legacy fields left null for products
+        // added via the current master-catalog flow — resolve the real
+        // name/unit from the linked MarketplaceProduct first.
+        const product = vendorProduct
+          ? {
+              id: vendorProduct.id,
+              name: vendorProduct.product?.name || vendorProduct.name || "Unknown",
+              price: vendorProduct.price,
+              unit: vendorProduct.product?.unit || vendorProduct.unit || "units",
+            }
+          : null;
 
         const orderItems = await db.marketplaceOrderItem.findMany({
           where: {

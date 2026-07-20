@@ -4,9 +4,9 @@ import { requireVendorMobile } from "@/server/auth/rbac";
 import { z } from "zod";
 
 const updateSchema = z.object({
-  paymentQrCodeUrl: z.string().optional(),
-  paymentUpiId: z.string().optional(),
-  paymentAccountName: z.string().optional(),
+  paymentQrCodeUrl: z.string().nullable().optional(),
+  paymentUpiId: z.string().nullable().optional(),
+  paymentAccountName: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {

@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Log recently viewed error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Get recently viewed error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

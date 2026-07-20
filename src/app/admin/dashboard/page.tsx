@@ -12,22 +12,29 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Aborted if the admin navigates away before this resolves - without this,
+  // a cancelled fetch rejects with a "Failed to fetch" TypeError that gets
+  // logged as a real error even though it's just the browser dropping a
+  // request nobody needs the result of anymore.
   useEffect(() => {
-    fetchDashboardData();
+    const controller = new AbortController();
+    fetchDashboardData(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (signal: AbortSignal) => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/dashboard');
+      const response = await fetch('/api/admin/dashboard', { signal });
       const data = await response.json();
       if (data.ok) {
         setStats(data.data);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error('Failed to fetch dashboard data:', error);
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) setIsLoading(false);
     }
   };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
+import { assertRestaurantDeletable, RestaurantNotDeletableError } from "@/server/restaurants/deletion";
 import { z } from "zod";
 
 // Helper to validate image URLs (accepts full URLs or relative paths like /uploads/...)
@@ -14,10 +15,15 @@ const updateRestaurantSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
   address: z.string().min(5, "Address must be at least 5 characters").optional(),
   city: z.string().min(2, "City must be at least 2 characters").optional(),
-  pincode: z.string().min(6, "Pincode must be 6 digits").max(6, "Pincode must be 6 digits").optional(),
+  // The edit form always sends every field (populated from the current
+  // record, defaulting missing values to ""), so an optional field whose
+  // saved value is empty/null must accept "" too - otherwise re-submitting
+  // the form to change an unrelated field (e.g. address) fails validation
+  // on a field the user never touched.
+  pincode: z.string().min(6, "Pincode must be 6 digits").max(6, "Pincode must be 6 digits").optional().or(z.literal("")),
   outletType: z.string().optional().or(z.literal("")),
   restaurantImageUrl: imageUrlSchema.optional().or(z.literal("")),
-  fssaiNumber: z.string().min(14, "FSSAI number must be 14 digits").max(14, "FSSAI number must be 14 digits").optional(),
+  fssaiNumber: z.string().min(14, "FSSAI number must be 14 digits").max(14, "FSSAI number must be 14 digits").optional().or(z.literal("")),
   fssaiCertificateUrl: imageUrlSchema.optional().or(z.literal("")),
 });
 
@@ -38,6 +44,11 @@ export async function GET(
         categories: {
           include: { category: { select: { id: true, name: true } } },
         },
+        deletionRequests: {
+          where: { status: "PENDING" },
+          take: 1,
+          select: { id: true, reason: true, createdAt: true },
+        },
       },
     });
 
@@ -48,12 +59,20 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ ok: true, data: { ...restaurant, userRole: access.role } });
+    const { deletionRequests, ...restaurantFields } = restaurant;
+    return NextResponse.json({
+      ok: true,
+      data: {
+        ...restaurantFields,
+        userRole: access.role,
+        pendingDeletionRequest: deletionRequests[0] ?? null,
+      },
+    });
   } catch (error) {
     console.error("Get restaurant error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : error instanceof Error && error.message.includes("not found") ? 404 : 500 }
     );
   }
 }
@@ -107,6 +126,14 @@ export async function PATCH(
       updateData.outletType = validation.data.outletType || null;
     }
 
+    // Editing a rejected restaurant resubmits it for admin review, rather than
+    // leaving it stuck REJECTED forever with no path back into the queue.
+    const existing = await db.restaurant.findUnique({ where: { id }, select: { status: true } });
+    if (existing?.status === "REJECTED") {
+      updateData.status = "PENDING";
+      updateData.rejectionReason = null;
+    }
+
     const updatedRestaurant = await db.restaurant.update({
       where: { id },
       data: updateData,
@@ -117,7 +144,7 @@ export async function PATCH(
     console.error("Update restaurant error:", error);
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : error instanceof Error && error.message.includes("not found") ? 404 : 500 }
     );
   }
 }
@@ -133,51 +160,28 @@ export async function DELETE(
 
     await requireRestaurantAccess(session, id, "restaurant:delete");
 
-    // Check for active bookings (not completed or cancelled)
-    const activeBookings = await db.serviceBooking.count({
-      where: {
-        restaurantId: id,
-        status: {
-          notIn: ["COMPLETED", "CANCELLED"],
-        },
-      },
-    });
+    const restaurant = await db.restaurant.findUnique({ where: { id } });
+    if (!restaurant) {
+      return NextResponse.json({ ok: false, error: "Restaurant not found" }, { status: 404 });
+    }
 
-    if (activeBookings > 0) {
+    // Approved (live) restaurants carry real business data - they can only be
+    // deleted through the admin-approved deletion-request flow.
+    if (restaurant.status === "APPROVED") {
       return NextResponse.json(
         {
           ok: false,
-          error: `Cannot delete restaurant with ${activeBookings} active booking(s). Please complete or cancel all bookings first.`
+          error: "Approved restaurants require admin approval to delete. Submit a deletion request instead.",
+          code: "RESTAURANT_DELETE_REQUIRES_APPROVAL",
         },
         { status: 400 }
       );
     }
 
-    // Check for active marketplace orders
-    const activeOrders = await db.marketplaceOrder.count({
-      where: {
-        restaurantId: id,
-        status: {
-          notIn: ["DELIVERED", "CANCELLED"],
-        },
-      },
-    });
+    await assertRestaurantDeletable(id);
 
-    if (activeOrders > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Cannot delete restaurant with ${activeOrders} active order(s). Please wait for orders to be delivered or cancel them first.`
-        },
-        { status: 400 }
-      );
-    }
-
-    // Soft delete by updating status to REJECTED with a deletion reason
-    // Or we can add a deletedAt field - for now, we'll just delete the restaurant
-    // Since the schema doesn't have deletedAt on Restaurant, we'll do a hard delete
-    // but this cascades to related records due to Prisma's onDelete settings
-
+    // Restaurant has no deletedAt field - hard delete, cascades to related
+    // records via Prisma's onDelete settings.
     await db.restaurant.delete({
       where: { id },
     });
@@ -188,9 +192,12 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Delete restaurant error:", error);
+    if (error instanceof RestaurantNotDeletableError) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : error instanceof Error && error.message.includes("not found") ? 404 : 500 }
     );
   }
 }

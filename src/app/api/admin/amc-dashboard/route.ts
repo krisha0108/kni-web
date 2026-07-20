@@ -21,12 +21,16 @@ export async function GET() {
 
     const activeContracts = contracts.filter((c) => c.status === "ACTIVE");
 
-    // Monthly revenue estimate (active contracts * amount per cycle)
+    // Monthly revenue estimate (each contract's total amount spread evenly
+    // across its contract period, in months)
     const monthlyRevenue = activeContracts.reduce((sum, c) => {
-      if (c.billingCycle === "MONTHLY") return sum + c.amountPerCycle;
-      if (c.billingCycle === "QUARTERLY") return sum + Math.round(c.amountPerCycle / 3);
-      if (c.billingCycle === "ANNUAL") return sum + Math.round(c.amountPerCycle / 12);
-      return sum;
+      const months = Math.max(
+        1,
+        Math.round(
+          (new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30)
+        )
+      );
+      return sum + Math.round(c.amount / months);
     }, 0);
 
     // Expiring in 30 days

@@ -7,6 +7,7 @@ import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { cancellationReasonSchema } from "@/lib/validations/rejection";
 import { calculateCommission } from "@/lib/commission";
 import { createNotification } from "@/server/notifications/service";
+import { maybeCreateFinalMarketplacePayment, maybeRefundAdvanceOnCancel } from "@/server/marketplace/final-payment";
 
 const updateStatusSchema = z.object({
   status: z.enum([
@@ -235,6 +236,9 @@ export async function PATCH(
         linkUrl: "/owner/marketplace/orders",
         data: { type: "order", orderId: orderId },
       }).catch(console.error);
+      maybeCreateFinalMarketplacePayment(orderId).catch((error) =>
+        console.error("Failed to create final marketplace payment:", error)
+      );
     } else if (newStatus === "CONFIRMED") {
       createNotification({
         userId: result.ownerId,
@@ -253,6 +257,10 @@ export async function PATCH(
         linkUrl: "/owner/marketplace/orders",
         data: { type: "order", orderId: orderId },
       }).catch(console.error);
+    } else if (newStatus === "CANCELLED") {
+      maybeRefundAdvanceOnCancel(orderId).catch((error) =>
+        console.error("Failed to refund advance on cancel:", error)
+      );
     }
 
     return NextResponse.json({

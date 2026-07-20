@@ -22,14 +22,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [vendorError, setVendorError] = useState<{ code: string; message: string } | null>(null);
+  const [approvalError, setApprovalError] = useState<{ code: string; message: string } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setVendorError(null);
+    setApprovalError(null);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -41,9 +41,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!data.ok) {
-        // Check for vendor-specific errors
-        if (data.code === "VENDOR_PENDING_APPROVAL" || data.code === "VENDOR_REJECTED") {
-          setVendorError({ code: data.code, message: data.error });
+        // Check for vendor/owner approval-gate errors
+        if (
+          data.code === "VENDOR_PENDING_APPROVAL" ||
+          data.code === "VENDOR_REJECTED" ||
+          data.code === "OWNER_PENDING_APPROVAL" ||
+          data.code === "OWNER_REJECTED"
+        ) {
+          setApprovalError({ code: data.code, message: data.error });
           return;
         }
 
@@ -93,16 +98,16 @@ export default function LoginPage() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          {vendorError && (
+          {approvalError && (
             <div
               className={`rounded-lg p-4 ${
-                vendorError.code === "VENDOR_PENDING_APPROVAL"
+                approvalError.code.endsWith("_PENDING_APPROVAL")
                   ? "bg-amber-50 border border-amber-200"
                   : "bg-red-50 border border-red-200"
               }`}
             >
               <div className="flex items-start gap-3">
-                {vendorError.code === "VENDOR_PENDING_APPROVAL" ? (
+                {approvalError.code.endsWith("_PENDING_APPROVAL") ? (
                   <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 ) : (
                   <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
@@ -110,23 +115,23 @@ export default function LoginPage() {
                 <div>
                   <h3
                     className={`font-medium ${
-                      vendorError.code === "VENDOR_PENDING_APPROVAL"
+                      approvalError.code.endsWith("_PENDING_APPROVAL")
                         ? "text-amber-800"
                         : "text-red-800"
                     }`}
                   >
-                    {vendorError.code === "VENDOR_PENDING_APPROVAL"
+                    {approvalError.code.endsWith("_PENDING_APPROVAL")
                       ? "Pending Approval"
                       : "Account Rejected"}
                   </h3>
                   <p
                     className={`text-sm mt-1 ${
-                      vendorError.code === "VENDOR_PENDING_APPROVAL"
+                      approvalError.code.endsWith("_PENDING_APPROVAL")
                         ? "text-amber-700"
                         : "text-red-700"
                     }`}
                   >
-                    {vendorError.message}
+                    {approvalError.message}
                   </p>
                 </div>
               </div>

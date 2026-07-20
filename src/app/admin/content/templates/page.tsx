@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Plus, Sparkles } from "lucide-react";
+import { FileText, Plus, Sparkles, Gift } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Template {
@@ -17,7 +17,7 @@ interface Template {
 }
 
 interface Templates {
-  banner: Template[];
+  offer: Template[];
   feed: Template[];
   guide: Template[];
   sponsored: Template[];
@@ -56,8 +56,8 @@ export default function TemplatesPage() {
     try {
       let endpoint = "";
       switch (type) {
-        case "banner":
-          endpoint = "/api/admin/banners";
+        case "offer":
+          endpoint = "/api/admin/booking-offers";
           break;
         case "feed":
           endpoint = "/api/admin/feeds";
@@ -85,8 +85,8 @@ export default function TemplatesPage() {
 
         // Redirect to the appropriate management page
         switch (type) {
-          case "banner":
-            router.push("/admin/content/banners");
+          case "offer":
+            router.push("/admin/content/offers");
             break;
           case "feed":
             router.push("/admin/content/feeds");
@@ -146,22 +146,22 @@ export default function TemplatesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="banner" className="space-y-4">
+      <Tabs defaultValue="offer" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="banner">Banners ({templates.banner.length})</TabsTrigger>
+          <TabsTrigger value="offer">Offers ({templates.offer.length})</TabsTrigger>
           <TabsTrigger value="feed">Feeds ({templates.feed.length})</TabsTrigger>
           <TabsTrigger value="guide">Guides ({templates.guide.length})</TabsTrigger>
           <TabsTrigger value="sponsored">Sponsored ({templates.sponsored.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="banner">
+        <TabsContent value="offer">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.banner.map((template) => (
+            {templates.offer.map((template) => (
               <Card key={template.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <Badge variant="outline">Banner</Badge>
+                    <Gift className="h-5 w-5 text-muted-foreground" />
+                    <Badge variant="outline">Offer</Badge>
                   </div>
                   <CardTitle className="text-lg">{template.name}</CardTitle>
                   <CardDescription>{template.description}</CardDescription>
@@ -169,21 +169,20 @@ export default function TemplatesPage() {
                 <CardContent>
                   <div className="space-y-2 mb-4">
                     <div className="text-sm">
-                      <span className="font-medium">Title:</span> {template.data.title}
+                      <span className="font-medium">{template.data.discountPercent}% off</span>
+                      {template.data.description && (
+                        <span className="text-muted-foreground"> — {template.data.description}</span>
+                      )}
                     </div>
-                    {template.data.description && (
-                      <div className="text-sm text-muted-foreground">
-                        {template.data.description}
-                      </div>
-                    )}
                     <div className="flex gap-2">
-                      <Badge variant="secondary">Order: {template.data.sortOrder}</Badge>
-                      <Badge variant="outline">{template.data.status}</Badge>
+                      <Badge variant="secondary">
+                        {template.data.type === "FIRST_BOOKING" ? "First Booking" : "Promotional"}
+                      </Badge>
                     </div>
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => useTemplate("banner", template)}
+                    onClick={() => useTemplate("offer", template)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Use Template

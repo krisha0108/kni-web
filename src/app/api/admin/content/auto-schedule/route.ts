@@ -29,46 +29,6 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     let actionsLog: string[] = [];
 
-    // Auto-publish banners that have reached their start date
-    const bannersToPublish = await db.banner.findMany({
-      where: {
-        status: "DRAFT",
-        startDate: { lte: now, not: null },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: now } },
-        ],
-      },
-    });
-
-    if (bannersToPublish.length > 0) {
-      await db.banner.updateMany({
-        where: {
-          id: { in: bannersToPublish.map((b) => b.id) },
-        },
-        data: { status: "PUBLISHED" },
-      });
-      actionsLog.push(`Auto-published ${bannersToPublish.length} banners`);
-    }
-
-    // Auto-archive banners that have passed their end date
-    const bannersToArchive = await db.banner.findMany({
-      where: {
-        status: "PUBLISHED",
-        endDate: { lt: now, not: null },
-      },
-    });
-
-    if (bannersToArchive.length > 0) {
-      await db.banner.updateMany({
-        where: {
-          id: { in: bannersToArchive.map((b) => b.id) },
-        },
-        data: { status: "ARCHIVED" },
-      });
-      actionsLog.push(`Auto-archived ${bannersToArchive.length} banners`);
-    }
-
     // Auto-deactivate sponsored content that has expired
     const sponsoredToDeactivate = await db.sponsoredContent.findMany({
       where: {
@@ -112,8 +72,6 @@ export async function POST(request: NextRequest) {
       timestamp: now.toISOString(),
       actions: actionsLog,
       summary: {
-        bannersPublished: bannersToPublish.length,
-        bannersArchived: bannersToArchive.length,
         sponsoredActivated: sponsoredToActivate.length,
         sponsoredDeactivated: sponsoredToDeactivate.length,
       },
@@ -135,23 +93,8 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date();
 
-    const [bannersToPublish, bannersToArchive, sponsoredToActivate, sponsoredToDeactivate] =
+    const [sponsoredToActivate, sponsoredToDeactivate] =
       await Promise.all([
-        db.banner.findMany({
-          where: {
-            status: "DRAFT",
-            startDate: { lte: now, not: null },
-            OR: [{ endDate: null }, { endDate: { gte: now } }],
-          },
-          select: { id: true, title: true, startDate: true },
-        }),
-        db.banner.findMany({
-          where: {
-            status: "PUBLISHED",
-            endDate: { lt: now, not: null },
-          },
-          select: { id: true, title: true, endDate: true },
-        }),
         db.sponsoredContent.findMany({
           where: {
             isActive: false,
@@ -172,14 +115,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       preview: {
-        bannersToPublish,
-        bannersToArchive,
         sponsoredToActivate,
         sponsoredToDeactivate,
       },
       counts: {
-        bannersToPublish: bannersToPublish.length,
-        bannersToArchive: bannersToArchive.length,
         sponsoredToActivate: sponsoredToActivate.length,
         sponsoredToDeactivate: sponsoredToDeactivate.length,
       },

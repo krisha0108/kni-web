@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [expenses, total] = await Promise.all([
+    const [expenses, total, totalAmountAgg] = await Promise.all([
       db.expense.findMany({
         where,
         include: {
@@ -60,11 +60,12 @@ export async function GET(request: NextRequest) {
         take: pageSize,
       }),
       db.expense.count({ where }),
+      db.expense.aggregate({ where, _sum: { amount: true } }),
     ]);
 
     return NextResponse.json({
       ok: true,
-      data: { expenses, total, page, pageSize },
+      data: { expenses, total, totalAmount: totalAmountAgg._sum.amount || 0, page, pageSize },
     });
   } catch (error) {
     console.error("Get expenses error:", error);
@@ -133,8 +134,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create expense error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

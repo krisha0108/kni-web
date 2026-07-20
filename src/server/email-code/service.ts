@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { EmailCodePurpose } from "@prisma/client";
-import { sendEmailVerificationCode, sendPasswordResetCode } from "@/lib/email";
+import { sendEmailVerificationCode, sendCandidateVerificationCode, sendPasswordResetCode } from "@/lib/email";
 
 const CODE_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 3;
@@ -55,6 +55,8 @@ export async function generateAndSendEmailCode({
     const name = userName || email.split("@")[0];
     if (purpose === "EMAIL_VERIFICATION") {
       await sendEmailVerificationCode(email, name, code);
+    } else if (purpose === "CANDIDATE_VERIFICATION") {
+      await sendCandidateVerificationCode(email, name, code);
     } else {
       await sendPasswordResetCode(email, name, code);
     }

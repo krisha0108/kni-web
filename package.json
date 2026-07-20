@@ -38,6 +38,7 @@
     "@react-pdf/renderer": "^4.3.2",
     "@sendgrid/mail": "^8.1.6",
     "@types/pdfkit": "^0.17.4",
+    "@types/qrcode": "^1.5.6",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -50,6 +51,7 @@
     "nodemailer": "^8.0.1",
     "pdfkit": "^0.17.2",
     "prisma": "^6.19.1",
+    "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -70,6 +72,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

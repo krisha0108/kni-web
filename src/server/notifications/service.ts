@@ -627,6 +627,45 @@ export async function notifyAdminsNewRestaurantRequest(
   );
 }
 
+export async function notifyAdminsRestaurantDeletionRequest(
+  restaurantName: string,
+  ownerName: string
+) {
+  return createNotificationForRole(
+    Role.ADMIN,
+    "Restaurant Deletion Request",
+    ownerName + " has requested deletion of restaurant \"" + restaurantName + "\".",
+    NotificationType.SYSTEM,
+    "/admin/restaurants/deletion-requests"
+  );
+}
+
+export async function notifyOwnerRestaurantDeletionApproved(
+  ownerId: string,
+  restaurantName: string
+) {
+  return createNotification({
+    userId: ownerId,
+    title: "Restaurant Deleted",
+    message: `Your deletion request for "${restaurantName}" was approved. The restaurant has been permanently deleted.`,
+    type: NotificationType.SYSTEM,
+  });
+}
+
+export async function notifyOwnerRestaurantDeletionRejected(
+  ownerId: string,
+  restaurantName: string,
+  reason: string
+) {
+  return createNotification({
+    userId: ownerId,
+    title: "Deletion Request Rejected",
+    message: `Your deletion request for "${restaurantName}" was rejected. Reason: ${reason}`,
+    type: NotificationType.SYSTEM,
+    linkUrl: "/owner/restaurants",
+  });
+}
+
 export async function notifyAdminsNewPaymentUploaded(
   bookingId: string,
   ownerName: string

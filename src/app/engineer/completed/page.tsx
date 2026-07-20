@@ -27,7 +27,7 @@ interface CompletedJob {
       name: string;
       address: string;
     };
-    preferredDate: string;
+    slotStartDateTime: string | null;
     totalAmount: number;
   };
 }
@@ -109,7 +109,7 @@ export default function EngineerCompletedPage() {
                     {job.booking?.restaurant?.address ?? "—"}
                   </TableCell>
 
-                  <TableCell>{formatDate(job.booking?.preferredDate)}</TableCell>
+                  <TableCell>{job.booking?.slotStartDateTime ? formatDate(job.booking.slotStartDateTime) : "—"}</TableCell>
                   <TableCell>{formatPrice(job.booking?.totalAmount ?? 0)}</TableCell>
                   <TableCell>{formatDate(job.completedAt)}</TableCell>
                   <TableCell>

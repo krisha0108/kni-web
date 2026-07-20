@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         include: {
           restaurant: { select: { id: true, name: true, city: true } },
           scheduledVisits: {
-            select: { id: true, status: true, scheduledDate: true, completedDate: true },
+            select: { id: true, status: true, scheduledDate: true, completedDate: true, visitType: true },
             orderBy: { scheduledDate: "asc" },
           },
           breakdownRequests: {

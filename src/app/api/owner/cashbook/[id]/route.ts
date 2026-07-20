@@ -61,7 +61,7 @@ export async function PATCH(
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
-        { ok: false, error: error.errors[0].message },
+        { ok: false, error: error.issues[0].message },
         { status: 400 }
       );
     }

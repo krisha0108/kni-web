@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +22,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-
-// Constants
-const GST_RATE = 0.18;
+import { computeBookingTotal, computeCategorySubtotals } from "@/lib/booking-pricing";
+import { OfferSelector } from "@/app/owner/components/offer-selector";
+import { useRestaurant } from "@/contexts/restaurant-context";
 
 const TIME_SLOTS = [
   { id: "morning", label: "9:00 AM - 11:00 AM", start: "09:00", end: "11:00" },
@@ -73,6 +73,12 @@ interface CartItem {
 interface Cart {
   id: string;
   items: CartItem[];
+  discountPercent?: number;
+  discountAmount?: number;
+  discountSource?: string | null;
+  promoCode?: string | null;
+  promoCodeError?: string | null;
+  promoCodeOutbidBy?: string | null;
 }
 
 interface GroupedCategory {
@@ -108,6 +114,10 @@ export default function RequestNowPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  // All cart item ids ever seen, so fetchCart can tell "genuinely new item
+  // (auto-select)" apart from "existing item the owner deselected" instead
+  // of resetting the whole selection on every refresh.
+  const knownItemIdsRef = useRef<Set<string>>(new Set());
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   // Booking flow state
@@ -122,23 +132,50 @@ export default function RequestNowPage() {
   const [paymentScreenshot, setPaymentScreenshot] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
+  const { selectedRestaurant: globalSelectedRestaurant } = useRestaurant();
 
-  // Fetch cart
+  // Fetch cart - restaurant-scoped, so an owner with multiple restaurants
+  // always sees pricing/discounts for the SAME restaurant the booking will
+  // actually be created for (selectedRestaurant, chosen in the "restaurant"
+  // step below), not whichever one the server would otherwise guess.
   const fetchCart = async () => {
+    if (!selectedRestaurant) return;
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/cart");
+      const response = await fetch(`/api/owner/cart?restaurantId=${selectedRestaurant}`);
       const data = await response.json();
       if (data.ok) {
         setCart(data.data);
-        // Select all items by default
-        const allItemIds = new Set<string>(
-          data.data.items?.map((item: CartItem) => item.id) || []
-        );
-        setSelectedItems(allItemIds);
+        const currentItemIds: string[] = data.data.items?.map((item: CartItem) => item.id) || [];
+        // Preserve items the owner already deselected - only auto-select ids
+        // that are genuinely new (never seen before this session). A
+        // wholesale reset here would silently re-select everything on every
+        // quantity change/removal, making the checkboxes decorative.
+        //
+        // Snapshot the ref's CURRENT Set before mutating it, and close over
+        // that snapshot (not the live ref) inside the updater - setState's
+        // updater only runs on React's next render pass, by which point a
+        // ref mutated synchronously right here would already reflect the
+        // "new" ids, making every id look "already known" and defeating the
+        // new-vs-known distinction entirely.
+        const previouslyKnownIds = knownItemIdsRef.current;
+        knownItemIdsRef.current = new Set(currentItemIds);
+        setSelectedItems((prev) => {
+          const next = new Set<string>();
+          for (const id of currentItemIds) {
+            if (previouslyKnownIds.has(id)) {
+              if (prev.has(id)) next.add(id);
+            } else {
+              next.add(id);
+            }
+          }
+          return next;
+        });
       }
     } catch (error) {
       toast({
@@ -151,6 +188,81 @@ export default function RequestNowPage() {
     }
   };
 
+  // Apply/remove a promo code without resetting the item-selection state a
+  // full fetchCart() would (owners can deselect individual cart items).
+  const refreshCartPricing = async () => {
+    if (!selectedRestaurant) return { ok: false };
+    const res = await fetch(`/api/owner/cart?restaurantId=${selectedRestaurant}`);
+    const data = await res.json();
+    if (data.ok) {
+      setCart((prev) =>
+        prev
+          ? {
+              ...prev,
+              discountPercent: data.data.discountPercent,
+              discountAmount: data.data.discountAmount,
+              discountSource: data.data.discountSource,
+              promoCode: data.data.promoCode,
+              promoCodeError: data.data.promoCodeError,
+              promoCodeOutbidBy: data.data.promoCodeOutbidBy,
+            }
+          : data.data
+      );
+    }
+    return data;
+  };
+
+  const applyPromoCode = async () => {
+    if (!promoCodeInput.trim() || !selectedRestaurant) return;
+    setIsApplyingPromo(true);
+    try {
+      const res = await fetch("/api/owner/cart/promo-code", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCodeInput.trim(), restaurantId: selectedRestaurant }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        toast({ title: "Error", description: data.error || "Failed to apply code", variant: "destructive" });
+        return;
+      }
+      hasManualOfferSelection.current = false;
+      const cartData = await refreshCartPricing();
+      if (cartData.ok && cartData.data.promoCodeError) {
+        toast({ title: "Code not applied", description: cartData.data.promoCodeError, variant: "destructive" });
+      } else if (cartData.ok && cartData.data.promoCodeOutbidBy) {
+        toast({
+          title: "Code valid, but not the best deal",
+          description: `"${cartData.data.promoCodeOutbidBy}" already gives you a bigger discount — that one's being used instead.`,
+        });
+        setPromoCodeInput("");
+      } else {
+        toast({ title: "Applied", description: "Promo code applied" });
+        setPromoCodeInput("");
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to apply code", variant: "destructive" });
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
+  const removePromoCode = async () => {
+    if (!selectedRestaurant) return;
+    setIsApplyingPromo(true);
+    try {
+      await fetch("/api/owner/cart/promo-code", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: null, restaurantId: selectedRestaurant }),
+      });
+      hasManualOfferSelection.current = false;
+      await refreshCartPricing();
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
   // Fetch restaurants
   const fetchRestaurants = async () => {
     try {
@@ -160,9 +272,16 @@ export default function RequestNowPage() {
       if (data.ok) {
         const restaurants = (data.data || []).map((item: any) => item.restaurant);
         setRestaurants(restaurants);
-        // Auto-select first restaurant
+        // Default to whichever restaurant is globally selected (the same one
+        // the owner was browsing/adding cart items under) so this wizard's
+        // pricing preview and the final booking always agree on which
+        // restaurant's cart/discount to use - falls back to the first one
+        // accessible only if there's no global selection.
         if (restaurants.length > 0) {
-          setSelectedRestaurant(restaurants[0].id);
+          const preferred = globalSelectedRestaurant
+            ? restaurants.find((r: Restaurant) => r.id === globalSelectedRestaurant.restaurantId)
+            : null;
+          setSelectedRestaurant((preferred || restaurants[0]).id);
         }
       }
     } catch (error) {
@@ -186,10 +305,15 @@ export default function RequestNowPage() {
   };
 
   useEffect(() => {
-    fetchCart();
     fetchRestaurants();
     fetchPaymentSettings();
   }, []);
+
+  // Cart is restaurant-scoped, so it can only be fetched once a restaurant
+  // is known (fetchRestaurants() above auto-selects one on load).
+  useEffect(() => {
+    if (selectedRestaurant) fetchCart();
+  }, [selectedRestaurant]);
 
   // Handle quantity update
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
@@ -313,8 +437,87 @@ export default function RequestNowPage() {
     }, 0);
   }, [selectedItemsData]);
 
-  const gstAmount = itemTotal * GST_RATE;
-  const payableAmount = itemTotal + gstAmount + tip;
+  // The discount stored on `cart` reflects the FULL, unfiltered cart -
+  // re-fetch it scoped to only the currently selected items whenever the
+  // selection changes, so the preview shown here matches what the server
+  // will actually charge once handleSubmitBooking sends the same selection.
+  const [selectionDiscount, setSelectionDiscount] = useState<{
+    amount: number;
+    source: string | null;
+    candidates: { offerId: string | null; source: string; percent: number; amount: number }[];
+  }>({ amount: 0, source: null, candidates: [] });
+  // Owner's pick from `selectionDiscount.candidates` - defaults to whichever
+  // the backend auto-picked until they choose a different one themselves.
+  // `undefined` = "haven't picked yet", distinct from `null` ("explicitly
+  // chose No discount") - see the identical note in request-service/page.tsx.
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null | undefined>(undefined);
+  // Whether `selectedOfferId` reflects an explicit OfferSelector pick rather
+  // than the auto-picked best candidate. Without this, a stale auto-pick
+  // "sticks" as candidates change (e.g. after applying a better promo code)
+  // because it's still a *valid* candidate, just no longer the *best* one -
+  // silently keeping a worse discount selected. Reset on promo code changes
+  // so applying/removing a code always re-triggers picking the new best.
+  const hasManualOfferSelection = useRef(false);
+  const handleSelectOffer = (offerId: string | null) => {
+    hasManualOfferSelection.current = true;
+    setSelectedOfferId(offerId);
+  };
+
+  useEffect(() => {
+    if (!selectedRestaurant || selectedItemsData.length === 0) {
+      setSelectionDiscount({ amount: 0, source: null, candidates: [] });
+      return;
+    }
+    let cancelled = false;
+    const categorySubtotals = computeCategorySubtotals(
+      selectedItemsData.map((item) => ({
+        categoryId: item.serviceItem?.category?.id || item.partItem?.category?.id || "uncategorized",
+        amount: (item.serviceItem?.price || item.partItem?.price || item.priceSnapshot || 0) * item.qty,
+      }))
+    );
+    const params = new URLSearchParams({
+      restaurantId: selectedRestaurant,
+      amount: String(itemTotal),
+      categorySubtotals: JSON.stringify(categorySubtotals),
+    });
+    if (cart?.promoCode) params.set("promoCode", cart.promoCode);
+
+    fetch(`/api/owner/effective-discount?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.ok) {
+          const candidates = data.data.candidates || [];
+          setSelectionDiscount({
+            amount: data.data.amount || 0,
+            source: data.data.amount > 0 ? data.data.source : null,
+            candidates,
+          });
+          setSelectedOfferId((prev) => {
+            if (!hasManualOfferSelection.current) return candidates[0]?.offerId ?? null;
+            const stillValid = prev !== undefined && candidates.some((c: { offerId: string | null }) => c.offerId === prev);
+            return stillValid ? prev : candidates[0]?.offerId ?? null;
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItemsData, itemTotal, selectedRestaurant, cart?.promoCode]);
+
+  const selectedCandidate = useMemo(
+    () => selectionDiscount.candidates.find((c) => c.offerId === selectedOfferId),
+    [selectionDiscount, selectedOfferId]
+  );
+
+  const pricing = useMemo(() => {
+    const amount = selectedCandidate ? selectedCandidate.amount : selectionDiscount.amount;
+    return computeBookingTotal(itemTotal, amount, tip);
+  }, [itemTotal, selectionDiscount.amount, selectedCandidate, tip]);
+  const discountAmount = pricing.discountAmount;
+  const gstAmount = pricing.gstAmount;
+  const payableAmount = pricing.totalAmount;
 
   // Generate next 30 days
   const availableDates = useMemo(() => {
@@ -365,6 +568,18 @@ export default function RequestNowPage() {
       const [endHour] = slot?.end.split(":").map(Number) || [11];
       slotEnd.setHours(endHour, 0, 0, 0);
 
+      // Send exactly the items the owner selected - the server's cart-based
+      // fallback (used when `items` is omitted) books the ENTIRE cart
+      // regardless of checkbox selection, which is what caused booked items
+      // and the shown discount/total to silently diverge from what was
+      // actually selected here.
+      const items = selectedItemsData.map((item) => ({
+        itemType: item.itemType,
+        itemId: item.serviceItem?.id || item.partItem?.id || "",
+        qty: item.qty,
+        priceSnapshot: item.serviceItem?.price ?? item.partItem?.price ?? item.priceSnapshot ?? 0,
+      }));
+
       const response = await fetch("/api/owner/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -373,8 +588,11 @@ export default function RequestNowPage() {
           slotStartDateTime: slotStart.toISOString(),
           slotEndDateTime: slotEnd.toISOString(),
           problemDescription,
-          paymentScreenshotUrl: paymentScreenshot,
+          paymentScreenshotUrl: paymentScreenshot || undefined,
           tip,
+          items,
+          promoCode: cart?.promoCode || undefined,
+          offerId: selectedOfferId,
         }),
       });
 
@@ -901,10 +1119,61 @@ export default function RequestNowPage() {
                   <span className="text-muted-foreground">Item Total</span>
                   <span>{formatPrice(itemTotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Discount ({pricing.discountPercent}%){(selectedCandidate?.source ?? selectionDiscount.source) ? ` — ${selectedCandidate?.source ?? selectionDiscount.source}` : ""}
+                    </span>
+                    <span className="text-green-600">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">GST (18%)</span>
                   <span>{formatPrice(gstAmount)}</span>
                 </div>
+
+                {/* Promo code */}
+                <div className="pt-1">
+                  {cart?.promoCode ? (
+                    <div className="flex items-center justify-between gap-2 text-sm bg-muted rounded-md px-3 py-2">
+                      <span>
+                        Code <code className="font-mono font-medium">{cart.promoCode}</code> applied
+                        {cart.promoCodeError ? (
+                          <span className="block text-xs text-destructive mt-0.5">{cart.promoCodeError}</span>
+                        ) : cart.promoCodeOutbidBy ? (
+                          <span className="block text-xs text-muted-foreground mt-0.5">
+                            Valid, but "{cart.promoCodeOutbidBy}" already gives you a bigger discount — that one's being used instead
+                          </span>
+                        ) : null}
+                      </span>
+                      <Button size="sm" variant="ghost" onClick={removePromoCode} disabled={isApplyingPromo}>
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Promo code"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                        className="h-9 text-sm"
+                      />
+                      <Button size="sm" variant="outline" onClick={applyPromoCode} disabled={isApplyingPromo || !promoCodeInput.trim()}>
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {selectionDiscount.candidates.length > 0 && (
+                  <div className="pt-1">
+                    <OfferSelector
+                      candidates={selectionDiscount.candidates}
+                      selectedOfferId={selectedOfferId}
+                      onSelect={handleSelectOffer}
+                    />
+                  </div>
+                )}
                 {tip > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tip</span>

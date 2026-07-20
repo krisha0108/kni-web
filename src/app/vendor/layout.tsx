@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { getSession } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { vendorSidebarItems } from "@/components/layouts/sidebar";
@@ -62,34 +63,40 @@ export default async function VendorLayout({
   if (revenueModel === "SUBSCRIPTION") hiddenPaths.push("/vendor/commission");
 
   return (
-    <DashboardLayout
-      sidebarItems={vendorSidebarItems}
-      hidePaths={hiddenPaths}
-      sidebarTitle="KNI Vendor"
-      user={{
-        name: session.name,
-        email: session.email,
-        role: session.role,
-      }}
-    >
-      {showLocationWarning && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mx-4 mt-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-yellow-800">
-              Your service locations are pending approval
-            </p>
-            <p className="text-xs text-yellow-700 mt-0.5">
-              You can browse everything, but adding or managing products, orders, and categories requires at least one approved location.{" "}
-              <a href="/vendor/locations" className="underline font-medium inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                Manage Locations
-              </a>
-            </p>
+    <>
+      {/* Vendor pages that take payments (commission/subscription) need this -
+          scoped here instead of the root layout so pages outside /vendor
+          don't pay for a script they never use. */}
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      <DashboardLayout
+        sidebarItems={vendorSidebarItems}
+        hidePaths={hiddenPaths}
+        sidebarTitle="KNI Vendor"
+        user={{
+          name: session.name,
+          email: session.email,
+          role: session.role,
+        }}
+      >
+        {showLocationWarning && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mx-4 mt-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800">
+                Your service locations are pending approval
+              </p>
+              <p className="text-xs text-yellow-700 mt-0.5">
+                You can browse everything, but adding or managing products, orders, and categories requires at least one approved location.{" "}
+                <a href="/vendor/locations" className="underline font-medium inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Manage Locations
+                </a>
+              </p>
+            </div>
           </div>
-        </div>
-      )}
-      {children}
-    </DashboardLayout>
+        )}
+        {children}
+      </DashboardLayout>
+    </>
   );
 }

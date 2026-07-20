@@ -380,9 +380,7 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
           resolutionTimeSLA: true,
           exclusions: true,
           sparePartsPolicy: true,
-          monthlyPrice: true,
-          quarterlyPrice: true,
-          annualPrice: true,
+          price: true,
           contractPeriod: true,
         },
       },
@@ -467,10 +465,6 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
   doc.fontSize(10).font("Helvetica-Bold").text("Duration:", labelX, y);
   doc.fontSize(10).font("Helvetica").text(durationStr.trim(), valueX, y);
 
-  y += 20;
-  doc.fontSize(10).font("Helvetica-Bold").text("Billing Cycle:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(contract.billingCycle, valueX, y);
-
   // ===== EQUIPMENT COVERED =====
   y += 35;
   doc.fontSize(12).font("Helvetica-Bold").text("EQUIPMENT COVERED:", 50, y);
@@ -541,35 +535,14 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
   y += 15;
   doc.fontSize(14).font("Helvetica-Bold").text("CONTRACT AMOUNT:", 50, y);
   doc.text(
-    formatCurrency(contract.amountPerCycle),
+    formatCurrency(contract.amount),
     400,
     y,
     { width: 150, align: "right" }
   );
 
   y += 20;
-  doc.fontSize(10).font("Helvetica").text(`Per ${contract.billingCycle.toLowerCase()} cycle`, 50, y);
-
-  if (contract.proposal) {
-    y += 20;
-    if (contract.proposal.monthlyPrice) {
-      doc.text(`Monthly: ${formatCurrency(contract.proposal.monthlyPrice)}`, 50, y);
-    }
-    if (contract.proposal.quarterlyPrice) {
-      doc.text(
-        `Quarterly: ${formatCurrency(contract.proposal.quarterlyPrice)}`,
-        220,
-        y
-      );
-    }
-    if (contract.proposal.annualPrice) {
-      doc.text(
-        `Annual: ${formatCurrency(contract.proposal.annualPrice)}`,
-        400,
-        y
-      );
-    }
-  }
+  doc.fontSize(10).font("Helvetica").text(`For the full contract period`, 50, y);
 
   // ===== TERMS =====
   y += 35;

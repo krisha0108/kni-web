@@ -10,44 +10,47 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
 
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get("type"); // banner, feed, guide, sponsored
+    const type = searchParams.get("type"); // offer, feed, guide, sponsored
 
     const templates = {
-      banner: [
+      offer: [
         {
-          id: "welcome-banner",
-          name: "Welcome Banner",
-          description: "Standard welcome banner for new users",
+          id: "welcome-offer",
+          name: "Welcome Offer",
+          description: "Discount for a restaurant's first booking",
           data: {
-            title: "Welcome to KNI Super App!",
-            description: "Your one-stop solution for restaurant equipment service and maintenance",
-            imageUrl: "https://placehold.co/800x400/3b82f6/white?text=Welcome+Banner",
+            name: "Welcome Offer",
+            type: "FIRST_BOOKING",
+            discountPercent: 15,
+            description: "Get 15% off your first service booking",
+            imageUrl: "https://placehold.co/800x400/EF3A3A/white?text=Welcome+Offer",
+            sortOrder: 0,
+          },
+        },
+        {
+          id: "diwali-sale",
+          name: "Diwali Mega Sale",
+          description: "Time-limited festive promotion",
+          data: {
+            name: "Diwali Mega Sale",
+            type: "PROMOTIONAL",
+            discountPercent: 20,
+            description: "Flat 20% off on all service bookings this Diwali",
+            imageUrl: "https://placehold.co/800x400/1D2254/white?text=Diwali+Sale",
             sortOrder: 1,
-            status: "DRAFT",
           },
         },
         {
-          id: "amc-promo",
-          name: "AMC Promotion",
-          description: "Promote annual maintenance contracts",
+          id: "amc-savings",
+          name: "AMC Savings",
+          description: "Promote annual maintenance contract savings",
           data: {
-            title: "Save with AMC Plans",
+            name: "Save with AMC Plans",
+            type: "PROMOTIONAL",
+            discountPercent: 20,
             description: "Get up to 20% savings with our Annual Maintenance Contracts",
-            imageUrl: "https://placehold.co/800x400/10b981/white?text=AMC+Promotion",
+            imageUrl: "https://placehold.co/800x400/10b981/white?text=AMC+Savings",
             sortOrder: 2,
-            status: "DRAFT",
-          },
-        },
-        {
-          id: "247-support",
-          name: "24/7 Support Banner",
-          description: "Highlight round-the-clock support",
-          data: {
-            title: "24/7 Service Support",
-            description: "Professional help available anytime, anywhere",
-            imageUrl: "https://placehold.co/800x400/8b5cf6/white?text=24x7+Support",
-            sortOrder: 3,
-            status: "DRAFT",
           },
         },
         {
@@ -55,11 +58,12 @@ export async function GET(request: NextRequest) {
           name: "Seasonal Offer",
           description: "Template for seasonal promotions",
           data: {
-            title: "Special Seasonal Offer",
+            name: "Seasonal Special",
+            type: "PROMOTIONAL",
+            discountPercent: 10,
             description: "Limited time discount on all services",
             imageUrl: "https://placehold.co/800x400/f59e0b/white?text=Seasonal+Offer",
-            sortOrder: 0,
-            status: "DRAFT",
+            sortOrder: 3,
           },
         },
       ],

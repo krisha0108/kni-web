@@ -12,6 +12,12 @@ import { Package, Store, MapPin, Calendar, Phone, Building2, Star, CreditCard, C
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { VendorRatingDialog } from "@/components/ratings/vendor-rating-dialog";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 interface OrderItem {
   id: string;
   qty: number;
@@ -54,6 +60,7 @@ interface Order {
   };
   items: OrderItem[];
   statusHistory?: StatusHistoryItem[];
+  pendingFinalPayment?: { id: string; totalAmount: number } | null;
 }
 
 interface PaymentItem {
@@ -96,6 +103,8 @@ export default function OwnerMarketplaceOrdersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [orderToRate, setOrderToRate] = useState<Order | null>(null);
+  const [isPayingFinal, setIsPayingFinal] = useState(false);
+  const payFinalInProgress = useRef(false);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
 
@@ -200,6 +209,95 @@ export default function OwnerMarketplaceOrdersPage() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setSelectedOrder(null);
+  };
+
+  const handlePayFinal = async (order: Order) => {
+    if (!order.pendingFinalPayment || payFinalInProgress.current) return;
+    payFinalInProgress.current = true;
+    setIsPayingFinal(true);
+
+    try {
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "MARKETPLACE_INSTALLMENT",
+          installmentType: "FINAL",
+          referenceId: order.pendingFinalPayment.id,
+        }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error || "Failed to start payment", variant: "destructive" });
+        setIsPayingFinal(false);
+        payFinalInProgress.current = false;
+        return;
+      }
+
+      const { orderId: razorpayOrderId, amount, currency, keyId, prefill } = orderData.data;
+      const paymentId = order.pendingFinalPayment.id;
+
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "KNI Official Store",
+        description: `Final payment - Order #${order.id.substring(0, 8)}`,
+        order_id: razorpayOrderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "MARKETPLACE_INSTALLMENT",
+                installmentType: "FINAL",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                marketplacePaymentId: paymentId,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              toast({ title: "Success", description: "Final payment successful! Order fully paid." });
+              closeDialog();
+              fetchOrders();
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsPayingFinal(false);
+          payFinalInProgress.current = false;
+        },
+        modal: {
+          ondismiss: () => {
+            setIsPayingFinal(false);
+            payFinalInProgress.current = false;
+          },
+        },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({
+          title: "Payment Failed",
+          description: response.error?.description || "Payment was not completed",
+          variant: "destructive",
+        });
+        setIsPayingFinal(false);
+        payFinalInProgress.current = false;
+      });
+      rzp.open();
+    } catch {
+      toast({ title: "Error", description: "Failed to start payment", variant: "destructive" });
+      setIsPayingFinal(false);
+      payFinalInProgress.current = false;
+    }
   };
 
   const openRatingDialog = (order: Order) => {
@@ -734,6 +832,25 @@ export default function OwnerMarketplaceOrdersPage() {
                   <span className="text-2xl font-bold">{formatPrice(selectedOrder.totalAmount)}</span>
                 </div>
               </div>
+
+              {/* Final payment due (negotiated/split-payment orders) */}
+              {selectedOrder.pendingFinalPayment && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-orange-900">Final Payment Due</span>
+                    <span className="text-xl font-bold text-orange-900">
+                      {formatPrice(selectedOrder.pendingFinalPayment.totalAmount)}
+                    </span>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePayFinal(selectedOrder)}
+                    disabled={isPayingFinal}
+                  >
+                    {isPayingFinal ? "Processing..." : `Pay ${formatPrice(selectedOrder.pendingFinalPayment.totalAmount)} with Razorpay`}
+                  </Button>
+                </div>
+              )}
 
               {/* Status History Timeline */}
               {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 && (

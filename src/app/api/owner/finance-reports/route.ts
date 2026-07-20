@@ -35,9 +35,12 @@ export async function GET(request: NextRequest) {
         ...(dateFilter && { entryDate: dateFilter }),
       },
       select: {
+        id: true,
         entryType: true,
         amount: true,
         category: true,
+        description: true,
+        entryDate: true,
       },
     });
 
@@ -86,6 +89,7 @@ export async function GET(request: NextRequest) {
         ...(dateFilter && { entryDate: dateFilter }),
       },
       select: {
+        id: true,
         vendorName: true,
         entryType: true,
         amount: true,
@@ -192,17 +196,40 @@ export async function GET(request: NextRequest) {
       .reduce((sum, o) => sum + o.totalAmount, 0);
 
     // 6. Total expenses
+    // NOTE: equipmentExpenses and totalSalaryPaid are NOT added here — completed
+    // service bookings (web or mobile engineer completion) and staff salary payments
+    // both write a CashbookEntry CASH_OUT, already included in cashOut. Adding them
+    // again would double-count. Only marketplaceExpenses is safe to add on top:
+    // marketplace orders never write a CashbookEntry anywhere in the codebase, so
+    // they aren't captured by cashOut/bankOut.
     const totalExpenses =
       cashOut +
       bankOut +
-      equipmentExpenses +
-      marketplaceExpenses +
-      totalSalaryPaid;
+      marketplaceExpenses;
+
+    // "Other" cash/bank-out spend not already broken out as its own line above
+    // (AMC payments, manual cashbook entries, the parts-cost portion of completed
+    // bookings, etc.) — cashOut+bankOut already contains the equipment and salary
+    // cash-outs, so those must be subtracted back out to avoid this line double
+    // counting the "Equipment Services" and "Staff Salary" lines shown alongside it.
+    const otherExpenses = Math.max(0, cashOut + bankOut - equipmentExpenses - totalSalaryPaid);
 
     // 7. Category-wise expenses
     const categoryExpenses = Array.from(expensesByCategory.entries())
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
+
+    // 8. Recent transactions (cashbook entries, most recent first)
+    const recentTransactions = [...cashbookEntries]
+      .sort((a, b) => b.entryDate.getTime() - a.entryDate.getTime())
+      .slice(0, 10)
+      .map((entry) => ({
+        id: entry.id,
+        type: entry.entryType === "CASH_IN" || entry.entryType === "BANK_IN" ? "CREDIT" : "DEBIT",
+        description: entry.description,
+        date: entry.entryDate.toISOString(),
+        amount: entry.amount,
+      }));
 
     return NextResponse.json({
       ok: true,
@@ -239,7 +266,7 @@ export async function GET(request: NextRequest) {
           equipment: equipmentExpenses,
           marketplace: marketplaceExpenses,
           salary: totalSalaryPaid,
-          other: cashOut + bankOut,
+          other: otherExpenses,
           byCategory: categoryExpenses,
         },
         summary: {
@@ -247,6 +274,7 @@ export async function GET(request: NextRequest) {
           totalExpenses,
           netBalance: cashIn + bankIn - totalExpenses,
         },
+        recentTransactions,
       },
     });
   } catch (error: any) {

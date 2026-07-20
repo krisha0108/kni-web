@@ -33,10 +33,25 @@ export async function GET(request: NextRequest) {
       endDate = new Date(year, 11, 31, 23, 59, 59);
     }
 
-    // Fetch all bookings for the period
+    // Only count bookings where payment has actually been verified — DRAFT,
+    // SLOT_SELECTED, PAYMENT_UPLOADED (not yet verified), PAYMENT_REJECTED, and
+    // CANCELLED bookings never had money change hands and must not be counted
+    // as "spending" (mirrors the COMPLETED-only filter used by the web
+    // finance-reports endpoint's equipment-expense calculation).
+    const PAID_BOOKING_STATUSES = [
+      "PAYMENT_VERIFIED",
+      "ENGINEER_ASSIGNED",
+      "ACCEPTED_BY_ENGINEER",
+      "IN_PROGRESS",
+      "REJECTED_BY_ENGINEER",
+      "COMPLETED",
+    ] as const;
+
+    // Fetch all paid bookings for the period
     const bookings = await db.serviceBooking.findMany({
       where: {
         ownerId: session.id,
+        status: { in: [...PAID_BOOKING_STATUSES] },
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -138,6 +153,7 @@ export async function GET(request: NextRequest) {
     const lastMonthBookings = await db.serviceBooking.findMany({
       where: {
         ownerId: session.id,
+        status: { in: [...PAID_BOOKING_STATUSES] },
         createdAt: {
           gte: new Date(lastMonthYear, lastMonth, 1),
           lte: new Date(lastMonthYear, lastMonth + 1, 0, 23, 59, 59),

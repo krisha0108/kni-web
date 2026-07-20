@@ -5,40 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding content management data...");
 
-  // Create banners
-  const banners = await Promise.all([
-    prisma.banner.create({
-      data: {
-        title: "Welcome to KNI Super App!",
-        description: "Your one-stop solution for restaurant equipment service and maintenance",
-        imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=400&fit=crop",
-        sortOrder: 1,
-        status: "PUBLISHED",
-      },
-    }),
-    prisma.banner.create({
-      data: {
-        title: "Save with AMC Plans",
-        description: "Get up to 20% savings with our Annual Maintenance Contracts",
-        imageUrl: "https://images.unsplash.com/photo-1554224311-beee4f503ea0?w=1200&h=400&fit=crop",
-        linkUrl: "/amc-plans",
-        sortOrder: 2,
-        status: "PUBLISHED",
-      },
-    }),
-    prisma.banner.create({
-      data: {
-        title: "24/7 Service Support",
-        description: "Professional help available anytime, anywhere",
-        imageUrl: "https://images.unsplash.com/photo-1556742393-d75f468bfcb0?w=1200&h=400&fit=crop",
-        sortOrder: 3,
-        status: "PUBLISHED",
-      },
-    }),
-  ]);
-
-  console.log(`✅ Created ${banners.length} banners`);
-
   // Create feeds
   const feeds = await Promise.all([
     prisma.feed.create({
@@ -150,7 +116,6 @@ async function main() {
 
   console.log("\n🎉 Content seeding completed successfully!");
   console.log("\n📊 Summary:");
-  console.log(`   - ${banners.length} Banners (PUBLISHED)`);
   console.log(`   - ${feeds.length} Feeds (Active)`);
   console.log(`   - ${guides.length} Guides (Active)`);
   console.log(`   - ${sponsored.length} Sponsored Content (Active)`);

@@ -219,8 +219,8 @@ export async function POST(
   } catch (error) {
     console.error("Create equipment AMC error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

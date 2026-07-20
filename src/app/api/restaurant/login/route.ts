@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     const user = await db.user.findUnique({
       where: { email },
       include: {
+        ownerProfile: true,
         restaurants: {
           where: { status: "APPROVED" },
           select: {
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
               },
             },
           },
+        },
+        _count: {
+          select: { restaurants: true },
         },
       },
     });
@@ -101,6 +105,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Block login for owners whose registration is not approved yet
+    if (user.ownerProfile) {
+      if (user.ownerProfile.approvalStatus === "PENDING") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration is pending admin approval. You'll be notified once it's reviewed.",
+            code: "OWNER_PENDING_APPROVAL",
+          },
+          { status: 403 }
+        );
+      }
+      if (user.ownerProfile.approvalStatus === "REJECTED") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration was rejected. Please contact support for more information.",
+            code: "OWNER_REJECTED",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Create session and get token for mobile
     const token = await createSession(user.id);
 
@@ -120,6 +148,7 @@ export async function POST(request: NextRequest) {
         },
         restaurants: allRestaurants,
         hasApprovedRestaurant: allRestaurants.length > 0,
+        hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
         token, // Token for mobile apps
       },
     });

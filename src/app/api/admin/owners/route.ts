@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
       where.isActive = true;
     } else if (status === "inactive") {
       where.isActive = false;
+    } else if (status === "pending_approval") {
+      where.ownerProfile = { approvalStatus: "PENDING" };
+    } else if (status === "rejected") {
+      where.ownerProfile = { approvalStatus: "REJECTED" };
     }
 
     // Search filter
@@ -54,6 +58,10 @@ export async function GET(request: NextRequest) {
           phone: true,
           isActive: true,
           createdAt: true,
+          serviceDiscountPercent: true,
+          ownerProfile: {
+            select: { approvalStatus: true, rejectionReason: true },
+          },
           _count: {
             select: {
               restaurants: true,
@@ -72,7 +80,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [totalOwners, activeOwners, inactiveOwners, newThisMonth] = await Promise.all([
+    const [totalOwners, activeOwners, inactiveOwners, newThisMonth, pendingApprovalOwners] = await Promise.all([
       db.user.count({
         where: { role: "OWNER", deletedAt: null },
       }),
@@ -89,6 +97,9 @@ export async function GET(request: NextRequest) {
           createdAt: { gte: startOfMonth },
         },
       }),
+      db.user.count({
+        where: { role: "OWNER", deletedAt: null, ownerProfile: { approvalStatus: "PENDING" } },
+      }),
     ]);
 
     // Transform items to include computed fields
@@ -99,6 +110,9 @@ export async function GET(request: NextRequest) {
       phone: item.phone,
       isActive: item.isActive,
       createdAt: item.createdAt,
+      serviceDiscountPercent: item.serviceDiscountPercent,
+      approvalStatus: item.ownerProfile?.approvalStatus ?? "APPROVED",
+      rejectionReason: item.ownerProfile?.rejectionReason ?? null,
       restaurantCount: item._count.restaurants,
       totalBookings: item._count.serviceBookings,
     }));
@@ -115,6 +129,7 @@ export async function GET(request: NextRequest) {
           activeOwners,
           inactiveOwners,
           newThisMonth,
+          pendingApprovalOwners,
         },
       },
     });
@@ -163,7 +178,7 @@ export async function POST(req: NextRequest) {
         role: "OWNER",
         isActive: true,
         emailVerified: true,
-        ownerProfile: { create: {} },
+        ownerProfile: { create: { approvalStatus: "APPROVED", approvedAt: new Date() } },
       },
       select: {
         id: true,

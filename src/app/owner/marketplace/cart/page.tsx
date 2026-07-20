@@ -11,6 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { fetchCart, addCartItem, updateCartItemQuantity, removeCartItem, clearCart } from "@/lib/marketplace-cart";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   ShoppingBag,
   Plus,
@@ -36,6 +46,7 @@ export default function OwnerCartPage() {
   const [pendingPayments, setPendingPayments] = useState<PaymentRecord[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
+  const [isClearCartConfirmOpen, setIsClearCartConfirmOpen] = useState(false);
   const { selectedRestaurant } = useRestaurant();
   const { toast } = useToast();
   const router = useRouter();
@@ -78,13 +89,21 @@ export default function OwnerCartPage() {
   }, [selectedRestaurant]);
 
   // ========== CART HELPERS ==========
+  // Tracks product IDs with an in-flight quantity mutation so rapid double
+  // clicks (or a slow network) can't fire two requests for the same item —
+  // the second would 404 against an already-removed cart item and surface a
+  // spurious "Failed to update cart" error even though the first succeeded.
+  const [updatingProductIds, setUpdatingProductIds] = useState<Set<string>>(new Set());
+
   const updateCartQuantity = async (productId: string, delta: number) => {
     if (!selectedRestaurant) return;
+    if (updatingProductIds.has(productId)) return;
     const item = cart.find((i) => i.product.id === productId);
     if (!item) return;
 
     const newQty = item.quantity + delta;
 
+    setUpdatingProductIds((prev) => new Set(prev).add(productId));
     try {
       if (newQty <= 0) {
         await removeCartItem(item.id);
@@ -95,6 +114,12 @@ export default function OwnerCartPage() {
       await loadCart();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to update cart", variant: "destructive" });
+    } finally {
+      setUpdatingProductIds((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
     }
   };
 
@@ -121,7 +146,7 @@ export default function OwnerCartPage() {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleClearCart = async () => {
-    if (!selectedRestaurant || !confirm("Remove all items from cart?")) return;
+    if (!selectedRestaurant) return;
     try {
       await clearCart(selectedRestaurant.restaurantId, { clearAll: true });
       await loadCart();
@@ -228,9 +253,11 @@ export default function OwnerCartPage() {
         {pendingPayments.filter((p) => p.status === "PENDING" || p.status === "REJECTED").length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm sm:text-base">Pending Payments</CardTitle>
+              <CardTitle className="text-sm sm:text-base">
+                Pending Payments ({pendingPayments.filter((p) => p.status === "PENDING" || p.status === "REJECTED").length})
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="max-h-80 space-y-3 overflow-y-auto">
               {pendingPayments
                 .filter((p) => p.status === "PENDING" || p.status === "REJECTED")
                 .map((payment) => (
@@ -291,7 +318,7 @@ export default function OwnerCartPage() {
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleClearCart} className="text-destructive hover:text-destructive shrink-0" title="Clear cart">
+        <Button variant="ghost" size="icon" onClick={() => setIsClearCartConfirmOpen(true)} className="text-destructive hover:text-destructive shrink-0" title="Clear cart">
           <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
@@ -395,6 +422,7 @@ export default function OwnerCartPage() {
                           size="icon"
                           className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg"
                           onClick={() => updateCartQuantity(item.product.id, -1)}
+                          disabled={updatingProductIds.has(item.product.id)}
                         >
                           <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
@@ -404,7 +432,7 @@ export default function OwnerCartPage() {
                           size="icon"
                           className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg"
                           onClick={() => updateCartQuantity(item.product.id, 1)}
-                          disabled={item.quantity >= (item.product.stockQuantity || 999)}
+                          disabled={updatingProductIds.has(item.product.id) || item.quantity >= (item.product.stockQuantity || 999)}
                         >
                           <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         </Button>
@@ -462,6 +490,28 @@ export default function OwnerCartPage() {
         getCartItemQuantity={getCartItemQuantity}
         canCreate
       />
+
+      <AlertDialog open={isClearCartConfirmOpen} onOpenChange={setIsClearCartConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Cart</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove all items from cart?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setIsClearCartConfirmOpen(false);
+                handleClearCart();
+              }}
+            >
+              Clear Cart
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

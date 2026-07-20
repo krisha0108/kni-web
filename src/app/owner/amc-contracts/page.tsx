@@ -69,7 +69,7 @@ export default function OwnerAMCContractsPage() {
         <div className="grid gap-4">
           {contracts.map((contract) => {
             const completedVisits = contract.scheduledVisits.filter((v: any) => v.status === "COMPLETED").length;
-            const totalVisits = contract.scheduledVisits.length;
+            const totalVisits = contract.scheduledVisits.filter((v: any) => v.visitType === "PREVENTIVE").length;
             const nextVisit = contract.scheduledVisits.find((v: any) => v.status === "SCHEDULED" || v.status === "ASSIGNED");
 
             return (
@@ -84,7 +84,7 @@ export default function OwnerAMCContractsPage() {
                       <p className="text-sm text-muted-foreground font-mono">{contract.contractNumber}</p>
                       <div className="flex flex-wrap gap-4 text-sm">
                         <span><Calendar className="h-3 w-3 inline mr-1" />{formatDate(contract.startDate)} - {formatDate(contract.endDate)}</span>
-                        <span>{formatPrice(contract.amountPerCycle)} / {contract.billingCycle.toLowerCase()}</span>
+                        <span>{formatPrice(contract.amount)}</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">

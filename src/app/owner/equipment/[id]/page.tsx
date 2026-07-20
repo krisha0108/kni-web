@@ -9,6 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientOnly } from "@/components/client-only";
 import { useToast } from "@/hooks/use-toast";
@@ -45,12 +55,6 @@ interface Equipment {
     id: string;
     name: string;
     status: string;
-  };
-  equipmentType?: {
-    id: string;
-    name: string;
-    category: { id: string; name: string };
-    serviceTemplates: ServiceTemplate[];
   };
   totalSpend: number;
   completedServicesCount: number;
@@ -91,6 +95,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   const [amcSubscriptions, setAmcSubscriptions] = useState<AMCSubscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateAmcOpen, setIsCreateAmcOpen] = useState(false);
+  const [cancelAmcId, setCancelAmcId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -143,6 +148,8 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   // Service booking state
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [availableServices, setAvailableServices] = useState<ServiceTemplate[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [serviceFormData, setServiceFormData] = useState({
     slotDate: "",
     slotTime: "",
@@ -444,8 +451,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   };
 
   const handleCancelAmc = async (amcId: string) => {
-    if (!confirm("Are you sure you want to cancel this AMC subscription?")) return;
-
     try {
       const response = await fetch(`/api/owner/equipment/${resolvedParams.id}/amc/${amcId}`, {
         method: "DELETE",
@@ -503,6 +508,22 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const openServiceDialog = async () => {
+    setSelectedServices([]);
+    setServiceFormData({ slotDate: "", slotTime: "", problemDescription: "" });
+    setIsServiceDialogOpen(true);
+    setIsLoadingServices(true);
+    try {
+      const response = await fetch("/api/owner/service-templates");
+      const data = await response.json();
+      setAvailableServices(data.ok ? data.data : []);
+    } catch (error) {
+      setAvailableServices([]);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  };
+
   const handleServiceBooking = async () => {
     try {
       // Validate required fields
@@ -515,17 +536,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
         return;
       }
 
-      // If there are service templates available but none selected, show error
-      if (equipment?.equipmentType?.serviceTemplates &&
-          equipment.equipmentType.serviceTemplates.length > 0 &&
-          selectedServices.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please select at least one service",
-          variant: "destructive",
-        });
-        return;
-      }
 
       const slotDateTime = new Date(`${serviceFormData.slotDate}T${serviceFormData.slotTime}`);
 
@@ -615,14 +625,21 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           <div>
             <h1 className="text-3xl font-bold">{equipment.name}</h1>
             <p className="text-muted-foreground">
-              {equipment.equipmentType?.category?.name || (typeof equipment.category === 'object' && equipment.category !== null ? (equipment.category as { name?: string }).name : equipment.category)}
-              {equipment.equipmentType && ` • ${equipment.equipmentType.name}`}
+              {typeof equipment.category === 'object' && equipment.category !== null ? (equipment.category as { name?: string }).name : equipment.category}
             </p>
           </div>
         </div>
-        <Badge variant={getEquipmentStatusColor(equipment.status)}>
-          {getEquipmentStatusLabel(equipment.status)}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {canManage && (
+            <Button size="sm" onClick={openServiceDialog}>
+              <Wrench className="mr-2 h-4 w-4" />
+              Request Service
+            </Button>
+          )}
+          <Badge variant={getEquipmentStatusColor(equipment.status)}>
+            {getEquipmentStatusLabel(equipment.status)}
+          </Badge>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -1103,7 +1120,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                                     variant="outline"
                                     size="sm"
                                     className="text-destructive hover:text-destructive"
-                                    onClick={() => handleCancelAmc(amc.id)}
+                                    onClick={() => setCancelAmcId(amc.id)}
                                   >
                                     Cancel AMC
                                   </Button>
@@ -1184,11 +1201,16 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           </DialogHeader>
           <div className="space-y-6 py-4">
             {/* Available Services */}
-            {equipment.equipmentType && equipment.equipmentType.serviceTemplates.length > 0 ? (
+            {isLoadingServices ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                <p>Loading services...</p>
+              </div>
+            ) : availableServices.length > 0 ? (
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Available Services</Label>
                 <div className="space-y-2">
-                  {equipment.equipmentType.serviceTemplates.map((service) => (
+                  {availableServices.map((service) => (
                     <Card
                       key={service.id}
                       className={`cursor-pointer transition ${
@@ -1287,7 +1309,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                 <p className="font-medium mb-2">Selected Services ({selectedServices.length})</p>
                 <ul className="text-sm space-y-1">
                   {selectedServices.map((serviceId) => {
-                    const service = equipment.equipmentType?.serviceTemplates.find(s => s.id === serviceId);
+                    const service = availableServices.find(s => s.id === serviceId);
                     return service ? (
                       <li key={serviceId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <span>• {service.name}</span>
@@ -1528,6 +1550,28 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!cancelAmcId} onOpenChange={(open) => !open && setCancelAmcId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel AMC Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this AMC subscription? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancelAmcId) handleCancelAmc(cancelAmcId);
+                setCancelAmcId(null);
+              }}
+            >
+              Cancel AMC
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

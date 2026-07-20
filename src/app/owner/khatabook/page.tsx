@@ -47,6 +47,7 @@ interface FinanceStats {
     equipment: number;
     marketplace: number;
     salary: number;
+    other: number;
   };
   summary: {
     totalIncome: number;
@@ -246,6 +247,10 @@ export default function KhatabookDashboardPage() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Staff Salary</span>
                     <span className="font-medium">{formatPrice(stats.expenses.salary)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Other</span>
+                    <span className="font-medium">{formatPrice(stats.expenses.other)}</span>
                   </div>
                 </div>
               </CardContent>

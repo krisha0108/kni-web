@@ -42,6 +42,8 @@ interface Booking {
   status: string;
   slotStartDateTime: string;
   totalAmount: number;
+  discountPercent?: number;
+  discountAmount?: number;
   createdAt: string;
   restaurant: { id: string; name: string };
   items: Array<{
@@ -522,7 +524,14 @@ export default function OwnerBookingsPage() {
                     {booking.items.length} item{booking.items.length !== 1 ? "s" : ""}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{formatDate(booking.slotStartDateTime)}</TableCell>
-                  <TableCell>{formatPrice(booking.totalAmount)}</TableCell>
+                  <TableCell>
+                    {formatPrice(booking.totalAmount)}
+                    {!!booking.discountAmount && booking.discountAmount > 0 && (
+                      <Badge variant="success" className="ml-2 text-[10px] px-1.5 py-0">
+                        {booking.discountPercent}% off
+                      </Badge>
+                    )}
+                  </TableCell>
                   
                   <TableCell>
                     <Badge variant={statusColors[booking.status] || "default"}>

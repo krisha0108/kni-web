@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
+import { resolveNegotiatedPrice } from "@/lib/marketplace-pricing";
 
 const addItemSchema = z.object({
   restaurantId: z.string().min(1, "Restaurant ID is required"),
@@ -101,20 +102,10 @@ export async function GET(request: NextRequest) {
 
     // Format response: cart items with full product details
     const formattedItems = validItems.map((item) => {
-      let price = item.product.price;
-      let priceExpired = false;
-
-      // Use unlocked price for price-on-request products
-      if (item.product.priceOnRequest) {
-        const unlock = unlockMap.get(item.product.id);
-        if (unlock && unlock.unlockedPrice) {
-          if (unlock.validUntil && unlock.validUntil < new Date()) {
-            priceExpired = true;
-          } else {
-            price = unlock.unlockedPrice;
-          }
-        }
-      }
+      const unlock = unlockMap.get(item.product.id);
+      const resolved = resolveNegotiatedPrice(item.product, unlock);
+      const price = resolved.price;
+      const priceExpired = resolved.expired;
 
       return {
         id: item.id,
@@ -192,8 +183,9 @@ export async function POST(request: NextRequest) {
       if (quantity > 0) {
         const unlock = await db.priceUnlockRequest.findUnique({
           where: {
-            ownerId_vendorProductId: {
+            ownerId_restaurantId_vendorProductId: {
               ownerId: session.id,
+              restaurantId,
               vendorProductId,
             },
           },
@@ -209,6 +201,13 @@ export async function POST(request: NextRequest) {
         if (unlock.validUntil && unlock.validUntil < new Date()) {
           return NextResponse.json(
             { ok: false, error: "Your price quote has expired. Please request a new price." },
+            { status: 400 }
+          );
+        }
+
+        if (unlock.quantity != null && quantity > unlock.quantity) {
+          return NextResponse.json(
+            { ok: false, error: `This negotiated price is only valid for up to ${unlock.quantity} units` },
             { status: 400 }
           );
         }
@@ -309,13 +308,8 @@ export async function POST(request: NextRequest) {
     const formattedItems = updatedCart!.items
       .filter((item) => item.product && item.product.isActive)
       .map((item) => {
-        let price = item.product.price;
-        if (item.product.priceOnRequest) {
-          const unlock = updatedUnlockMap.get(item.product.id);
-          if (unlock?.unlockedPrice && (!unlock.validUntil || unlock.validUntil >= new Date())) {
-            price = unlock.unlockedPrice;
-          }
-        }
+        const unlock = updatedUnlockMap.get(item.product.id);
+        const price = resolveNegotiatedPrice(item.product, unlock).price;
         return {
           id: item.id,
           quantity: item.quantity,

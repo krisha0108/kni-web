@@ -64,8 +64,10 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
           {
+            // camera/microphone allowed for self (needed by /apply's video introduction
+            // recorder); still blocked for any third-party/cross-origin embed.
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
+            value: "camera=(self), microphone=(self), geolocation=(self)",
           },
           {
             // Content-Security-Policy — allows the app's known services

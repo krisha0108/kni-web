@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/utils";
 import type { Product } from "../types";
 
 interface PriceRequestDialogProps {
@@ -33,12 +34,23 @@ export function PriceRequestDialog({
 }: PriceRequestDialogProps) {
   const [quantity, setQuantity] = useState("");
   const [message, setMessage] = useState("");
+  const [proposedPrice, setProposedPrice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   if (!product) return null;
 
+  // The list price is already visible for regular products - let the owner
+  // propose their own price directly instead of sending a blank "request"
+  // for a price they can already see. "Price on Request" products still
+  // need a blank request first since the price is genuinely unknown.
+  const priceIsKnown = !product.priceOnRequest;
+
   const handleSubmit = async () => {
+    if (priceIsKnown && !proposedPrice) {
+      toast({ title: "Error", description: "Enter the price you'd like to offer", variant: "destructive" });
+      return;
+    }
     try {
       setIsSubmitting(true);
       const response = await fetch("/api/owner/marketplace/price-requests", {
@@ -49,13 +61,20 @@ export function PriceRequestDialog({
           vendorProductId: product.id,
           quantity: quantity ? parseInt(quantity, 10) : undefined,
           message: message || undefined,
+          proposedPrice: priceIsKnown ? parseInt(proposedPrice, 10) : undefined,
         }),
       });
       const data = await response.json();
       if (data.ok) {
-        toast({ title: "Request Sent", description: "Your price request has been submitted. You'll be notified when the admin responds." });
+        toast({
+          title: priceIsKnown ? "Offer Sent" : "Request Sent",
+          description: priceIsKnown
+            ? "Your offer has been sent. You'll be notified when the admin responds."
+            : "Your price request has been submitted. You'll be notified when the admin responds.",
+        });
         setQuantity("");
         setMessage("");
+        setProposedPrice("");
         onOpenChange(false);
         onSuccess();
       } else {
@@ -72,13 +91,28 @@ export function PriceRequestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:w-full max-w-md">
         <DialogHeader>
-          <DialogTitle>Request Price</DialogTitle>
+          <DialogTitle>{priceIsKnown ? "Negotiate Price" : "Request Price"}</DialogTitle>
           <DialogDescription>
-            Request a custom price quote for &quot;{product.name}&quot;
+            {priceIsKnown
+              ? <>List price for &quot;{product.name}&quot; is {formatPrice(product.price || 0)}. Offer your price below.</>
+              : <>Request a custom price quote for &quot;{product.name}&quot;</>}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {priceIsKnown && (
+            <div className="space-y-2">
+              <Label htmlFor="req-price">Your Offer Price *</Label>
+              <Input
+                id="req-price"
+                type="number"
+                min={1}
+                value={proposedPrice}
+                onChange={(e) => setProposedPrice(e.target.value)}
+                placeholder={`e.g. ${Math.round((product.price || 0) * 0.9)}`}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="req-quantity">Quantity (optional)</Label>
             <Input
@@ -107,7 +141,7 @@ export function PriceRequestDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Request"}
+            {isSubmitting ? "Submitting..." : priceIsKnown ? "Send Offer" : "Submit Request"}
           </Button>
         </DialogFooter>
       </DialogContent>

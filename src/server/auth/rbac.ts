@@ -86,9 +86,29 @@ export async function requireApprovedVendor(): Promise<SessionUser> {
 
 export async function requireOwnerWithApprovedRestaurant(): Promise<SessionUser> {
   const session = await requireOwner();
-  
+
   if (!session.hasApprovedRestaurant) {
     throw new Error("Forbidden: No approved restaurant");
+  }
+
+  return session;
+}
+
+export async function requireApprovedOwner(): Promise<SessionUser> {
+  const session = await requireOwner();
+
+  if (session.ownerApprovalStatus && session.ownerApprovalStatus !== "APPROVED") {
+    throw new Error("Forbidden: Owner registration not approved");
+  }
+
+  return session;
+}
+
+export async function requireApprovedOwnerMobile(request: NextRequest): Promise<SessionUser> {
+  const session = await requireOwnerMobile(request);
+
+  if (session.ownerApprovalStatus && session.ownerApprovalStatus !== "APPROVED") {
+    throw new Error("Forbidden: Owner registration not approved");
   }
 
   return session;
@@ -99,6 +119,12 @@ export function getRoleDashboardUrl(role: Role, session?: SessionUser): string {
     case Role.ADMIN:
       return "/admin/dashboard";
     case Role.OWNER:
+      if (session?.ownerApprovalStatus && session.ownerApprovalStatus !== "APPROVED") {
+        return "/register-owner/success";
+      }
+      if (!session?.hasAnyRestaurant) {
+        return "/owner/restaurant/create";
+      }
       return "/owner/dashboard";
     case Role.VENDOR:
       if (session?.vendorApprovalStatus !== "APPROVED" || !session?.hasApprovedLocation) {

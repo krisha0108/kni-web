@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
     const startDate = request.nextUrl.searchParams.get("startDate");
     const endDate = request.nextUrl.searchParams.get("endDate");
     const entryType = request.nextUrl.searchParams.get("entryType");
+    const page = parseInt(request.nextUrl.searchParams.get("page") || "0");
+    const pageSize = parseInt(request.nextUrl.searchParams.get("pageSize") || "20");
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -49,17 +51,22 @@ export async function GET(request: NextRequest) {
       where.entryType = entryType;
     }
 
-    const entries = await db.cashbookEntry.findMany({
-      where,
-      orderBy: [
-        { entryDate: "desc" },
-        { createdAt: "desc" },
-      ],
-    });
+    const [entries, total] = await Promise.all([
+      db.cashbookEntry.findMany({
+        where,
+        orderBy: [
+          { entryDate: "desc" },
+          { createdAt: "desc" },
+        ],
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      db.cashbookEntry.count({ where }),
+    ]);
 
     return NextResponse.json({
       ok: true,
-      data: entries,
+      data: page > 0 ? { items: entries, total } : entries,
+      total,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -119,7 +126,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
-        { ok: false, error: error.errors[0].message },
+        { ok: false, error: error.issues[0].message },
         { status: 400 }
       );
     }

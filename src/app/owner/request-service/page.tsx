@@ -23,10 +23,10 @@ declare global {
 }
 import { formatPrice, formatDate } from "@/lib/utils";
 import { useRestaurant } from "@/contexts/restaurant-context";
+import { computeBookingTotal } from "@/lib/booking-pricing";
+import { OfferSelector } from "@/app/owner/components/offer-selector";
 
 // Constants
-const GST_RATE = 0.18;
-
 const TIME_SLOTS = [
   { id: "morning", label: "9:00 AM - 11:00 AM", start: "09:00", end: "11:00" },
   { id: "midday", label: "11:00 AM - 1:00 PM", start: "11:00", end: "13:00" },
@@ -100,6 +100,78 @@ export default function RequestServicePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"razorpay" | "manual">("razorpay");
   const [razorpaySuccess, setRazorpaySuccess] = useState(false);
+  const [discount, setDiscount] = useState<{ percent: number; amount: number; source: string; candidates?: { offerId: string | null; source: string; percent: number; amount: number }[]; promoCodeError?: string; promoCodeOutbidBy?: string } | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [isLoadingDiscount, setIsLoadingDiscount] = useState(false);
+  // Owner's pick from `discount.candidates` - defaults to whichever the
+  // backend auto-picked (candidates[0], sorted best-first) until they choose
+  // a different one themselves. `undefined` = "haven't picked yet" (distinct
+  // from `null`, which means "explicitly chose No discount" - candidates
+  // always include a null-offerId "No discount" entry, so `null` can't also
+  // double as the not-yet-initialized sentinel without the two colliding).
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null | undefined>(undefined);
+  // Whether `selectedOfferId` reflects an explicit OfferSelector pick rather
+  // than the auto-picked best candidate. Without this, a stale auto-pick
+  // "sticks" as candidates change (e.g. after applying a better promo code)
+  // because it's still a *valid* candidate, just no longer the *best* one -
+  // silently keeping a worse discount selected. Reset whenever the applied
+  // promo code changes so that always re-triggers picking the new best.
+  const hasManualOfferSelection = useRef(false);
+  const handleSelectOffer = (offerId: string | null) => {
+    hasManualOfferSelection.current = true;
+    setSelectedOfferId(offerId);
+  };
+
+  // Item total, computed early so the discount-preview effect can depend on
+  // it (every item here shares the equipment's category, so a single
+  // categoryId + amount is enough for category-scoped offer matching).
+  const itemTotal = useMemo(() => {
+    let total = 0;
+    selectedItems.forEach((item) => { total += item.price * item.qty; });
+    return total;
+  }, [selectedItems]);
+
+  // Fetch the discount (custom rate / active offer / promo code) so the
+  // preview here matches what /api/owner/bookings actually applies at
+  // creation time.
+  useEffect(() => {
+    if (!selectedRestaurant || itemTotal <= 0) {
+      setDiscount(null);
+      return;
+    }
+    const params = new URLSearchParams({
+      restaurantId: selectedRestaurant.restaurantId,
+      amount: String(itemTotal),
+    });
+    if (categoryId) params.set("categoryId", categoryId);
+    if (appliedPromoCode) params.set("promoCode", appliedPromoCode);
+    setIsLoadingDiscount(true);
+    fetch(`/api/owner/effective-discount?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.data) {
+          setDiscount(data.data);
+          // Keep the owner's manual pick if it's still an eligible candidate;
+          // otherwise (first load, or their pick just became ineligible)
+          // fall back to whatever the backend auto-picked as best.
+          setSelectedOfferId((prev) => {
+            const candidates: { offerId: string | null }[] = data.data.candidates || [];
+            if (!hasManualOfferSelection.current) return candidates[0]?.offerId ?? null;
+            const stillValid = prev !== undefined && candidates.some((c) => c.offerId === prev);
+            return stillValid ? prev : candidates[0]?.offerId ?? null;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingDiscount(false));
+  }, [selectedRestaurant, itemTotal, categoryId, appliedPromoCode]);
+
+  const applyPromoCode = () => {
+    if (!promoCodeInput.trim()) return;
+    hasManualOfferSelection.current = false;
+    setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
+  };
 
   // Fetch services and parts by category
   useEffect(() => {
@@ -209,16 +281,31 @@ export default function RequestServicePage() {
     });
   };
 
-  // Calculate totals
+  // The candidate the owner actually picked (or the auto-best one, if they
+  // haven't touched the picker) - this, not always discount.amount, is what
+  // gets charged.
+  const selectedCandidate = useMemo(
+    () => discount?.candidates?.find((c) => c.offerId === selectedOfferId),
+    [discount, selectedOfferId]
+  );
+
+  // Calculate totals - mirrors the server-side computeBookingTotal used by
+  // POST /api/owner/bookings, so this preview (and the amount charged via
+  // Razorpay) matches what actually gets stored on the booking.
   const totals = useMemo(() => {
-    let itemTotal = 0;
-    selectedItems.forEach((item) => {
-      itemTotal += item.price * item.qty;
-    });
-    const gst = Math.round(itemTotal * GST_RATE);
-    const total = itemTotal + gst + tip;
-    return { itemTotal, gst, tip, total };
-  }, [selectedItems, tip]);
+    const discountAmount = selectedCandidate ? selectedCandidate.amount : discount?.amount ?? 0;
+    const discountSource = selectedCandidate ? selectedCandidate.source : discount?.source ?? null;
+    const pricing = computeBookingTotal(itemTotal, discountAmount, tip);
+    return {
+      itemTotal,
+      discountPercent: pricing.discountPercent,
+      discountAmount: pricing.discountAmount,
+      discountSource: pricing.discountAmount > 0 ? discountSource : null,
+      gst: pricing.gstAmount,
+      tip,
+      total: pricing.totalAmount,
+    };
+  }, [itemTotal, tip, discount, selectedCandidate]);
 
   // Calendar state for month navigation
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
@@ -346,6 +433,8 @@ export default function RequestServicePage() {
         problemDescription: problemDescription || `Service request for ${equipmentName}`,
         tip,
         items,
+        promoCode: appliedPromoCode || undefined,
+        offerId: selectedOfferId,
       };
 
       const bookingRes = await fetch("/api/owner/bookings", {
@@ -499,6 +588,8 @@ export default function RequestServicePage() {
         problemDescription: problemDescription || `Service request for ${equipmentName}`,
         tip,
         items,
+        promoCode: appliedPromoCode || undefined,
+        offerId: selectedOfferId,
         paymentScreenshotUrl: paymentScreenshot,
       };
 
@@ -868,6 +959,14 @@ export default function RequestServicePage() {
                   <span className="text-muted-foreground">Item Total</span>
                   <span>{formatPrice(totals.itemTotal)}</span>
                 </div>
+                {totals.discountAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Discount ({totals.discountPercent}%{totals.discountSource ? ` — ${totals.discountSource}` : ""})
+                    </span>
+                    <span className="text-green-600">-{formatPrice(totals.discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">GST (18%)</span>
                   <span>{formatPrice(totals.gst)}</span>
@@ -880,6 +979,49 @@ export default function RequestServicePage() {
                   <span>Total Amount</span>
                   <span className="text-primary">{formatPrice(totals.total)}</span>
                 </div>
+
+                {/* Promo code */}
+                <div className="pt-2">
+                  {appliedPromoCode ? (
+                    <div className="flex items-center justify-between gap-2 text-sm bg-muted rounded-md px-3 py-2">
+                      <span>
+                        Code <code className="font-mono font-medium">{appliedPromoCode}</code> applied
+                        {discount?.promoCodeError ? (
+                          <span className="block text-xs text-destructive mt-0.5">{discount.promoCodeError}</span>
+                        ) : discount?.promoCodeOutbidBy ? (
+                          <span className="block text-xs text-muted-foreground mt-0.5">
+                            Valid, but "{discount.promoCodeOutbidBy}" already gives you a bigger discount — that one's being used instead
+                          </span>
+                        ) : null}
+                      </span>
+                      <Button size="sm" variant="ghost" onClick={() => { hasManualOfferSelection.current = false; setAppliedPromoCode(null); setPromoCodeInput(""); }}>
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Promo code"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                        className="h-9 text-sm"
+                      />
+                      <Button size="sm" variant="outline" onClick={applyPromoCode} disabled={isLoadingDiscount || !promoCodeInput.trim()}>
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {discount?.candidates && (
+                  <div className="pt-2">
+                    <OfferSelector
+                      candidates={discount.candidates}
+                      selectedOfferId={selectedOfferId}
+                      onSelect={handleSelectOffer}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1090,6 +1232,14 @@ export default function RequestServicePage() {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span>{formatPrice(totals.itemTotal)}</span>
                       </div>
+                      {totals.discountAmount > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Discount ({totals.discountPercent}%{totals.discountSource ? ` — ${totals.discountSource}` : ""})
+                          </span>
+                          <span className="text-green-600">-{formatPrice(totals.discountAmount)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">GST (18%)</span>
                         <span>{formatPrice(totals.gst)}</span>

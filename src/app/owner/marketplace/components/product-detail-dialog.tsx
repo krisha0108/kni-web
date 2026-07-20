@@ -9,9 +9,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Minus, Store, Package, Clock, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Minus, Store, Package, Clock, Loader2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import type { Product } from "../types";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 function ScrollableRow({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -69,6 +77,237 @@ function ScrollableRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CounterOfferBox({ priceUnlockId, onSubmitted }: { priceUnlockId: string; onSubmitted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [price, setPrice] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async () => {
+    const value = Number(price);
+    if (!value || value <= 0) {
+      toast({ title: "Error", description: "Enter a valid counter price", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/owner/marketplace/price-requests/${priceUnlockId}/counter`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ counterPrice: value }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        toast({ title: "Counter-offer sent", description: "Admin will review your proposed price." });
+        setOpen(false);
+        setPrice("");
+        onSubmitted();
+      } else {
+        toast({ title: "Error", description: json.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to send counter-offer", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" className="gap-1" onClick={() => setOpen(true)}>
+        <Tag className="h-3.5 w-3.5" /> Negotiate Price
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        type="number"
+        min={1}
+        placeholder="Your price"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        className="w-28 h-9"
+      />
+      <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>
+        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(false)} disabled={isSubmitting}>
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
+const MARKETPLACE_ADVANCE_PERCENT = 30;
+
+function ConfirmQuoteBox({
+  priceUnlockId,
+  unlockedPrice,
+  maxQty,
+  onConfirmed,
+}: {
+  priceUnlockId: string;
+  unlockedPrice: number;
+  maxQty: number;
+  onConfirmed: () => void;
+}) {
+  const [quantity, setQuantity] = useState("1");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const inProgress = useRef(false);
+  const { toast } = useToast();
+
+  const qty = Math.max(1, Number(quantity) || 1);
+  const totalAmount = unlockedPrice * qty;
+  const advanceAmount = Math.round((totalAmount * MARKETPLACE_ADVANCE_PERCENT) / 100);
+
+  const handleConfirm = async () => {
+    if (inProgress.current) return;
+    if (!deliveryAddress.trim()) {
+      toast({ title: "Error", description: "Please enter a delivery address", variant: "destructive" });
+      return;
+    }
+    inProgress.current = true;
+    setIsProcessing(true);
+
+    try {
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "MARKETPLACE_INSTALLMENT",
+          installmentType: "ADVANCE",
+          referenceId: priceUnlockId,
+          quantity: qty,
+        }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderData.ok) {
+        toast({ title: "Error", description: orderData.error || "Failed to start payment", variant: "destructive" });
+        setIsProcessing(false);
+        inProgress.current = false;
+        return;
+      }
+
+      const { orderId, amount, currency, keyId, prefill } = orderData.data;
+
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "KNI Official Store",
+        description: "Advance payment (negotiated price)",
+        order_id: orderId,
+        prefill: prefill || {},
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "MARKETPLACE_INSTALLMENT",
+                installmentType: "ADVANCE",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                priceUnlockRequestId: priceUnlockId,
+                quantity: qty,
+                deliveryAddress: deliveryAddress.trim(),
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.ok) {
+              toast({ title: "Advance Paid!", description: "Order confirmed. Remaining amount is due on delivery." });
+              onConfirmed();
+            } else {
+              toast({ title: "Verification Failed", description: verifyData.error, variant: "destructive" });
+            }
+          } catch {
+            toast({ title: "Error", description: "Payment verification failed", variant: "destructive" });
+          }
+          setIsProcessing(false);
+          inProgress.current = false;
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+            inProgress.current = false;
+          },
+        },
+        theme: { color: "#EF3A3A" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response: any) => {
+        toast({ title: "Payment Failed", description: response.error?.description || "Payment was not completed", variant: "destructive" });
+        setIsProcessing(false);
+        inProgress.current = false;
+      });
+      rzp.open();
+    } catch {
+      toast({ title: "Error", description: "Failed to start payment", variant: "destructive" });
+      setIsProcessing(false);
+      inProgress.current = false;
+    }
+  };
+
+  return (
+    <div className="w-full space-y-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">Quantity</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(String(Math.max(1, qty - 1)))} disabled={isProcessing}>
+            <Minus className="h-3.5 w-3.5" />
+          </Button>
+          <Input
+            type="number"
+            min={1}
+            max={maxQty}
+            value={quantity}
+            onChange={(e) => {
+              const raw = Number(e.target.value) || 1;
+              setQuantity(String(Math.max(1, Math.min(maxQty, raw))));
+            }}
+            className="w-16 h-8 text-center"
+            disabled={isProcessing}
+          />
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(String(Math.min(maxQty, qty + 1)))} disabled={isProcessing || qty >= maxQty}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <span className="text-sm font-medium">Delivery Address</span>
+        <textarea
+          value={deliveryAddress}
+          onChange={(e) => setDeliveryAddress(e.target.value)}
+          placeholder="Enter complete delivery address"
+          rows={2}
+          disabled={isProcessing}
+          className="w-full text-sm rounded-md border border-input bg-background px-3 py-2 resize-none"
+        />
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Total ({qty} x {formatPrice(unlockedPrice)})</span>
+        <span className="font-medium">{formatPrice(totalAmount)}</span>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Pay now ({MARKETPLACE_ADVANCE_PERCENT}% advance)</span>
+        <span className="font-semibold">{formatPrice(advanceAmount)}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">Remaining {formatPrice(totalAmount - advanceAmount)} due on delivery.</p>
+      <Button className="w-full" onClick={handleConfirm} disabled={isProcessing || !deliveryAddress.trim()}>
+        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : `Confirm & Pay ${formatPrice(advanceAmount)}`}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center">
+        This is a special negotiated price — pay the advance above to confirm your order directly (no separate cart step needed).
+      </p>
+    </div>
+  );
+}
+
 interface RelatedProduct {
   id: string;
   name: string;
@@ -91,6 +330,7 @@ interface ProductDetailDialogProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   canCreate?: boolean;
   onRequestPrice?: (product: Product) => void;
+  onCountered?: () => void;
   getCartItemQuantity?: (productId: string) => number;
 }
 
@@ -103,6 +343,7 @@ export function ProductDetailDialog({
   onUpdateQuantity,
   canCreate = true,
   onRequestPrice,
+  onCountered,
   getCartItemQuantity,
 }: ProductDetailDialogProps) {
   const [activeProduct, setActiveProduct] = useState<Product | null>(initialProduct);
@@ -278,23 +519,8 @@ export function ProductDetailDialog({
                 </div>
                 {canCreate && (
                   <>
-                    {/* Price unlocked — show Add to Cart */}
-                    {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired ? (
-                      cartQuantity > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => onUpdateQuantity(product.id, -1)}>
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center font-medium">{cartQuantity}</span>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => onUpdateQuantity(product.id, 1)} disabled={cartQuantity >= product.stockQuantity}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button onClick={() => onAddToCart(product)} disabled={product.stockQuantity === 0}>
-                          Add to Cart
-                        </Button>
-                      )
+                    {product.priceUnlock?.status === "COUNTERED" ? (
+                      <Badge variant="secondary">Counter-offer sent, awaiting admin</Badge>
                     ) : !product.priceUnlock ? (
                       <Button
                         variant="secondary"
@@ -333,11 +559,15 @@ export function ProductDetailDialog({
             ) : (
               <>
                 <span className="text-xl sm:text-2xl font-bold">
-                  {product.priceUnlock?.unlockedPrice
+                  {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired && product.priceUnlock.unlockedPrice
                     ? formatPrice(product.priceUnlock.unlockedPrice)
                     : formatPrice(product.price)}
                 </span>
-                {canCreate && (cartQuantity > 0 ? (
+                {/* Once a price is negotiated/unlocked, purchasing must go
+                    through the advance+delivery split-payment flow below —
+                    hide the normal full-payment Add to Cart action so there
+                    isn't a second, contradictory way to buy at this price. */}
+                {canCreate && !(product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired) && (cartQuantity > 0 ? (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -369,6 +599,40 @@ export function ProductDetailDialog({
               </>
             )}
           </div>
+
+          {/* Negotiated quote: confirm & pay advance, or keep negotiating.
+              Available for any KNI Official Store product (both the
+              hidden-until-unlocked "Price on Request" items above and
+              regular-priced items) - priceOnRequest only controls whether
+              the list price is hidden, not whether negotiation is allowed. */}
+          {canCreate && product.isAdminStore && (
+            <div className="pt-1">
+              {product.priceUnlock?.status === "UNLOCKED" && !product.priceUnlock.isExpired && product.priceUnlock.unlockedPrice ? (
+                <div className="space-y-2">
+                  <ConfirmQuoteBox
+                    priceUnlockId={product.priceUnlock.id}
+                    unlockedPrice={product.priceUnlock.unlockedPrice}
+                    maxQty={Math.max(1, Math.min(product.stockQuantity, product.priceUnlock.quantity ?? product.stockQuantity))}
+                    onConfirmed={() => {
+                      onOpenChange(false);
+                      onCountered?.();
+                    }}
+                  />
+                  <CounterOfferBox priceUnlockId={product.priceUnlock.id} onSubmitted={() => onCountered?.()} />
+                </div>
+              ) : !(product.priceOnRequest && !product.canPurchase) ? (
+                product.priceUnlock?.status === "PENDING" ? (
+                  <Badge variant="secondary">Price negotiation requested</Badge>
+                ) : product.priceUnlock?.status === "COUNTERED" ? (
+                  <Badge variant="secondary">Counter-offer sent, awaiting admin</Badge>
+                ) : (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => onRequestPrice?.(product)}>
+                    <Tag className="h-3.5 w-3.5" /> Found it cheaper? Negotiate
+                  </Button>
+                )
+              ) : null}
+            </div>
+          )}
 
           </div>
         </div>

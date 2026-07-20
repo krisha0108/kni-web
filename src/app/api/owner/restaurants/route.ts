@@ -42,6 +42,11 @@ export async function GET(request: NextRequest) {
         categories: {
           include: { category: { select: { id: true, name: true } } },
         },
+        deletionRequests: {
+          where: { status: "PENDING" },
+          take: 1,
+          select: { id: true, reason: true, createdAt: true },
+        },
       },
     });
 
@@ -58,14 +63,26 @@ export async function GET(request: NextRequest) {
             categories: {
               include: { category: { select: { id: true, name: true } } },
             },
+            deletionRequests: {
+              where: { status: "PENDING" },
+              take: 1,
+              select: { id: true, reason: true, createdAt: true },
+            },
           },
         },
       },
     });
 
+    const withPendingDeletion = <T extends { deletionRequests: { id: string; reason: string; createdAt: Date }[] }>(
+      r: T
+    ) => {
+      const { deletionRequests, ...rest } = r;
+      return { ...rest, pendingDeletionRequest: deletionRequests[0] ?? null };
+    };
+
     const restaurants = [
-      ...ownedRestaurants.map((r) => ({ ...r, userRole: "OWNER" as const })),
-      ...managedMemberships.map((m) => ({ ...m.restaurant, userRole: m.role })),
+      ...ownedRestaurants.map((r) => ({ ...withPendingDeletion(r), userRole: "OWNER" as const })),
+      ...managedMemberships.map((m) => ({ ...withPendingDeletion(m.restaurant), userRole: m.role })),
     ];
 
     return NextResponse.json({ ok: true, data: restaurants });
@@ -84,6 +101,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await requireOwnerMobile(request);
+
+    if (session.ownerApprovalStatus && session.ownerApprovalStatus !== "APPROVED") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Your registration is still pending admin approval. You can add a restaurant once it's approved.",
+          code: "OWNER_PENDING_APPROVAL",
+        },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const validation = createRestaurantSchema.safeParse(body);

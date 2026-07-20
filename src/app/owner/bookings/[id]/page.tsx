@@ -22,6 +22,9 @@ interface Booking {
   totalAmount: number;
   gstAmount?: number;
   tipAmount?: number;
+  discountAmount?: number;
+  discountPercent?: number;
+  discountSource?: string;
   problemDescription?: string;
   notes?: string;
   cancellationReason?: string;
@@ -453,8 +456,10 @@ export default function BookingDetailPage() {
 
                   // Use DB values if available, else calculate
                   const GST_RATE = 0.18;
-                  const gstAmount = booking.gstAmount || Math.round(itemTotal * GST_RATE);
-                  const tipAmount = booking.tipAmount || Math.max(0, booking.totalAmount - itemTotal - gstAmount);
+                  const discountAmount = Math.max(0, booking.discountAmount || 0);
+                  const discountedSubtotal = itemTotal - discountAmount;
+                  const gstAmount = booking.gstAmount || Math.round(discountedSubtotal * GST_RATE);
+                  const tipAmount = booking.tipAmount || Math.max(0, booking.totalAmount - discountedSubtotal - gstAmount);
 
                   return (
                     <div className="space-y-2 text-sm">
@@ -462,6 +467,12 @@ export default function BookingDetailPage() {
                         <span>Item Total</span>
                         <span>{formatPrice(itemTotal)}</span>
                       </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>Discount{booking.discountSource ? ` (${booking.discountSource})` : ""}</span>
+                          <span>-{formatPrice(discountAmount)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center text-muted-foreground">
                         <span>GST (18%)</span>
                         <span>{formatPrice(gstAmount)}</span>

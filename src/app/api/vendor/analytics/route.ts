@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         where: {
           vendorId: session.id,
           isActive: true,
+          deletedAt: null,
         },
       }),
 

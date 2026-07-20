@@ -13,8 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
-import { RefreshCw, Play, Clock, ArrowUp, ArrowDown, Megaphone, Image } from "lucide-react";
-import Link from "next/link";
+import { RefreshCw, Play, Clock, Megaphone } from "lucide-react";
 
 interface PreviewItem {
   id: string;
@@ -24,8 +23,6 @@ interface PreviewItem {
 }
 
 interface PreviewData {
-  bannersToPublish: PreviewItem[];
-  bannersToArchive: PreviewItem[];
   sponsoredToActivate: PreviewItem[];
   sponsoredToDeactivate: PreviewItem[];
 }
@@ -35,8 +32,6 @@ interface RunResult {
   timestamp: string;
   actions: string[];
   summary: {
-    bannersPublished: number;
-    bannersArchived: number;
     sponsoredActivated: number;
     sponsoredDeactivated: number;
   };
@@ -97,8 +92,7 @@ export default function AutoSchedulePage() {
   };
 
   const totalPending = preview
-    ? preview.bannersToPublish.length + preview.bannersToArchive.length +
-      preview.sponsoredToActivate.length + preview.sponsoredToDeactivate.length
+    ? preview.sponsoredToActivate.length + preview.sponsoredToDeactivate.length
     : 0;
 
   return (
@@ -107,7 +101,7 @@ export default function AutoSchedulePage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Auto-Scheduling</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Preview and manage automated content publishing
+            Preview and manage automated sponsored content publishing
           </p>
         </div>
         <div className="flex gap-2">
@@ -123,19 +117,7 @@ export default function AutoSchedulePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <div className="text-2xl font-bold text-green-600">{preview?.bannersToPublish.length ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Banners to Publish</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <div className="text-2xl font-bold text-orange-600">{preview?.bannersToArchive.length ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Banners to Archive</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6 text-center">
             <div className="text-2xl font-bold text-blue-600">{preview?.sponsoredToActivate.length ?? 0}</div>
@@ -167,72 +149,6 @@ export default function AutoSchedulePage() {
             <Clock className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg font-medium">No pending actions</p>
             <p className="text-sm mt-1">All content is up to date. Next check runs automatically every hour.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Banners to Publish */}
-      {preview && preview.bannersToPublish.length > 0 && (
-        <Card className="mb-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ArrowUp className="h-4 w-4 text-green-600" />
-              Banners to Publish ({preview.bannersToPublish.length})
-            </CardTitle>
-            <CardDescription>These DRAFT banners have reached their start date</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {preview.bannersToPublish.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell>{item.startDate ? formatDate(item.startDate) : "-"}</TableCell>
-                    <TableCell><Badge className="bg-green-100 text-green-800">Will Publish</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Banners to Archive */}
-      {preview && preview.bannersToArchive.length > 0 && (
-        <Card className="mb-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ArrowDown className="h-4 w-4 text-orange-600" />
-              Banners to Archive ({preview.bannersToArchive.length})
-            </CardTitle>
-            <CardDescription>These PUBLISHED banners have passed their end date</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {preview.bannersToArchive.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.title}</TableCell>
-                    <TableCell>{item.endDate ? formatDate(item.endDate) : "-"}</TableCell>
-                    <TableCell><Badge className="bg-orange-100 text-orange-800">Will Archive</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
       )}
@@ -337,8 +253,6 @@ export default function AutoSchedulePage() {
               This will process {totalPending} pending action{totalPending !== 1 ? "s" : ""}:
               {preview && (
                 <ul className="mt-2 space-y-1 text-left">
-                  {preview.bannersToPublish.length > 0 && <li>• Publish {preview.bannersToPublish.length} banner(s)</li>}
-                  {preview.bannersToArchive.length > 0 && <li>• Archive {preview.bannersToArchive.length} banner(s)</li>}
                   {preview.sponsoredToActivate.length > 0 && <li>• Activate {preview.sponsoredToActivate.length} campaign(s)</li>}
                   {preview.sponsoredToDeactivate.length > 0 && <li>• Deactivate {preview.sponsoredToDeactivate.length} campaign(s)</li>}
                 </ul>

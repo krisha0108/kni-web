@@ -60,9 +60,12 @@ interface AMCRequest {
   proposal?: {
     id: string;
     status: string;
-    monthlyPrice: number;
+    price: number;
     preventiveVisits: number;
     freeBreakdownVisits: number;
+    ownerCounterPrice: number | null;
+    ownerCounterMessage: string | null;
+    adminNote: string | null;
     contract?: { id: string; contractNumber: string; status: string } | null;
   };
   payment?: {
@@ -136,6 +139,11 @@ export default function AdminAMCRequestsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showRejectPayment, setShowRejectPayment] = useState(false);
   const [paymentRejectReason, setPaymentRejectReason] = useState("");
+
+  // Counter-offer response state
+  const [showRespondCounter, setShowRespondCounter] = useState(false);
+  const [respondForm, setRespondForm] = useState({ price: "", adminNote: "" });
+  const [isRespondingCounter, setIsRespondingCounter] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -237,6 +245,47 @@ export default function AdminAMCRequestsPage() {
       toast({ title: "Error", description: "Failed to schedule survey", variant: "destructive" });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const openRespondCounter = () => {
+    if (!selectedRequest?.proposal) return;
+    const p = selectedRequest.proposal;
+    setRespondForm({
+      price: String(p.ownerCounterPrice || p.price || ""),
+      adminNote: "",
+    });
+    setShowRespondCounter(true);
+  };
+
+  const handleRespondToCounter = async () => {
+    if (!selectedRequest?.proposal || !respondForm.price) {
+      toast({ title: "Error", description: "Price is required", variant: "destructive" });
+      return;
+    }
+    setIsRespondingCounter(true);
+    try {
+      const response = await fetch(`/api/admin/amc-proposals/${selectedRequest.proposal.id}/respond`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          price: parseInt(respondForm.price, 10),
+          adminNote: respondForm.adminNote || undefined,
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Revised proposal sent to owner" });
+        setShowRespondCounter(false);
+        setSelectedRequest(null);
+        fetchRequests();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to send revised proposal", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to send revised proposal", variant: "destructive" });
+    } finally {
+      setIsRespondingCounter(false);
     }
   };
 
@@ -538,13 +587,25 @@ export default function AdminAMCRequestsPage() {
                 <div className="border-t pt-4 space-y-2">
                   <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Proposal</h3>
                   <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-1">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Status:</span> <Badge variant={selectedRequest.proposal.status === "ACCEPTED" ? "success" : selectedRequest.proposal.status === "REJECTED" ? "destructive" : "warning"}>{selectedRequest.proposal.status}</Badge></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Monthly Price:</span> <span className="font-medium">₹{selectedRequest.proposal.monthlyPrice?.toLocaleString("en-IN")}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Status:</span> <Badge variant={selectedRequest.proposal.status === "ACCEPTED" ? "success" : selectedRequest.proposal.status === "REJECTED" ? "destructive" : selectedRequest.proposal.status === "COUNTERED" ? "secondary" : "warning"}>{selectedRequest.proposal.status}</Badge></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Price:</span> <span className="font-medium">₹{selectedRequest.proposal.price?.toLocaleString("en-IN")}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Visits:</span> <span>{selectedRequest.proposal.preventiveVisits} preventive + {selectedRequest.proposal.freeBreakdownVisits} breakdown</span></div>
                     {selectedRequest.proposal.contract && (
                       <div className="flex justify-between items-center pt-2 border-t mt-2"><span className="text-green-700 font-medium">Contract: {selectedRequest.proposal.contract.contractNumber}</span> <Badge variant="success">{selectedRequest.proposal.contract.status}</Badge></div>
                     )}
                   </div>
+
+                  {selectedRequest.proposal.status === "COUNTERED" && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm space-y-2">
+                      <p className="text-orange-800">
+                        <span className="font-medium">
+                          Owner countered with ₹{selectedRequest.proposal.ownerCounterPrice?.toLocaleString("en-IN")}
+                        </span>
+                        {selectedRequest.proposal.ownerCounterMessage && `: "${selectedRequest.proposal.ownerCounterMessage}"`}
+                      </p>
+                      <Button size="sm" onClick={openRespondCounter}>Respond with Revised Price</Button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -655,6 +716,44 @@ export default function AdminAMCRequestsPage() {
               ))}
             </DialogFooter>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Respond to Counter-Offer Dialog */}
+      <Dialog open={showRespondCounter} onOpenChange={setShowRespondCounter}>
+        <DialogContent className="w-[95vw] sm:w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Revised Proposal</DialogTitle>
+            <DialogDescription>
+              Owner countered with ₹{selectedRequest?.proposal?.ownerCounterPrice?.toLocaleString("en-IN")}. Set the price to send back — pre-filled with the owner's counter below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Price (₹) *</Label>
+              <Input
+                type="number"
+                value={respondForm.price}
+                onChange={(e) => setRespondForm({ ...respondForm, price: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Note to Owner (optional)</Label>
+              <Textarea
+                value={respondForm.adminNote}
+                onChange={(e) => setRespondForm({ ...respondForm, adminNote: e.target.value })}
+                placeholder="e.g., Best we can do given the coverage requested"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRespondCounter(false)} disabled={isRespondingCounter}>Cancel</Button>
+            <Button onClick={handleRespondToCounter} disabled={isRespondingCounter}>
+              {isRespondingCounter ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Send to Owner
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

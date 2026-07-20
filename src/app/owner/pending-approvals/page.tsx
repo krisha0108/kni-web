@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Clock, CheckCircle, XCircle, Building2, User, Calendar,
-  FileText, AlertCircle, RefreshCw, Eye
+  FileText, AlertCircle, RefreshCw, Eye, Trash2, HelpCircle
 } from "lucide-react";
 import { useRestaurant } from "@/contexts/restaurant-context";
 import { formatDate } from "@/lib/utils";
@@ -16,7 +16,7 @@ import Link from "next/link";
 
 interface PendingItem {
   id: string;
-  type: "RESTAURANT" | "TEAM_INVITE" | "BOOKING" | "CATEGORY_REQUEST";
+  type: "RESTAURANT" | "TEAM_INVITE" | "BOOKING" | "CATEGORY_REQUEST" | "RESTAURANT_DELETION";
   title: string;
   description: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -28,12 +28,15 @@ interface PendingItem {
   };
 }
 
-const TYPE_CONFIG = {
+const TYPE_CONFIG: Record<string, { icon: typeof Building2; label: string; color: string }> = {
   RESTAURANT: { icon: Building2, label: "Restaurant Approval", color: "bg-blue-100 text-blue-600" },
   TEAM_INVITE: { icon: User, label: "Team Invitation", color: "bg-purple-100 text-purple-600" },
   BOOKING: { icon: Calendar, label: "Booking Approval", color: "bg-green-100 text-green-600" },
   CATEGORY_REQUEST: { icon: FileText, label: "Category Request", color: "bg-orange-100 text-orange-600" },
+  RESTAURANT_DELETION: { icon: Trash2, label: "Deletion Request", color: "bg-amber-100 text-amber-600" },
 };
+
+const DEFAULT_TYPE_CONFIG = { icon: HelpCircle, label: "Request", color: "bg-slate-100 text-slate-600" };
 
 const STATUS_CONFIG = {
   PENDING: { icon: Clock, label: "Pending", variant: "warning" as const },
@@ -186,6 +189,8 @@ export default function PendingApprovalsPage() {
               <TabsTrigger value="RESTAURANT" className="text-xs sm:text-sm whitespace-nowrap">Restaurants</TabsTrigger>
               <TabsTrigger value="TEAM_INVITE" className="text-xs sm:text-sm whitespace-nowrap">Team</TabsTrigger>
               <TabsTrigger value="BOOKING" className="text-xs sm:text-sm whitespace-nowrap">Bookings</TabsTrigger>
+              <TabsTrigger value="CATEGORY_REQUEST" className="text-xs sm:text-sm whitespace-nowrap">Categories</TabsTrigger>
+              <TabsTrigger value="RESTAURANT_DELETION" className="text-xs sm:text-sm whitespace-nowrap">Deletions</TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -210,7 +215,7 @@ export default function PendingApprovalsPage() {
               ) : (
                 <div className="space-y-4">
                   {filteredItems.map((item) => {
-                    const typeConfig = TYPE_CONFIG[item.type];
+                    const typeConfig = TYPE_CONFIG[item.type] || DEFAULT_TYPE_CONFIG;
                     const statusConfig = STATUS_CONFIG[item.status];
                     const TypeIcon = typeConfig.icon;
                     const StatusIcon = statusConfig.icon;
@@ -255,6 +260,14 @@ export default function PendingApprovalsPage() {
                               <Link href="/owner/team">
                                 <Eye className="h-4 w-4 mr-1" />
                                 View Team
+                              </Link>
+                            </Button>
+                          )}
+                          {(item.type === "CATEGORY_REQUEST" || item.type === "RESTAURANT_DELETION") && item.status === "PENDING" && (
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial" asChild>
+                              <Link href="/owner/restaurants">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View Restaurants
                               </Link>
                             </Button>
                           )}

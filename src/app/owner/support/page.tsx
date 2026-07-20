@@ -8,6 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +97,7 @@ export default function OwnerSupportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [deleteTicketId, setDeleteTicketId] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [threads, setThreads] = useState<TicketThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -325,8 +336,6 @@ export default function OwnerSupportPage() {
   };
 
   const handleDeleteTicket = async (ticketId: string) => {
-    if (!confirm("Are you sure you want to delete this ticket?")) return;
-
     try {
       const response = await fetch(`/api/owner/support/${ticketId}`, {
         method: "DELETE",
@@ -659,7 +668,7 @@ export default function OwnerSupportPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {ticket.status === "PENDING" && canCreate && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTicket(ticket.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteTicketId(ticket.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
@@ -856,6 +865,28 @@ export default function OwnerSupportPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTicketId} onOpenChange={(open) => !open && setDeleteTicketId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Ticket</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this ticket? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTicketId) handleDeleteTicket(deleteTicketId);
+                setDeleteTicketId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const verifyOTPSchema = z.object({
     "PASSWORD_RESET",
     "PHONE_VERIFICATION",
     "BOOKING_CONFIRMATION",
+    "CANDIDATE_VERIFICATION",
   ]),
 });
 

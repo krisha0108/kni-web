@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         ],
       },
       include: {
+        ownerProfile: true,
         restaurants: {
           where: { status: "APPROVED" },
           select: {
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        _count: {
+          select: { restaurants: true },
+        },
       },
     });
 
@@ -86,8 +90,10 @@ export async function POST(request: NextRequest) {
           role: "OWNER",
           isActive: true,
           emailVerified: true, // Google auth = email verified
+          ownerProfile: { create: {} },
         },
         include: {
+          ownerProfile: true,
           restaurants: {
             where: { status: "APPROVED" },
             select: {
@@ -121,6 +127,9 @@ export async function POST(request: NextRequest) {
               },
             },
           },
+          _count: {
+            select: { restaurants: true },
+          },
         },
       });
     }
@@ -130,6 +139,32 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "Account is inactive" },
         { status: 403 }
       );
+    }
+
+    // Block login for owners whose registration is not approved yet.
+    // A missing ownerProfile is treated as approved (legacy accounts created
+    // before this profile existed) rather than blocking them.
+    if (user.ownerProfile) {
+      if (user.ownerProfile.approvalStatus === "PENDING") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration is pending admin approval. You'll be notified once it's reviewed.",
+            code: "OWNER_PENDING_APPROVAL",
+          },
+          { status: 403 }
+        );
+      }
+      if (user.ownerProfile.approvalStatus === "REJECTED") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Your registration was rejected. Please contact support for more information.",
+            code: "OWNER_REJECTED",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Create session and get token for mobile
@@ -151,6 +186,7 @@ export async function POST(request: NextRequest) {
         },
         restaurants: allRestaurants,
         hasApprovedRestaurant: allRestaurants.length > 0,
+        hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
         token, // Token for mobile apps
       },
     });

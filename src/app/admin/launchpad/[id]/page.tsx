@@ -10,6 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -124,6 +134,7 @@ export default function AdminLaunchPadDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -237,7 +248,6 @@ export default function AdminLaunchPadDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this inquiry?")) return;
     try {
       const response = await fetch(`/api/admin/launchpad/${inquiryId}`, { method: "DELETE" });
       const data = await response.json();
@@ -432,7 +442,7 @@ export default function AdminLaunchPadDetailPage() {
           <Badge className={STATUS_COLORS[inquiry.status]}>
             {inquiry.status.replace(/_/g, " ")}
           </Badge>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
+          <Button variant="destructive" size="sm" onClick={() => setIsDeleteOpen(true)}>
             <Trash2 className="h-4 w-4 mr-1" />
             Delete
           </Button>
@@ -861,6 +871,21 @@ export default function AdminLaunchPadDetailPage() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Inquiry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this inquiry? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

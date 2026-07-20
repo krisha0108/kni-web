@@ -2,7 +2,7 @@ import PDFDocument from "pdfkit";
 import { db } from "@/server/db";
 
 // Company/Business Information
-const COMPANY_INFO = {
+export const COMPANY_INFO = {
   name: process.env.COMPANY_NAME || "KNI Super App",
   address: process.env.COMPANY_ADDRESS || "Mumbai, Maharashtra, India",
   phone: process.env.COMPANY_PHONE || "+91 1234567890",
@@ -50,7 +50,7 @@ function generateInvoiceNumber(type: "BOOKING" | "ORDER", id: string, date: Date
 /**
  * Convert PDFDocument to buffer by collecting chunks
  */
-function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
+export function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -63,16 +63,16 @@ function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
 // SHARED PDF HELPERS
 // ========================================
 
-const BRAND_RED = "#EF3A3A";
-const BRAND_DARK = "#1D2254";
+export const BRAND_RED = "#EF3A3A";
+export const BRAND_DARK = "#1D2254";
 const GRAY_BG = "#F8F9FA";
 const GRAY_BORDER = "#DEE2E6";
 const GRAY_TEXT = "#6C757D";
-const PAGE_LEFT = 50;
-const PAGE_RIGHT = 545;
-const PAGE_WIDTH = PAGE_RIGHT - PAGE_LEFT;
+export const PAGE_LEFT = 50;
+export const PAGE_RIGHT = 545;
+export const PAGE_WIDTH = PAGE_RIGHT - PAGE_LEFT;
 
-function drawColoredHeader(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
+export function drawColoredHeader(doc: PDFKit.PDFDocument, title: string, subtitle: string) {
   // Red banner
   doc.rect(0, 0, 595, 90).fill(BRAND_RED);
   doc.fontSize(22).font("Helvetica-Bold").fillColor("#FFFFFF").text(COMPANY_INFO.name, PAGE_LEFT, 20);
@@ -147,7 +147,7 @@ function drawTotalSection(doc: PDFKit.PDFDocument, y: number, rows: Array<{ labe
   return currentY;
 }
 
-function drawFooter(doc: PDFKit.PDFDocument, terms: string[]) {
+export function drawFooter(doc: PDFKit.PDFDocument, terms: string[]) {
   const y = 720;
   doc.moveTo(PAGE_LEFT, y).lineTo(PAGE_RIGHT, y).lineWidth(0.5).strokeColor(GRAY_BORDER).stroke();
   doc.strokeColor("#000000").lineWidth(1);

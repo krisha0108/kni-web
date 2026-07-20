@@ -115,7 +115,7 @@ export default function OwnerContractDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card><CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 text-center"><p className="text-lg sm:text-2xl font-bold leading-tight break-all">{completedVisits}/{totalVisits}</p><p className="text-xs sm:text-sm text-muted-foreground">Visits Done</p></CardContent></Card>
         <Card><CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 text-center"><p className="text-lg sm:text-2xl font-bold leading-tight break-all">{contract.breakdownVisitsUsed}/{contract.freeBreakdownVisits}</p><p className="text-xs sm:text-sm text-muted-foreground">Breakdowns Used</p></CardContent></Card>
-        <Card><CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 text-center"><p className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(contract.amountPerCycle)}</p><p className="text-xs sm:text-sm text-muted-foreground">/{contract.billingCycle.toLowerCase()}</p></CardContent></Card>
+        <Card><CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 text-center"><p className="text-lg sm:text-2xl font-bold leading-tight break-all">{formatPrice(contract.amount)}</p><p className="text-xs sm:text-sm text-muted-foreground">Contract Price</p></CardContent></Card>
         <Card><CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 text-center"><p className={`text-lg sm:text-2xl font-bold leading-tight ${daysLeft < 30 ? "text-red-600" : "text-green-600"}`}>{daysLeft > 0 ? daysLeft : 0}</p><p className="text-xs sm:text-sm text-muted-foreground">Days Left</p></CardContent></Card>
       </div>
 

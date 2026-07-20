@@ -561,6 +561,15 @@ export async function POST(
           assignmentData?.commissionRate || 20
         );
 
+        // Persist the computed commission on the assignment itself so admin views
+        // (e.g. /admin/engineers/[id] "Recent Job Assignments" table) show the real
+        // amount instead of "-". The mobile-only complete route already does this;
+        // this web/dual-auth complete route previously did not.
+        await tx.engineerAssignment.update({
+          where: { id },
+          data: { commissionAmount },
+        });
+
         await tx.payout.create({
           data: {
             assignmentId: id,

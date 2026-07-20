@@ -18,7 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, Eye } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface Engineer {
@@ -196,6 +196,14 @@ export default function AdminEngineersPage() {
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">
                       <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(`/admin/engineers/${engineer.id}`)}
+                          className="text-xs sm:text-sm h-8"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"

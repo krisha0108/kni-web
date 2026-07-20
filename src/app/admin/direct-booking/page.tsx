@@ -39,6 +39,7 @@ import {
   SkipForward,
   CalendarPlus,
 } from "lucide-react";
+import { computeBookingTotal } from "@/lib/booking-pricing";
 
 // --- Types ---
 interface Owner {
@@ -46,6 +47,7 @@ interface Owner {
   name: string;
   email: string;
   phone: string | null;
+  serviceDiscountPercent?: number | null;
 }
 
 interface Restaurant {
@@ -121,6 +123,7 @@ export default function AdminDirectBookingPage() {
   const [showCreateOwner, setShowCreateOwner] = useState(false);
   const [newOwner, setNewOwner] = useState({ name: "", email: "", phone: "" });
   const [isCreatingOwner, setIsCreatingOwner] = useState(false);
+  const [effectiveDiscount, setEffectiveDiscount] = useState<{ percent: number; source: string } | null>(null);
 
   // Step 1: Restaurant
   const [ownerRestaurants, setOwnerRestaurants] = useState<Restaurant[]>([]);
@@ -128,6 +131,25 @@ export default function AdminDirectBookingPage() {
   const [showCreateRestaurant, setShowCreateRestaurant] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({ name: "", address: "", city: "" });
   const [isCreatingRestaurant, setIsCreatingRestaurant] = useState(false);
+
+  // Discount preview needs BOTH owner and restaurant - FIRST_BOOKING offer
+  // eligibility is per-restaurant, so it can't be resolved from the owner
+  // alone (e.g. an owner with an established restaurant elsewhere still
+  // qualifies for the welcome offer on a newly-added restaurant).
+  useEffect(() => {
+    if (!selectedOwner || !selectedRestaurant) {
+      setEffectiveDiscount(null);
+      return;
+    }
+    fetch(`/api/admin/owners/${selectedOwner.id}/effective-discount?restaurantId=${selectedRestaurant.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.data) {
+          setEffectiveDiscount(data.data);
+        }
+      })
+      .catch(() => {});
+  }, [selectedOwner, selectedRestaurant]);
 
   // Step 2: Equipment
   const [categories, setCategories] = useState<Category[]>([]);
@@ -438,8 +460,17 @@ export default function AdminDirectBookingPage() {
 
   // --- Computed ---
   const itemTotal = selectedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const gstAmount = Math.round(itemTotal * 0.18);
-  const totalAmount = itemTotal + gstAmount;
+  const effectiveDiscountPercent = effectiveDiscount?.percent ?? 0;
+  // This preview's discount is resolved before items are picked (step 1, no
+  // real base amount yet), so there's no authoritative rupee amount to use
+  // here - approximate it as % of the whole basket. The actual submission
+  // (POST /api/admin/direct-booking) always recomputes the real, exact
+  // amount server-side regardless of what this preview shows.
+  const previewDiscountAmount = Math.round((itemTotal * effectiveDiscountPercent) / 100);
+  const pricing = computeBookingTotal(itemTotal, previewDiscountAmount, 0);
+  const discountAmount = pricing.discountAmount;
+  const gstAmount = pricing.gstAmount;
+  const totalAmount = pricing.totalAmount;
 
   const canProceed = useCallback(() => {
     switch (currentStep) {
@@ -942,6 +973,14 @@ export default function AdminDirectBookingPage() {
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span className="font-medium w-24 text-right">{formatPrice(itemTotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex gap-8">
+                      <span className="text-muted-foreground">
+                        Discount ({effectiveDiscountPercent}%{effectiveDiscount?.source ? ` — ${effectiveDiscount.source}` : ""}):
+                      </span>
+                      <span className="font-medium w-24 text-right text-green-600">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex gap-8">
                     <span className="text-muted-foreground">GST (18%):</span>
                     <span className="font-medium w-24 text-right">{formatPrice(gstAmount)}</span>
@@ -1118,6 +1157,12 @@ export default function AdminDirectBookingPage() {
                   <span className="text-muted-foreground">Subtotal:</span>
                   <span className="font-medium w-24 text-right">{formatPrice(itemTotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex gap-8">
+                    <span className="text-muted-foreground">Discount ({effectiveDiscountPercent}%):</span>
+                    <span className="font-medium w-24 text-right text-green-600">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex gap-8">
                   <span className="text-muted-foreground">GST (18%):</span>
                   <span className="font-medium w-24 text-right">{formatPrice(gstAmount)}</span>

@@ -36,6 +36,11 @@ interface Booking {
   adminAdjustedSlotStart?: string;
   adminAdjustedSlotEnd?: string;
   totalAmount: number;
+  discountPercent?: number;
+  discountAmount?: number;
+  discountSource?: string | null;
+  gstAmount?: number;
+  tipAmount?: number;
   problemDescription?: string;
   notes?: string;
   createdAt: string;
@@ -540,32 +545,42 @@ export default function AdminBookingDetailPage() {
 
                 {/* Payment Breakdown */}
                 {(() => {
-                  // Item total (GST-inclusive prices)
+                  // Item/base total: priceSnapshot values are GST-EXCLUSIVE
+                  // base prices (see computeBookingTotal in lib/booking-pricing.ts,
+                  // used identically by both the owner booking flow and the
+                  // admin direct-booking flow: base -> minus discount -> plus
+                  // GST(18%) on the discounted base -> plus tip = totalAmount).
                   const itemTotal = booking.items?.reduce(
                     (sum, item) => sum + item.priceSnapshot * item.qty, 0
                   ) || 0;
 
-                  // Calculate GST breakdown (prices are GST-inclusive)
-                  const GST_RATE = 0.18;
-                  const baseAmount = Math.round(itemTotal / (1 + GST_RATE));
-                  const gstAmount = itemTotal - baseAmount;
-
-                  // Tip is the difference between total and item total
-                  const tipAmount = Math.max(0, booking.totalAmount - itemTotal);
+                  // Use the actual snapshotted discount/GST/tip fields from the
+                  // booking record rather than re-deriving them from itemTotal,
+                  // which silently dropped the discount and produced numbers
+                  // that didn't reconcile with Total Paid whenever a discount
+                  // (offer/referral/custom rate) had been applied.
+                  const discountAmount = booking.discountAmount || 0;
+                  const gstAmount = booking.gstAmount ?? Math.round((itemTotal - discountAmount) * 0.18);
+                  const tipAmount = booking.tipAmount || 0;
 
                   return (
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center text-muted-foreground">
                         <span>Base Amount</span>
-                        <span>{formatPrice(baseAmount)}</span>
+                        <span>{formatPrice(itemTotal)}</span>
                       </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>
+                            Discount
+                            {booking.discountSource ? ` (${booking.discountSource})` : ""}
+                          </span>
+                          <span>-{formatPrice(discountAmount)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center text-muted-foreground">
                         <span>GST (18%)</span>
                         <span>{formatPrice(gstAmount)}</span>
-                      </div>
-                      <div className="flex justify-between items-center font-medium">
-                        <span>Item Total (incl. GST)</span>
-                        <span>{formatPrice(itemTotal)}</span>
                       </div>
                       {tipAmount > 0 && (
                         <div className="flex justify-between items-center text-green-600">

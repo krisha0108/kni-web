@@ -31,9 +31,7 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
     responseTimeSLA: "4 hours",
     resolutionTimeSLA: "24 hours",
     sparePartsPolicies: [] as string[],
-    monthlyPrice: "",
-    quarterlyPrice: "",
-    annualPrice: "",
+    price: "",
     contractPeriod: "1 YEAR",
     exclusions: [] as string[],
   });
@@ -49,6 +47,7 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
       .then((d) => {
         if (d.ok) {
           setRequest(d.data);
+          if (d.data.survey) setSurvey(d.data.survey);
           // Pre-fill visits based on frequency
           const freq = d.data.visitFrequency;
           const visits = freq === "MONTHLY" ? 12 : freq === "BI_MONTHLY" ? 6 : 4;
@@ -62,8 +61,8 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
   }, [requestId]);
 
   const handleSubmit = async (sendImmediately: boolean) => {
-    if (!formData.monthlyPrice) {
-      toast({ title: "Error", description: "Monthly price is required", variant: "destructive" });
+    if (!formData.price) {
+      toast({ title: "Error", description: "Price is required", variant: "destructive" });
       return;
     }
 
@@ -81,9 +80,7 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
           responseTimeSLA: formData.responseTimeSLA,
           resolutionTimeSLA: formData.resolutionTimeSLA,
           sparePartsPolicy: formData.sparePartsPolicies.length > 0 ? formData.sparePartsPolicies.join("\n") : null,
-          monthlyPrice: Math.round(parseFloat(formData.monthlyPrice)),
-          quarterlyPrice: formData.quarterlyPrice ? Math.round(parseFloat(formData.quarterlyPrice)) : null,
-          annualPrice: formData.annualPrice ? Math.round(parseFloat(formData.annualPrice)) : null,
+          price: Math.round(parseFloat(formData.price)),
           contractPeriod: formData.contractPeriod,
           exclusions: formData.exclusions,
         }),
@@ -256,16 +253,8 @@ export default function CreateProposalPage({ params }: { params: Promise<{ reque
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Monthly Price (INR) *</Label>
-              <Input type="number" value={formData.monthlyPrice} onChange={(e) => setFormData({ ...formData, monthlyPrice: e.target.value })} placeholder="e.g., 5000" />
-            </div>
-            <div className="space-y-2">
-              <Label>Quarterly Price (INR)</Label>
-              <Input type="number" value={formData.quarterlyPrice} onChange={(e) => setFormData({ ...formData, quarterlyPrice: e.target.value })} placeholder="e.g., 14000" />
-            </div>
-            <div className="space-y-2">
-              <Label>Annual Price (INR)</Label>
-              <Input type="number" value={formData.annualPrice} onChange={(e) => setFormData({ ...formData, annualPrice: e.target.value })} placeholder="e.g., 50000" />
+              <Label>Price (INR) *</Label>
+              <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="e.g., 50000" />
             </div>
           </div>
           <div className="space-y-2">

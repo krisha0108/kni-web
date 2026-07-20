@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create category request error:", error);
     return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { ok: false, error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const restaurantId = searchParams.get("restaurantId");
+    const page = parseInt(searchParams.get("page") || "0");
+    const pageSize = parseInt(searchParams.get("pageSize") || "20");
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -80,16 +82,23 @@ export async function GET(request: NextRequest) {
     // Check restaurant access with category:read permission
     await requireRestaurantAccess(session, restaurantId, "category:read");
 
-    const categoryRequests = await db.categoryRequest.findMany({
-      where: {
-        restaurantId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const where = { restaurantId };
+    const [categoryRequests, total] = await Promise.all([
+      db.categoryRequest.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      db.categoryRequest.count({ where }),
+    ]);
 
-    return NextResponse.json({ ok: true, data: categoryRequests });
+    return NextResponse.json({
+      ok: true,
+      data: page > 0 ? { items: categoryRequests, total } : categoryRequests,
+      total,
+    });
   } catch (error) {
     console.error("Get category requests error:", error);
     return NextResponse.json(

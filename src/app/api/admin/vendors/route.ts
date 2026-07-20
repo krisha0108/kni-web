@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get("status");
+    const search = searchParams.get("search");
 
     const where = status
       ? { vendorProfile: { approvalStatus: status as VendorApprovalStatus } }
@@ -19,6 +20,15 @@ export async function GET(request: NextRequest) {
       where: {
         role: "VENDOR",
         ...where,
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search } },
+                { email: { contains: search } },
+                { phone: { contains: search } },
+              ],
+            }
+          : {}),
       },
       include: {
         vendorProfile: true,

@@ -51,8 +51,14 @@ import {
   Calendar,
   Loader2,
   Trash2,
+  Clock,
+  Check,
+  X,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils";
+
+type OwnerApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 interface Owner {
   id: string;
@@ -61,6 +67,8 @@ interface Owner {
   phone: string | null;
   isActive: boolean;
   createdAt: string;
+  approvalStatus: OwnerApprovalStatus;
+  rejectionReason: string | null;
   restaurantCount: number;
   totalBookings: number;
 }
@@ -72,6 +80,12 @@ interface OwnerDetail {
   phone: string | null;
   isActive: boolean;
   createdAt: string;
+  serviceDiscountPercent: number | null;
+  ownerProfile: {
+    approvalStatus: OwnerApprovalStatus;
+    rejectionReason: string | null;
+    approvedAt: string | null;
+  } | null;
   restaurants: {
     id: string;
     name: string;
@@ -94,6 +108,7 @@ interface Stats {
   activeOwners: number;
   inactiveOwners: number;
   newThisMonth: number;
+  pendingApprovalOwners: number;
 }
 
 export default function AdminOwnersPage() {
@@ -108,8 +123,13 @@ export default function AdminOwnersPage() {
   const [selectedOwner, setSelectedOwner] = useState<OwnerDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [discountInput, setDiscountInput] = useState("");
+  const [isSavingDiscount, setIsSavingDiscount] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<{ id: string; name: string } | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const { toast } = useToast();
 
   const fetchOwners = async () => {
@@ -151,6 +171,9 @@ export default function AdminOwnersPage() {
       const data = await response.json();
       if (data.ok) {
         setSelectedOwner(data.data);
+        setDiscountInput(
+          data.data.serviceDiscountPercent != null ? String(data.data.serviceDiscountPercent) : ""
+        );
       } else {
         toast({ title: "Error", description: data.error, variant: "destructive" });
         setIsDetailDialogOpen(false);
@@ -191,6 +214,97 @@ export default function AdminOwnersPage() {
     }
   };
 
+  const handleSaveDiscount = async (ownerId: string) => {
+    const trimmed = discountInput.trim();
+    let value: number | null;
+    if (trimmed === "") {
+      value = null;
+    } else {
+      value = Number(trimmed);
+      if (Number.isNaN(value) || value < 0 || value > 100) {
+        toast({ title: "Error", description: "Discount must be a number between 0 and 100", variant: "destructive" });
+        return;
+      }
+    }
+
+    setIsSavingDiscount(true);
+    try {
+      const response = await fetch(`/api/admin/owners/${ownerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceDiscountPercent: value }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Owner discount updated successfully" });
+        if (selectedOwner && selectedOwner.id === ownerId) {
+          setSelectedOwner({ ...selectedOwner, serviceDiscountPercent: value });
+        }
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update owner discount", variant: "destructive" });
+    } finally {
+      setIsSavingDiscount(false);
+    }
+  };
+
+  const handleApprove = async (ownerId: string) => {
+    setIsSubmittingApproval(true);
+    try {
+      const response = await fetch(`/api/admin/owners/${ownerId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Owner Approved", description: "The owner can now log in and add a restaurant." });
+        fetchOwners();
+        if (selectedOwner && selectedOwner.id === ownerId) {
+          setIsDetailDialogOpen(false);
+        }
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to approve owner", variant: "destructive" });
+    } finally {
+      setIsSubmittingApproval(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    if (rejectionReason.trim().length < 10) {
+      toast({ title: "Error", description: "Rejection reason must be at least 10 characters", variant: "destructive" });
+      return;
+    }
+    setIsSubmittingApproval(true);
+    try {
+      const response = await fetch(`/api/admin/owners/${rejectTarget.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", rejectionReason }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        toast({ title: "Owner Rejected", description: "The owner has been notified." });
+        setRejectTarget(null);
+        setRejectionReason("");
+        setIsDetailDialogOpen(false);
+        fetchOwners();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to reject owner", variant: "destructive" });
+    } finally {
+      setIsSubmittingApproval(false);
+    }
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -227,7 +341,7 @@ export default function AdminOwnersPage() {
 
       {/* Summary Cards */}
       {stats && (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Owners</CardTitle>
@@ -235,6 +349,15 @@ export default function AdminOwnersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalOwners}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+              <Clock className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{stats.pendingApprovalOwners}</div>
             </CardContent>
           </Card>
           <Card>
@@ -285,6 +408,8 @@ export default function AdminOwnersPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending_approval">Pending Approval</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
@@ -295,29 +420,30 @@ export default function AdminOwnersPage() {
       {/* Owners Table */}
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <Table className="min-w-[800px]">
+          <Table className="min-w-[860px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Name</TableHead>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Email</TableHead>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Phone</TableHead>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Restaurants</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4">Approval</TableHead>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Status</TableHead>
                 <TableHead className="whitespace-nowrap px-2 sm:px-4">Joined</TableHead>
-                <TableHead className="whitespace-nowrap px-2 sm:px-4 w-[120px]">Actions</TableHead>
+                <TableHead className="whitespace-nowrap px-2 sm:px-4 w-[220px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : owners.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No owners found
                   </TableCell>
                 </TableRow>
@@ -339,6 +465,11 @@ export default function AdminOwnersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">
+                      <Badge variant={statusColors[owner.approvalStatus] || "default"} className="text-xs whitespace-nowrap">
+                        {owner.approvalStatus === "PENDING" ? "Pending Approval" : owner.approvalStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 sm:px-4">
                       <Badge variant={owner.isActive ? "success" : "destructive"} className="text-xs whitespace-nowrap">
                         {owner.isActive ? "Active" : "Inactive"}
                       </Badge>
@@ -348,6 +479,31 @@ export default function AdminOwnersPage() {
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">
                       <div className="flex items-center gap-1">
+                        {owner.approvalStatus === "PENDING" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(owner.id)}
+                              title="Approve registration"
+                              disabled={isSubmittingApproval}
+                              className="h-8 px-2.5 gap-1 bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Approve</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setRejectTarget({ id: owner.id, name: owner.name })}
+                              title="Reject registration"
+                              disabled={isSubmittingApproval}
+                              className="h-8 px-2.5 gap-1 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Reject</span>
+                            </Button>
+                          </>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -357,28 +513,30 @@ export default function AdminOwnersPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {owner.isActive ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStatus(owner.id, false)}
-                            title="Deactivate owner"
-                            disabled={isTogglingStatus}
-                            className="h-8 w-8 p-0"
-                          >
-                            <UserX className="h-4 w-4 text-red-600" />
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStatus(owner.id, true)}
-                            title="Activate owner"
-                            disabled={isTogglingStatus}
-                            className="h-8 w-8 p-0"
-                          >
-                            <UserCheck className="h-4 w-4 text-green-600" />
-                          </Button>
+                        {owner.approvalStatus !== "PENDING" && (
+                          owner.isActive ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleStatus(owner.id, false)}
+                              title="Deactivate owner"
+                              disabled={isTogglingStatus}
+                              className="h-8 w-8 p-0"
+                            >
+                              <UserX className="h-4 w-4 text-red-600" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleStatus(owner.id, true)}
+                              title="Activate owner"
+                              disabled={isTogglingStatus}
+                              className="h-8 w-8 p-0"
+                            >
+                              <UserCheck className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )
                         )}
                         <Button
                           size="sm"
@@ -462,9 +620,50 @@ export default function AdminOwnersPage() {
                     </Badge>
                   </div>
                   <div>
+                    <p className="text-sm text-muted-foreground">Approval</p>
+                    <Badge variant={statusColors[selectedOwner.ownerProfile?.approvalStatus || "APPROVED"] || "default"}>
+                      {selectedOwner.ownerProfile?.approvalStatus === "PENDING"
+                        ? "Pending Approval"
+                        : selectedOwner.ownerProfile?.approvalStatus || "APPROVED"}
+                    </Badge>
+                  </div>
+                  <div>
                     <p className="text-sm text-muted-foreground">Joined</p>
                     <p className="font-medium">{formatDate(selectedOwner.createdAt)}</p>
                   </div>
+                </div>
+                {selectedOwner.ownerProfile?.approvalStatus === "REJECTED" && selectedOwner.ownerProfile.rejectionReason && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                    <span className="font-semibold">Rejection reason: </span>
+                    {selectedOwner.ownerProfile.rejectionReason}
+                  </div>
+                )}
+              </div>
+
+              {/* Discount Override */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Service/Parts Discount
+                </h4>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 max-w-[160px]">
+                    <p className="text-sm text-muted-foreground mb-1">Custom discount % (leave blank to rely on active offers only)</p>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Default"
+                      value={discountInput}
+                      onChange={(e) => setDiscountInput(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveDiscount(selectedOwner.id)}
+                    disabled={isSavingDiscount}
+                  >
+                    {isSavingDiscount ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
                 </div>
               </div>
 
@@ -538,7 +737,30 @@ export default function AdminOwnersPage() {
             </div>
           ) : null}
           <DialogFooter>
-            {selectedOwner && (
+            {selectedOwner && selectedOwner.ownerProfile?.approvalStatus === "PENDING" && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => setRejectTarget({ id: selectedOwner.id, name: selectedOwner.name })}
+                  disabled={isSubmittingApproval}
+                >
+                  <UserX className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => handleApprove(selectedOwner.id)}
+                  disabled={isSubmittingApproval}
+                >
+                  {isSubmittingApproval ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <UserCheck className="h-4 w-4 mr-2" />
+                  )}
+                  Approve Registration
+                </Button>
+              </>
+            )}
+            {selectedOwner && selectedOwner.ownerProfile?.approvalStatus !== "PENDING" && (
               <>
                 {selectedOwner.isActive ? (
                   <Button
@@ -570,6 +792,44 @@ export default function AdminOwnersPage() {
             )}
             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Registration Dialog */}
+      <Dialog
+        open={!!rejectTarget}
+        onOpenChange={(open) => { if (!open) { setRejectTarget(null); setRejectionReason(""); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Registration</DialogTitle>
+            <DialogDescription>
+              Tell <strong>{rejectTarget?.name}</strong> why their owner registration was rejected. This is shown to them.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="e.g. FSSAI details could not be verified. Please reapply with valid documents."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            rows={4}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setRejectTarget(null); setRejectionReason(""); }}
+              disabled={isSubmittingApproval}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={isSubmittingApproval}>
+              {isSubmittingApproval ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <UserX className="h-4 w-4 mr-2" />
+              )}
+              Reject Registration
             </Button>
           </DialogFooter>
         </DialogContent>

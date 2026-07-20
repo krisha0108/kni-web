@@ -28,6 +28,10 @@ export async function PATCH(
     // Fetch salary record by ID
     const existing = await db.staffSalary.findUnique({
       where: { id },
+      include: {
+        staff: { select: { name: true } },
+        restaurant: { select: { ownerId: true } },
+      },
     });
 
     if (!existing) {
@@ -74,6 +78,33 @@ export async function PATCH(
         if (record.totalPaid > record.totalPayable) {
           throw new Error("Payment amount exceeds total payable");
         }
+
+        // AUTO-SYNC: Create Expense entry
+        await tx.expense.create({
+          data: {
+            ownerId: existing.restaurant.ownerId,
+            restaurantId: existing.restaurantId,
+            category: "SALARIES",
+            amount: validated.amountPaid,
+            expenseDate: new Date(),
+            description: `Salary payment - ${existing.staff.name} (${existing.month}/${existing.year})`,
+          },
+        });
+
+        // AUTO-SYNC: Create Cashbook entry (expense = cash out)
+        await tx.cashbookEntry.create({
+          data: {
+            ownerId: existing.restaurant.ownerId,
+            restaurantId: existing.restaurantId,
+            entryDate: new Date(),
+            entryType: "CASH_OUT",
+            amount: validated.amountPaid,
+            paymentMode: "CASH",
+            description: `Salary payment - ${existing.staff.name} (${existing.month}/${existing.year})`,
+            category: "SALARIES",
+            createdBy: existing.restaurant.ownerId,
+          },
+        });
 
         // Update status based on actual new totalPaid
         const newStatus = record.totalPaid >= record.totalPayable ? "PAID" : "PARTIALLY_PAID";
@@ -155,7 +186,7 @@ export async function PATCH(
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
-        { ok: false, error: error.errors[0].message },
+        { ok: false, error: error.issues[0].message },
         { status: 400 }
       );
     }

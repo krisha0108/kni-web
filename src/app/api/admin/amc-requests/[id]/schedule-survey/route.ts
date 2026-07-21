@@ -41,13 +41,13 @@ export async function POST(
       );
     }
 
-    // Verify engineer exists
+    // Verify engineer exists, is active, and is marked available
     const engineer = await db.user.findFirst({
-      where: { id: engineerId, role: "ENGINEER", isActive: true },
+      where: { id: engineerId, role: "ENGINEER", isActive: true, isAvailable: true },
     });
 
     if (!engineer) {
-      return NextResponse.json({ ok: false, error: "Engineer not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Engineer not found, inactive, or unavailable" }, { status: 404 });
     }
 
     // Create survey and update request status in transaction

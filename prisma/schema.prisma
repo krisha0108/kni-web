@@ -252,6 +252,12 @@ model User {
   role                   Role
   emailVerified          Boolean   @default(false)
   isActive               Boolean   @default(true)
+  // Engineer's own "available for new jobs" toggle. Deliberately separate
+  // from isActive (which is the admin-controlled account enable/disable
+  // flag) — they used to be the same field, which meant an engineer
+  // marking themselves briefly unavailable could lock themselves out of
+  // login and get silently skipped by payroll runs.
+  isAvailable            Boolean   @default(true)
   // Per-owner discount override for service/parts bookings (percent, 0-100).
   // Null means "use PlatformSettings.defaultBookingDiscountPercent".
   serviceDiscountPercent Int?

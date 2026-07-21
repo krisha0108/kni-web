@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
   Loader2,
   Star,
   Briefcase,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { NotificationSettings } from "@/components/notifications/notification-settings";
@@ -39,6 +41,7 @@ interface EngineerProfile {
   phone: string;
   role: string;
   createdAt: string;
+  isAvailable: boolean;
   engineerProfile?: {
     city: string;
     skills: string;
@@ -56,6 +59,7 @@ export default function EngineerProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -133,6 +137,41 @@ export default function EngineerProfilePage() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleAvailability = async (value: boolean) => {
+    // Optimistic update — this mirrors the mobile app's instant-toggle UX
+    setProfile((prev) => (prev ? { ...prev, isAvailable: value } : prev));
+    setIsTogglingAvailability(true);
+    try {
+      const response = await fetch("/api/engineer/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isAvailable: value }),
+      });
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: value ? "You're now available" : "You're now unavailable",
+        description: value
+          ? "You may be assigned new jobs."
+          : "You will not be assigned new jobs.",
+      });
+    } catch {
+      // Roll back on failure
+      setProfile((prev) => (prev ? { ...prev, isAvailable: !value } : prev));
+      toast({
+        title: "Error",
+        description: "Failed to update availability",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingAvailability(false);
     }
   };
 
@@ -338,6 +377,51 @@ export default function EngineerProfilePage() {
                 )}
                 Save Changes
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Availability */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
+              Availability
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Control whether you can be assigned new jobs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div
+                  className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    profile?.isAvailable ? "bg-green-100" : "bg-muted"
+                  }`}
+                >
+                  <Zap
+                    className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                      profile?.isAvailable ? "text-green-600" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-base font-medium">
+                    {profile?.isAvailable ? "Available for jobs" : "Not available"}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {profile?.isAvailable
+                      ? "You may receive new job assignments"
+                      : "You will not receive new job assignments"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={profile?.isAvailable ?? false}
+                onCheckedChange={handleToggleAvailability}
+                disabled={isTogglingAvailability}
+              />
             </div>
           </CardContent>
         </Card>

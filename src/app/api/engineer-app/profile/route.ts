@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       success_rate: `${successRate}%`,
       total_ratings: totalRatings,
       created_at: user.createdAt.toISOString(),
-      availability: user.isActive,
+      availability: user.isAvailable,
     });
   } catch (error) {
     console.error("Get engineer profile error:", error);
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
       data: {
         ...(name && { name }),
         ...(phone && { phone }),
-        ...(typeof availability === "boolean" && { isActive: availability }),
+        ...(typeof availability === "boolean" && { isAvailable: availability }),
       },
     });
 

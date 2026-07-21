@@ -24,6 +24,7 @@ export async function GET() {
         phone: true,
         role: true,
         createdAt: true,
+        isAvailable: true,
         engineerProfile: {
           select: {
             city: true,
@@ -90,13 +91,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone, city, skills } = body;
+    const { name, email, phone, city, skills, isAvailable } = body;
 
     // Update user data
-    const updateData: { name?: string; email?: string; phone?: string } = {};
+    const updateData: { name?: string; email?: string; phone?: string; isAvailable?: boolean } = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
+    if (typeof isAvailable === "boolean") updateData.isAvailable = isAvailable;
 
     const updatedUser = await db.user.update({
       where: { id: session.id },
@@ -107,6 +109,7 @@ export async function PUT(request: NextRequest) {
         email: true,
         phone: true,
         role: true,
+        isAvailable: true,
       },
     });
 

@@ -135,18 +135,19 @@ export async function PATCH(
         );
       }
 
-      // Verify all engineers exist and are active
+      // Verify all engineers exist, are active, and are marked available
       const engineers = await db.user.findMany({
         where: {
           id: { in: engineerIds },
           role: "ENGINEER",
           isActive: true,
+          isAvailable: true,
         },
       });
 
       if (engineers.length !== engineerIds.length) {
         return NextResponse.json(
-          { ok: false, error: "One or more engineers not found or inactive" },
+          { ok: false, error: "One or more engineers not found, inactive, or unavailable" },
           { status: 404 }
         );
       }

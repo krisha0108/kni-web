@@ -19,14 +19,14 @@ export async function PUT(request: NextRequest) {
     // Update user availability
     const updatedUser = await db.user.update({
       where: { id: session.id },
-      data: { isActive: isAvailable },
+      data: { isAvailable },
     });
 
     return NextResponse.json({
       ok: true,
       success: true,
       message: isAvailable ? "You are now available" : "You are now unavailable",
-      availability: updatedUser.isActive,
+      availability: updatedUser.isAvailable,
     });
   } catch (error) {
     console.error("Update availability error:", error);
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { id: session.id },
-      select: { isActive: true },
+      select: { isAvailable: true },
     });
 
     if (!user) {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      availability: user.isActive,
+      availability: user.isAvailable,
     });
   } catch (error) {
     console.error("Get availability error:", error);

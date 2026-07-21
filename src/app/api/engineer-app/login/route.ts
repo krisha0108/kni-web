@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         role: user.role,
         city: user.engineerProfile?.city || null,
         skills: user.engineerProfile?.skills || null,
+        availability: user.isAvailable,
       },
     });
   } catch (error) {

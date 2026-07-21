@@ -35,6 +35,13 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
     }
 
+    const engineer = await db.user.findFirst({
+      where: { id: engineerId, role: "ENGINEER", isActive: true, isAvailable: true },
+    });
+    if (!engineer) {
+      return NextResponse.json({ ok: false, error: "Engineer not found, inactive, or unavailable" }, { status: 404 });
+    }
+
     // Create a breakdown visit and update breakdown status
     const [visit] = await db.$transaction([
       db.aMCScheduledVisit.create({

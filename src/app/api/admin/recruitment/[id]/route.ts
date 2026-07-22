@@ -4,6 +4,7 @@ import { requireAdmin } from "@/server/auth/rbac";
 import { sendSMS } from "@/server/sms/service";
 import { sendBulkEmail } from "@/lib/email";
 import { formatDateTime } from "@/lib/utils";
+import { convertCandidateManually } from "@/server/recruitment/onboarding";
 import { z } from "zod";
 
 /**
@@ -76,10 +77,9 @@ const STATUS_MESSAGES: Record<string, { title: string; sms: string }> = {
     title: "Application approved!",
     sms: "Congratulations! Your KNI Services application has been approved. A registration payment link will follow shortly.",
   },
-  REGISTERED_PARTNER: {
-    title: "Welcome to KNI Services!",
-    sms: "Welcome to KNI Services! Your registration is complete. Login details will be shared separately.",
-  },
+  // REGISTERED_PARTNER intentionally has no entry here — that transition is
+  // handled entirely by convertCandidateManually (or the real payment flow),
+  // which sends the actual welcome email/SMS with real login credentials.
 };
 
 const patchSchema = z.object({
@@ -123,6 +123,42 @@ export async function PATCH(
     const candidate = await db.candidate.findUnique({ where: { id } });
     if (!candidate) {
       return NextResponse.json({ ok: false, error: "Candidate not found" }, { status: 404 });
+    }
+
+    // REGISTERED_PARTNER is normally only reached via a verified registration
+    // payment (finalizeRecruitmentPayment), which is what actually creates the
+    // engineer login. If admin manually drags the status here instead (e.g. a
+    // waived fee), it must go through the same account-creation path — never
+    // just relabel the status and send a "login details coming" message with
+    // no account behind it.
+    if (status === "REGISTERED_PARTNER") {
+      const allowed = VALID_TRANSITIONS[candidate.status] || [];
+      if (!allowed.includes(status)) {
+        return NextResponse.json(
+          { ok: false, error: `Cannot change status from ${candidate.status} to ${status}` },
+          { status: 400 }
+        );
+      }
+
+      const result = await convertCandidateManually(id, admin.name);
+      if (!result.ok) {
+        return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+      }
+
+      if (rating !== undefined) {
+        await db.candidate.update({ where: { id }, data: { rating } });
+        await db.candidateActivityLog.create({
+          data: {
+            candidateId: id,
+            type: "RATING_UPDATED",
+            description: `Recruiter rating set to ${rating}/10`,
+            performedBy: admin.name,
+          },
+        });
+      }
+
+      const updatedCandidate = await db.candidate.findUnique({ where: { id } });
+      return NextResponse.json({ ok: true, data: updatedCandidate });
     }
 
     const data: Record<string, unknown> = {};

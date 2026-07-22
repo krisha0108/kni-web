@@ -56,6 +56,7 @@ export async function GET(
           email: user.email,
           phone: user.phone,
           isActive: user.isActive,
+          isAvailable: user.isAvailable,
           createdAt: user.createdAt,
           engineerProfile: user.engineerProfile,
         },

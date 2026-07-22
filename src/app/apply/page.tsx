@@ -348,7 +348,7 @@ export default function ApplyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          age: undefined,
+          age: form.dob ? calcAge(form.dob) ?? undefined : undefined,
           yearOfPassing: form.yearOfPassing ? Number(form.yearOfPassing) : undefined,
           totalExperienceYears: form.totalExperienceYears
             ? Number(form.totalExperienceYears)
@@ -975,10 +975,12 @@ export default function ApplyPage() {
                         <p className="text-sm font-medium">
                           1–2 Minute Video Introduction
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Tell us about yourself, which equipment you specialize in, your years of
-                          experience, and why you want to join KNI Services.
-                        </p>
+                        <ol className="list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
+                          <li>Tell us about yourself.</li>
+                          <li>Which equipment do you specialize in?</li>
+                          <li>How many years of experience do you have?</li>
+                          <li>Why do you want to associate with KNI Services?</li>
+                        </ol>
                         {uploadedDocs.video && <p className="text-xs text-green-600">Uploaded</p>}
                       </div>
                       <label>

@@ -175,6 +175,8 @@ export default function AdminRecruitmentPage() {
   const [filterPosition, setFilterPosition] = useState("ALL");
   const [filterSkill, setFilterSkill] = useState("ALL");
   const [filterEquipment, setFilterEquipment] = useState("ALL");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterState, setFilterState] = useState("");
   const [minExperience, setMinExperience] = useState("");
   const [maxExperience, setMaxExperience] = useState("");
   const [minSalary, setMinSalary] = useState("");
@@ -199,7 +201,7 @@ export default function AdminRecruitmentPage() {
   const [noteInput, setNoteInput] = useState("");
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkChannel, setBulkChannel] = useState<"SMS" | "EMAIL">("SMS");
+  const [bulkChannel, setBulkChannel] = useState<"SMS" | "EMAIL">("EMAIL");
   const [bulkMessage, setBulkMessage] = useState("");
   const [bulkSending, setBulkSending] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -232,6 +234,8 @@ export default function AdminRecruitmentPage() {
       if (filterPosition !== "ALL") params.set("position", filterPosition);
       if (filterSkill !== "ALL") params.set("skill", filterSkill);
       if (filterEquipment !== "ALL") params.set("equipment", filterEquipment);
+      if (filterCity) params.set("city", filterCity);
+      if (filterState) params.set("state", filterState);
       if (minExperience) params.set("minExperience", minExperience);
       if (maxExperience) params.set("maxExperience", maxExperience);
       if (minSalary) params.set("minSalary", minSalary);
@@ -258,6 +262,8 @@ export default function AdminRecruitmentPage() {
     filterPosition,
     filterSkill,
     filterEquipment,
+    filterCity,
+    filterState,
     minExperience,
     maxExperience,
     minSalary,
@@ -530,6 +536,18 @@ export default function AdminRecruitmentPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Input
+              placeholder="City"
+              className="w-full md:w-[140px]"
+              value={filterCity}
+              onChange={(e) => { setFilterCity(e.target.value); setPage(1); }}
+            />
+            <Input
+              placeholder="State"
+              className="w-full md:w-[140px]"
+              value={filterState}
+              onChange={(e) => { setFilterState(e.target.value); setPage(1); }}
+            />
             <div className="flex items-center gap-2">
               <Input
                 type="number"

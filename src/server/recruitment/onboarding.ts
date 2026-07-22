@@ -25,6 +25,75 @@ function skillsToText(skills: unknown): string | null {
   return selected.length > 0 ? selected.join(", ") : null;
 }
 
+type CandidateForConversion = {
+  id: string;
+  fullName: string;
+  email: string;
+  mobile: string;
+  city: string | null;
+  skills: unknown;
+  status: string;
+  convertedUserId: string | null;
+};
+
+// Shared core: creates the live ENGINEER User + EngineerProfile (mirroring the
+// admin/engineers creation contract exactly) and advances the candidate to
+// REGISTERED_PARTNER. Takes a transaction client so callers can combine it
+// with their own transaction-scoped writes (e.g. marking a payment verified).
+async function convertCandidateToEngineerCore(
+  tx: Parameters<Parameters<typeof db.$transaction>[0]>[0],
+  candidate: CandidateForConversion
+): Promise<{ registrationId: string; tempPassword: string }> {
+  const registrationId = await generateRegistrationId();
+  const tempPassword = generateTempPassword();
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+  const user = await tx.user.create({
+    data: {
+      name: candidate.fullName,
+      email: candidate.email,
+      phone: candidate.mobile,
+      passwordHash,
+      role: "ENGINEER",
+      isActive: true,
+      engineerProfile: {
+        create: {
+          city: candidate.city,
+          skills: skillsToText(candidate.skills),
+          payoutMethod: "COMMISSION",
+          commissionRate: 20,
+        },
+      },
+    },
+  });
+
+  await tx.candidate.update({
+    where: { id: candidate.id },
+    data: {
+      registrationId,
+      convertedUserId: user.id,
+      status: "REGISTERED_PARTNER",
+    },
+  });
+
+  return { registrationId, tempPassword };
+}
+
+function sendConversionNotifications(candidate: CandidateForConversion, registrationId: string, tempPassword: string) {
+  sendEngineerWelcomeEmail(candidate.email, candidate.fullName, tempPassword).catch((err) =>
+    console.error("Recruitment welcome email failed:", err)
+  );
+  sendSMS({
+    phone: candidate.mobile,
+    message: `Welcome to KNI Services! Your registration ${registrationId} is complete. Login details have been emailed to you.`,
+    purpose: "RECRUITMENT_REGISTERED",
+  }).catch((err) => console.error("Recruitment welcome SMS failed:", err));
+
+  generateWelcomeKit(candidate.id)
+    .then((pdfBuffer) => sendWelcomeKitEmail(candidate.email, candidate.fullName, registrationId, pdfBuffer))
+    .catch((err) => console.error("Digital Welcome Kit email failed:", err));
+}
+
 /**
  * Marks a pending RecruitmentPayment as verified and, on first success, converts the
  * candidate into a live ENGINEER User + EngineerProfile (mirroring the admin/engineers
@@ -52,68 +121,72 @@ export async function finalizeRecruitmentPayment(
   }
 
   const candidate = payment.candidate;
-  const registrationId = await generateRegistrationId();
-  const tempPassword = generateTempPassword();
-  const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-  await db.$transaction(async (tx) => {
+  const { registrationId, tempPassword } = await db.$transaction(async (tx) => {
     await tx.recruitmentPayment.update({
       where: { id: payment.id },
       data: { status: "VERIFIED", razorpayPaymentId, verifiedAt: new Date() },
     });
 
-    const user = await tx.user.create({
-      data: {
-        name: candidate.fullName,
-        email: candidate.email,
-        phone: candidate.mobile,
-        passwordHash,
-        role: "ENGINEER",
-        isActive: true,
-        engineerProfile: {
-          create: {
-            city: candidate.city,
-            skills: skillsToText(candidate.skills),
-            payoutMethod: "COMMISSION",
-            commissionRate: 20,
-          },
-        },
-      },
-    });
-
-    await tx.candidate.update({
-      where: { id: candidate.id },
-      data: {
-        registrationId,
-        convertedUserId: user.id,
-        status: "REGISTERED_PARTNER",
-      },
-    });
+    const result = await convertCandidateToEngineerCore(tx, candidate);
 
     await tx.candidateActivityLog.create({
       data: {
         candidateId: candidate.id,
         type: "STATUS_CHANGED",
-        description: `Payment verified — registered as ${registrationId} and converted to a live ENGINEER account`,
+        description: `Payment verified — registered as ${result.registrationId} and converted to a live ENGINEER account`,
         fromStatus: "REGISTRATION_PAYMENT_PENDING",
         toStatus: "REGISTERED_PARTNER",
         performedBy: "System (Razorpay)",
       },
     });
+
+    return result;
   });
 
-  sendEngineerWelcomeEmail(candidate.email, candidate.fullName, tempPassword).catch((err) =>
-    console.error("Recruitment welcome email failed:", err)
-  );
-  sendSMS({
-    phone: candidate.mobile,
-    message: `Welcome to KNI Services! Your registration ${registrationId} is complete. Login details have been emailed to you.`,
-    purpose: "RECRUITMENT_REGISTERED",
-  }).catch((err) => console.error("Recruitment welcome SMS failed:", err));
+  sendConversionNotifications(candidate, registrationId, tempPassword);
 
-  generateWelcomeKit(candidate.id)
-    .then((pdfBuffer) => sendWelcomeKitEmail(candidate.email, candidate.fullName, registrationId, pdfBuffer))
-    .catch((err) => console.error("Digital Welcome Kit email failed:", err));
+  return { ok: true, registrationId };
+}
+
+/**
+ * Admin manually advances a candidate straight to REGISTERED_PARTNER without an
+ * actual registration payment (e.g. a waived/comped fee). Runs the exact same
+ * account-creation path as a real payment — this must never be skipped, or the
+ * candidate gets a "welcome, login details coming" message with no account ever
+ * created behind it (the bug this function exists to close).
+ */
+export async function convertCandidateManually(
+  candidateId: string,
+  adminName: string
+): Promise<{ ok: boolean; registrationId?: string; error?: string }> {
+  const candidate = await db.candidate.findUnique({ where: { id: candidateId } });
+
+  if (!candidate) {
+    return { ok: false, error: "Candidate not found" };
+  }
+  if (candidate.convertedUserId) {
+    return { ok: false, error: "This candidate already has an engineer account" };
+  }
+
+  const { registrationId, tempPassword } = await db.$transaction(async (tx) => {
+    const result = await convertCandidateToEngineerCore(tx, candidate);
+
+    await tx.candidateActivityLog.create({
+      data: {
+        candidateId: candidate.id,
+        type: "STATUS_CHANGED",
+        description: `Manually registered by admin (${adminName}), without a registration payment — registered as ${result.registrationId} and converted to a live ENGINEER account`,
+        fromStatus: candidate.status,
+        toStatus: "REGISTERED_PARTNER",
+        performedBy: adminName,
+      },
+    });
+
+    return result;
+  });
+
+  sendConversionNotifications(candidate, registrationId, tempPassword);
 
   return { ok: true, registrationId };
 }

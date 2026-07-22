@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ArrowLeft, Star, FileText, Award, UserCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Star, FileText, Award, UserCheck, Video, IndianRupee } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 interface Profile {
@@ -23,6 +23,7 @@ interface Profile {
     email: string;
     phone: string | null;
     isActive: boolean;
+    isAvailable: boolean;
     createdAt: string;
     engineerProfile: { city: string | null; skills: string | null; payoutMethod: string; commissionRate: number; monthlySalary: number | null } | null;
   };
@@ -33,6 +34,16 @@ interface Profile {
     registrationId: string | null;
     rating: number | null;
     resumeUrl: string | null;
+    videoIntroUrl: string | null;
+    aadhaarUrl: string | null;
+    panUrl: string | null;
+    photoUrl: string | null;
+    drivingLicenseUrl: string | null;
+    salarySlipUrl: string | null;
+    policeVerificationUrl: string | null;
+    vaccinationCertUrl: string | null;
+    experienceCertUrls: string[] | null;
+    educationCertUrls: string[] | null;
     createdAt: string;
     trainingAttendances: { id: string; attended: boolean; certificateUrl: string | null; trainingProgram: { title: string; scheduledAt: string } }[];
     payments: { id: string; amount: number; status: string; verifiedAt: string | null }[];
@@ -110,6 +121,7 @@ export default function EngineerProfilePage() {
           <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
             {user.name}
             <Badge variant={user.isActive ? "success" : "destructive"}>{user.isActive ? "Active" : "Inactive"}</Badge>
+            <Badge variant={user.isAvailable ? "success" : "secondary"}>{user.isAvailable ? "Available for jobs" : "Unavailable"}</Badge>
           </h1>
           <p className="text-muted-foreground">{user.email} · {user.phone || "-"}</p>
         </div>
@@ -159,10 +171,55 @@ export default function EngineerProfilePage() {
               <p><span className="text-muted-foreground">Recruiter Rating:</span> {candidate.rating ? `${candidate.rating}/10` : "-"}</p>
               <p><span className="text-muted-foreground">Applied:</span> {formatDate(candidate.createdAt)}</p>
             </div>
-            {candidate.resumeUrl && (
-              <a href={candidate.resumeUrl} target="_blank" rel="noreferrer">
-                <Badge variant="secondary" className="flex w-fit items-center gap-1"><FileText className="h-3 w-3" /> Resume</Badge>
-              </a>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { label: "Resume", url: candidate.resumeUrl },
+                { label: "Aadhaar", url: candidate.aadhaarUrl },
+                { label: "PAN", url: candidate.panUrl },
+                { label: "Photo", url: candidate.photoUrl },
+                { label: "Driving License", url: candidate.drivingLicenseUrl },
+                { label: "Salary Slip", url: candidate.salarySlipUrl },
+                { label: "Police Verification", url: candidate.policeVerificationUrl },
+                { label: "Vaccination Certificate", url: candidate.vaccinationCertUrl },
+              ]
+                .filter((d) => d.url)
+                .map((d) => (
+                  <a key={d.label} href={d.url as string} target="_blank" rel="noreferrer">
+                    <Badge variant="secondary" className="flex w-fit items-center gap-1"><FileText className="h-3 w-3" /> {d.label}</Badge>
+                  </a>
+                ))}
+              {(candidate.experienceCertUrls || []).map((url, i) => (
+                <a key={`exp-${i}`} href={url} target="_blank" rel="noreferrer">
+                  <Badge variant="secondary" className="flex w-fit items-center gap-1"><FileText className="h-3 w-3" /> Experience Cert {i + 1}</Badge>
+                </a>
+              ))}
+              {(candidate.educationCertUrls || []).map((url, i) => (
+                <a key={`edu-${i}`} href={url} target="_blank" rel="noreferrer">
+                  <Badge variant="secondary" className="flex w-fit items-center gap-1"><FileText className="h-3 w-3" /> Education Cert {i + 1}</Badge>
+                </a>
+              ))}
+            </div>
+
+            {candidate.videoIntroUrl && (
+              <div className="pt-2">
+                <p className="mb-1 flex items-center gap-1 font-medium"><Video className="h-3.5 w-3.5" /> Video Introduction</p>
+                <video src={candidate.videoIntroUrl} controls className="w-full max-w-sm rounded-md border" />
+              </div>
+            )}
+
+            {candidate.payments.length > 0 && (
+              <div className="pt-2">
+                <p className="mb-1 flex items-center gap-1 font-medium"><IndianRupee className="h-3.5 w-3.5" /> Payment Status</p>
+                {candidate.payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between border-t py-1 text-xs">
+                    <span>₹{p.amount.toLocaleString("en-IN")}</span>
+                    <span className="flex items-center gap-2">
+                      <Badge variant={p.status === "VERIFIED" ? "success" : p.status === "REJECTED" ? "destructive" : "secondary"}>{p.status}</Badge>
+                      {p.verifiedAt && <span className="text-muted-foreground">{formatDate(p.verifiedAt)}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
 
             {candidate.trainingAttendances.length > 0 && (

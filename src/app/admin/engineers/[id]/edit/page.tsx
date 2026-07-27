@@ -237,8 +237,8 @@ export default function EditEngineerPage() {
                   <Select value={formData.payoutMethod} onValueChange={(value) => setFormData({ ...formData, payoutMethod: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="COMMISSION">Commission Based</SelectItem>
-                      <SelectItem value="SALARY">Salary Based</SelectItem>
+                      <SelectItem value="COMMISSION">Associate Service Partner (Commission Based)</SelectItem>
+                      <SelectItem value="SALARY">Full-Time Employee (Salary Based)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

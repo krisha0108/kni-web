@@ -8,6 +8,8 @@ import { z } from "zod";
 
 const schema = z.object({
   amount: z.number().int().positive("Amount must be a positive number of rupees"),
+  finalCommissionRate: z.number().int().min(0).max(100).optional(),
+  finalMonthlySalary: z.number().int().positive().optional(),
 });
 
 /**
@@ -48,6 +50,23 @@ export async function POST(
         { ok: false, error: `Cannot send a payment link while status is ${candidate.status}` },
         { status: 400 }
       );
+    }
+
+    if (
+      validation.data.finalCommissionRate !== undefined ||
+      validation.data.finalMonthlySalary !== undefined
+    ) {
+      await db.candidate.update({
+        where: { id },
+        data: {
+          ...(validation.data.finalCommissionRate !== undefined
+            ? { finalCommissionRate: validation.data.finalCommissionRate }
+            : {}),
+          ...(validation.data.finalMonthlySalary !== undefined
+            ? { finalMonthlySalary: validation.data.finalMonthlySalary }
+            : {}),
+        },
+      });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

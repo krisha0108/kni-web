@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -28,13 +29,16 @@ import {
   MARITAL_STATUS_OPTIONS,
   NOTICE_PERIOD_OPTIONS,
   INDIAN_STATES,
+  ENGAGEMENT_TYPE_OPTIONS,
   type PositionValue,
+  type EngagementTypeValue,
 } from "./config";
 
 type FlagMap = Record<string, boolean>;
 
 interface FormState {
   position: PositionValue | "";
+  engagementType: EngagementTypeValue | "";
   mobile: string;
   fullName: string;
   whatsappNumber: string;
@@ -77,6 +81,7 @@ interface FormState {
 
 const INITIAL_STATE: FormState = {
   position: "",
+  engagementType: "",
   mobile: "",
   fullName: "",
   whatsappNumber: "",
@@ -353,8 +358,19 @@ export default function ApplyPage() {
           totalExperienceYears: form.totalExperienceYears
             ? Number(form.totalExperienceYears)
             : undefined,
-          currentSalary: form.currentSalary ? Number(form.currentSalary) : undefined,
-          expectedSalary: form.expectedSalary ? Number(form.expectedSalary) : undefined,
+          currentSalary:
+            form.engagementType === "COMMISSION"
+              ? undefined
+              : form.currentSalary
+              ? Number(form.currentSalary)
+              : undefined,
+          expectedSalary:
+            form.engagementType === "COMMISSION"
+              ? undefined
+              : form.expectedSalary
+              ? Number(form.expectedSalary)
+              : undefined,
+          noticePeriod: form.engagementType === "COMMISSION" ? undefined : form.noticePeriod,
           familyMembersCount: form.familyMembersCount
             ? Number(form.familyMembersCount)
             : undefined,
@@ -444,26 +460,67 @@ export default function ApplyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {step === 0 && (
-                <div className="space-y-3">
-                  <Label>Select the position you are applying for</Label>
-                  <Select
-                    value={form.position}
-                    onValueChange={(v) => update("position", v as PositionValue)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a position" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POSITIONS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          {p.label}
-                        </SelectItem>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>I want to join KNI as *</Label>
+                    <RadioGroup
+                      value={form.engagementType}
+                      onValueChange={(v) => {
+                        const value = v as EngagementTypeValue;
+                        update("engagementType", value);
+                        if (value === "COMMISSION") {
+                          setForm((prev) => ({
+                            ...prev,
+                            engagementType: value,
+                            currentSalary: "",
+                            expectedSalary: "",
+                            noticePeriod: "",
+                          }));
+                        }
+                      }}
+                    >
+                      {ENGAGEMENT_TYPE_OPTIONS.map((opt) => (
+                        <label
+                          key={opt.value}
+                          htmlFor={`engagement-${opt.value}`}
+                          className="flex cursor-pointer items-start gap-2 rounded-md border p-3"
+                        >
+                          <RadioGroupItem
+                            value={opt.value}
+                            id={`engagement-${opt.value}`}
+                            className="mt-0.5"
+                          />
+                          <span>
+                            <span className="block text-sm font-medium">{opt.label}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {opt.helper}
+                            </span>
+                          </span>
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </RadioGroup>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Select the position you are applying for</Label>
+                    <Select
+                      value={form.position}
+                      onValueChange={(v) => update("position", v as PositionValue)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button
                     className="w-full"
-                    disabled={!form.position}
+                    disabled={!form.position || !form.engagementType}
                     onClick={() => setStep(1)}
                   >
                     Continue
@@ -721,36 +778,43 @@ export default function ApplyPage() {
                       onChange={(e) => update("previousEmployers", e.target.value)}
                     />
                   </Field>
-                  <Field label="Current Salary (₹/month)" error={errors.currentSalary}>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.currentSalary}
-                      onChange={(e) => update("currentSalary", e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Expected Salary (₹/month)" error={errors.expectedSalary}>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={form.expectedSalary}
-                      onChange={(e) => update("expectedSalary", e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Notice Period">
-                    <Select value={form.noticePeriod} onValueChange={(v) => update("noticePeriod", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select notice period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {NOTICE_PERIOD_OPTIONS.map((n) => (
-                          <SelectItem key={n} value={n}>
-                            {n}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                  {form.engagementType !== "COMMISSION" && (
+                    <>
+                      <Field label="Current Salary (₹/month)" error={errors.currentSalary}>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={form.currentSalary}
+                          onChange={(e) => update("currentSalary", e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Expected Salary (₹/month)" error={errors.expectedSalary}>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={form.expectedSalary}
+                          onChange={(e) => update("expectedSalary", e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Notice Period">
+                        <Select
+                          value={form.noticePeriod}
+                          onValueChange={(v) => update("noticePeriod", v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select notice period" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NOTICE_PERIOD_OPTIONS.map((n) => (
+                              <SelectItem key={n} value={n}>
+                                {n}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </>
+                  )}
                   <div
                     className="flex cursor-pointer items-center gap-2"
                     onClick={() => update("readyImmediate", !form.readyImmediate)}

@@ -12,6 +12,9 @@ interface OrderInfo {
   keyId: string;
   candidateName: string;
   email: string;
+  engagementType: "COMMISSION" | "SALARY" | null;
+  finalCommissionRate: number | null;
+  finalMonthlySalary: number | null;
 }
 
 export default function RecruitmentPaymentPage({
@@ -108,9 +111,26 @@ export default function RecruitmentPaymentPage({
             ) : order ? (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Candidate: {order.candidateName}</p>
+                {(order.engagementType === "SALARY" && order.finalMonthlySalary) ||
+                (order.engagementType === "COMMISSION" && order.finalCommissionRate != null) ? (
+                  <div className="rounded-md border border-green-200 bg-green-50 p-3 text-center">
+                    <p className="text-xs font-medium text-green-800">
+                      Your Confirmed {order.engagementType === "SALARY" ? "Salary" : "Commission"}
+                    </p>
+                    <p className="text-lg font-bold text-green-700">
+                      {order.engagementType === "SALARY"
+                        ? `₹${order.finalMonthlySalary?.toLocaleString("en-IN")} / month`
+                        : `${order.finalCommissionRate}% per job`}
+                    </p>
+                    <p className="text-xs text-green-800">
+                      {order.engagementType === "SALARY" ? "Full-Time Employee" : "Associate Service Partner"}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-center gap-1 text-3xl font-bold">
                   <IndianRupee className="h-6 w-6" /> {order.amount.toLocaleString("en-IN")}
                 </div>
+                <p className="text-center text-xs text-muted-foreground">Registration Fee</p>
                 <Button className="w-full" disabled={paying || !scriptReady} onClick={startPayment}>
                   {paying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Pay Now

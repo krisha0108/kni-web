@@ -186,9 +186,9 @@ export default function AdminEngineersPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell px-2 sm:px-4">
                       {engineer.engineerProfile?.payoutMethod === "SALARY" ? (
-                        <Badge variant="outline" className="text-xs whitespace-nowrap">Salary ₹{(engineer.engineerProfile.monthlySalary || 0).toLocaleString('en-IN')}/mo</Badge>
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">Full-Time Employee (Salary Based) · ₹{(engineer.engineerProfile.monthlySalary || 0).toLocaleString('en-IN')}/mo</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs whitespace-nowrap">Commission {engineer.engineerProfile?.commissionRate || 20}%</Badge>
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">Associate Service Partner (Commission Based) · {engineer.engineerProfile?.commissionRate || 20}%</Badge>
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell px-2 sm:px-4 text-xs sm:text-sm">

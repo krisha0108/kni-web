@@ -2891,6 +2891,11 @@ model Candidate {
   noticePeriod         String?
   readyImmediate       Boolean @default(false)
 
+  // Engagement Type (Associate Service Partner = COMMISSION, Full-Time Employee = SALARY)
+  engagementType      PayoutMethod?
+  finalCommissionRate Int?
+  finalMonthlySalary  Int?
+
   // Position & Skills (form fields shown dynamically per position on the client)
   position            RecruitmentPosition
   skills              Json?

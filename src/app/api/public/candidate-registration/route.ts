@@ -71,6 +71,9 @@ const candidateSchema = z
 
     // Position & skills
     position: z.enum(POSITIONS),
+    engagementType: z.enum(["COMMISSION", "SALARY"], {
+      message: "Select whether you are joining as an Associate Service Partner or Full-Time Employee",
+    }),
     skills: flagMapSchema,
     equipmentExperience: flagMapSchema,
     workCapability: flagMapSchema,
@@ -225,12 +228,16 @@ export async function POST(request: NextRequest) {
         totalExperienceYears: validated.totalExperienceYears ?? null,
         currentEmployer: validated.currentEmployer || null,
         previousEmployers: validated.previousEmployers || null,
-        currentSalary: validated.currentSalary ?? null,
-        expectedSalary: validated.expectedSalary ?? null,
-        noticePeriod: validated.noticePeriod || null,
+        currentSalary:
+          validated.engagementType === "COMMISSION" ? null : validated.currentSalary ?? null,
+        expectedSalary:
+          validated.engagementType === "COMMISSION" ? null : validated.expectedSalary ?? null,
+        noticePeriod:
+          validated.engagementType === "COMMISSION" ? null : validated.noticePeriod || null,
         readyImmediate: validated.readyImmediate ?? false,
 
         position: validated.position,
+        engagementType: validated.engagementType,
         skills: validated.skills ?? undefined,
         equipmentExperience: validated.equipmentExperience ?? undefined,
         workCapability: validated.workCapability ?? undefined,

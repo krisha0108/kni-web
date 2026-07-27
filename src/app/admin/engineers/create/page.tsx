@@ -310,8 +310,8 @@ export default function CreateEngineerPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="COMMISSION">Commission Based</SelectItem>
-                      <SelectItem value="SALARY">Salary Based</SelectItem>
+                      <SelectItem value="COMMISSION">Associate Service Partner (Commission Based)</SelectItem>
+                      <SelectItem value="SALARY">Full-Time Employee (Salary Based)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

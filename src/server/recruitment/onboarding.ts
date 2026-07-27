@@ -34,6 +34,9 @@ type CandidateForConversion = {
   skills: unknown;
   status: string;
   convertedUserId: string | null;
+  engagementType: string | null;
+  finalCommissionRate: number | null;
+  finalMonthlySalary: number | null;
 };
 
 // Shared core: creates the live ENGINEER User + EngineerProfile (mirroring the
@@ -60,8 +63,10 @@ async function convertCandidateToEngineerCore(
         create: {
           city: candidate.city,
           skills: skillsToText(candidate.skills),
-          payoutMethod: "COMMISSION",
-          commissionRate: 20,
+          payoutMethod: (candidate.engagementType as "COMMISSION" | "SALARY" | null) ?? "COMMISSION",
+          commissionRate: candidate.finalCommissionRate ?? 20,
+          monthlySalary:
+            candidate.engagementType === "SALARY" ? candidate.finalMonthlySalary ?? null : null,
         },
       },
     },

@@ -48,9 +48,13 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import { formatDate } from "@/lib/utils";
-import { SKILLS_BY_POSITION, EQUIPMENT_LIST } from "@/app/apply/config";
+import { SKILLS_BY_POSITION, EQUIPMENT_LIST, ENGAGEMENT_TYPE_OPTIONS } from "@/app/apply/config";
 
 const ALL_SKILLS = Array.from(new Set(Object.values(SKILLS_BY_POSITION).flat())).sort();
+
+const ENGAGEMENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  ENGAGEMENT_TYPE_OPTIONS.map((o) => [o.value, o.label])
+);
 
 interface Candidate {
   id: string;
@@ -61,7 +65,11 @@ interface Candidate {
   state: string;
   position: string;
   totalExperienceYears: number | null;
+  currentSalary: number | null;
   expectedSalary: number | null;
+  engagementType: string | null;
+  finalCommissionRate: number | null;
+  finalMonthlySalary: number | null;
   status: string;
   rating: number | null;
   rejectionReason: string | null;
@@ -192,6 +200,8 @@ export default function AdminRecruitmentPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [finalCommissionRateInput, setFinalCommissionRateInput] = useState("20");
+  const [finalMonthlySalaryInput, setFinalMonthlySalaryInput] = useState("");
   const [sendingPaymentLink, setSendingPaymentLink] = useState(false);
   const [showInterviewForm, setShowInterviewForm] = useState(false);
   const [interviewDateTime, setInterviewDateTime] = useState("");
@@ -291,6 +301,10 @@ export default function AdminRecruitmentPage() {
       return;
     }
     if (status === "REGISTRATION_PAYMENT_PENDING") {
+      setFinalCommissionRateInput(String(selected?.finalCommissionRate ?? 20));
+      setFinalMonthlySalaryInput(
+        selected?.finalMonthlySalary ? String(selected.finalMonthlySalary) : ""
+      );
       setShowPaymentForm(true);
       return;
     }
@@ -332,12 +346,24 @@ export default function AdminRecruitmentPage() {
       toast({ title: "Enter a valid amount", variant: "destructive" });
       return;
     }
+    const isSalary = (selected.engagementType ?? "COMMISSION") === "SALARY";
+    const finalMonthlySalary = isSalary ? parseInt(finalMonthlySalaryInput) : undefined;
+    if (isSalary && (!finalMonthlySalary || finalMonthlySalary <= 0)) {
+      toast({ title: "Enter a valid final monthly salary", variant: "destructive" });
+      return;
+    }
+    const finalCommissionRate = !isSalary
+      ? parseInt(finalCommissionRateInput) || 20
+      : undefined;
     setSendingPaymentLink(true);
     try {
       const res = await fetch(`/api/admin/recruitment/${selected.id}/create-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({
+          amount,
+          ...(isSalary ? { finalMonthlySalary } : { finalCommissionRate }),
+        }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -753,6 +779,8 @@ export default function AdminRecruitmentPage() {
                 <div><span className="text-muted-foreground">Mobile:</span> <span className="font-medium">{selected.mobile}</span></div>
                 <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{selected.email || "-"}</span></div>
                 <div><span className="text-muted-foreground">Experience:</span> <span className="font-medium">{selected.totalExperienceYears ?? "-"} yrs</span></div>
+                <div><span className="text-muted-foreground">Engagement Type:</span> <span className="font-medium">{selected.engagementType ? ENGAGEMENT_TYPE_LABELS[selected.engagementType] : "-"}</span></div>
+                <div><span className="text-muted-foreground">Current Salary:</span> <span className="font-medium">{selected.currentSalary ? `₹${selected.currentSalary.toLocaleString("en-IN")}` : "-"}</span></div>
                 <div><span className="text-muted-foreground">Expected Salary:</span> <span className="font-medium">{selected.expectedSalary ? `₹${selected.expectedSalary.toLocaleString("en-IN")}` : "-"}</span></div>
               </div>
 
@@ -853,8 +881,39 @@ export default function AdminRecruitmentPage() {
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder="e.g. 2000"
                   />
+                  {(selected.engagementType ?? "COMMISSION") === "SALARY" ? (
+                    <>
+                      <Label>Final Monthly Salary (₹) *</Label>
+                      <Input
+                        type="number"
+                        value={finalMonthlySalaryInput}
+                        onChange={(e) => setFinalMonthlySalaryInput(e.target.value)}
+                        placeholder="e.g. 18000"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Label>Final Commission Rate (%) *</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={finalCommissionRateInput}
+                        onChange={(e) => setFinalCommissionRateInput(e.target.value)}
+                        placeholder="e.g. 20"
+                      />
+                    </>
+                  )}
                   <div className="flex gap-2">
-                    <Button disabled={sendingPaymentLink || !paymentAmount} onClick={handleCreatePayment}>
+                    <Button
+                      disabled={
+                        sendingPaymentLink ||
+                        !paymentAmount ||
+                        ((selected.engagementType ?? "COMMISSION") === "SALARY" &&
+                          !finalMonthlySalaryInput)
+                      }
+                      onClick={handleCreatePayment}
+                    >
                       {sendingPaymentLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Send Payment Link
                     </Button>

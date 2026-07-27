@@ -11,6 +11,17 @@ export const POSITIONS = [
 
 export type PositionValue = (typeof POSITIONS)[number]["value"];
 
+export const ENGAGEMENT_TYPE_OPTIONS = [
+  {
+    value: "COMMISSION",
+    label: "Associate Service Partner",
+    helper: "Paid per job/visit — not a fixed salary",
+  },
+  { value: "SALARY", label: "Full-Time Employee", helper: "Fixed monthly salary" },
+] as const;
+
+export type EngagementTypeValue = (typeof ENGAGEMENT_TYPE_OPTIONS)[number]["value"];
+
 export const SKILLS_BY_POSITION: Record<PositionValue, string[]> = {
   TECHNICIAN_ELECTRICAL: [
     "Wiring",

@@ -133,7 +133,7 @@ export default function EngineerProfilePage() {
           <CardContent className="space-y-1 text-sm">
             <p><span className="text-muted-foreground">City:</span> {user.engineerProfile?.city || "-"}</p>
             <p><span className="text-muted-foreground">Skills:</span> {user.engineerProfile?.skills || "-"}</p>
-            <p><span className="text-muted-foreground">Payout:</span> {user.engineerProfile?.payoutMethod === "SALARY" ? `₹${user.engineerProfile.monthlySalary}/month` : `${user.engineerProfile?.commissionRate}% commission`}</p>
+            <p><span className="text-muted-foreground">Payout:</span> {user.engineerProfile?.payoutMethod === "SALARY" ? `Full-Time Employee (Salary Based) — ₹${user.engineerProfile.monthlySalary}/month` : `Associate Service Partner (Commission Based) — ${user.engineerProfile?.commissionRate}% commission`}</p>
             <p><span className="text-muted-foreground">Registered:</span> {formatDate(user.createdAt)}</p>
           </CardContent>
         </Card>

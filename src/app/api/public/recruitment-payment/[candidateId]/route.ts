@@ -14,7 +14,15 @@ export async function GET(
 
     const candidate = await db.candidate.findUnique({
       where: { id: candidateId },
-      select: { id: true, fullName: true, email: true, status: true },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        engagementType: true,
+        finalCommissionRate: true,
+        finalMonthlySalary: true,
+      },
     });
     if (!candidate) {
       return NextResponse.json({ ok: false, error: "Candidate not found" }, { status: 404 });
@@ -40,6 +48,9 @@ export async function GET(
         keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         candidateName: candidate.fullName,
         email: candidate.email,
+        engagementType: candidate.engagementType,
+        finalCommissionRate: candidate.finalCommissionRate,
+        finalMonthlySalary: candidate.finalMonthlySalary,
       },
     });
   } catch (error) {

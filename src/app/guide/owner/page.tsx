@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { Afacad } from "next/font/google";
 import SiteHeader from "../../_components/SiteHeader";
+import Footer from "../../_components/Footer";
+
+const afacad = Afacad({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 import {
   UserPlus,
   LayoutDashboard,
@@ -139,7 +143,7 @@ function StatBox({
 /* ================================================================== */
 export default function OwnerGuidePage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className={`${afacad.className} min-h-screen bg-background`}>
       <SiteHeader />
       <HeroSection />
 
@@ -1556,6 +1560,7 @@ export default function OwnerGuidePage() {
       </PhaseSection>
 
       <SupportSection />
+      <Footer />
     </main>
   );
 }

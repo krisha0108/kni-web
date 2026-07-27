@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Afacad } from "next/font/google";
+import SiteHeader from "../_components/SiteHeader";
+import Footer from "../_components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +36,8 @@ import {
   type PositionValue,
   type EngagementTypeValue,
 } from "./config";
+
+const afacad = Afacad({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type FlagMap = Record<string, boolean>;
 
@@ -422,7 +427,9 @@ export default function ApplyPage() {
   const canFinish = DOC_FIELDS.filter((d) => d.required).every((d) => uploadedDocs[d.key]);
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
+    <div className={`${afacad.className} min-h-screen bg-muted/30`}>
+      <SiteHeader />
+      <div className="py-8 px-4">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 rounded-lg bg-[#EF3A3A] px-6 py-5 text-white">
           <h1 className="text-xl font-bold">KNI Services — Technician Registration</h1>
@@ -1087,6 +1094,8 @@ export default function ApplyPage() {
           </Card>
         )}
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

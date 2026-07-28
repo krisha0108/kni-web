@@ -53,8 +53,11 @@ export async function generateWelcomeKit(candidateId: string): Promise<Buffer> {
   );
 
   const detailsY = contentY + 100;
-  doc.rect(PAGE_LEFT, detailsY, PAGE_WIDTH, 130).fill("#F8F9FA").stroke("#DEE2E6");
-  doc.fillColor(BRAND_DARK).fontSize(11).font("Helvetica-Bold").text("Membership Details", PAGE_LEFT + 15, detailsY + 12);
+  const labelColX = PAGE_LEFT + 15;
+  const labelColWidth = 130;
+  const valueColX = labelColX + labelColWidth;
+  const valueColWidth = PAGE_LEFT + PAGE_WIDTH - 15 - valueColX;
+  const rowGap = 6;
 
   const rows: [string, string][] = [
     ["Technician ID", candidate.registrationId],
@@ -64,14 +67,29 @@ export async function generateWelcomeKit(candidateId: string): Promise<Buffer> {
     ["Registered On", formatDate(candidate.updatedAt)],
     ["Status", "Active — Membership Confirmed"],
   ];
-  doc.fillColor("#333333").fontSize(10).font("Helvetica");
+
+  // Each row's height depends on how many lines its value wraps to (e.g. long
+  // position titles) — measure first so rows never overlap, instead of a
+  // fixed per-row offset that assumed every value fits on one line.
+  doc.fontSize(10).font("Helvetica");
+  const rowHeights = rows.map(([, value]) =>
+    Math.max(16, doc.heightOfString(value, { width: valueColWidth }))
+  );
+  const headingHeight = 30;
+  const boxHeight =
+    headingHeight + rowHeights.reduce((sum, h) => sum + h + rowGap, 0) + 10;
+
+  doc.rect(PAGE_LEFT, detailsY, PAGE_WIDTH, boxHeight).fill("#F8F9FA").stroke("#DEE2E6");
+  doc.fillColor(BRAND_DARK).fontSize(11).font("Helvetica-Bold").text("Membership Details", labelColX, detailsY + 12);
+
+  let rowY = detailsY + headingHeight;
   rows.forEach(([label, value], i) => {
-    const y = detailsY + 35 + i * 16;
-    doc.font("Helvetica-Bold").text(`${label}:`, PAGE_LEFT + 15, y, { continued: true, width: 150 });
-    doc.font("Helvetica").text(`  ${value}`);
+    doc.fillColor("#333333").fontSize(10).font("Helvetica-Bold").text(`${label}:`, labelColX, rowY, { width: labelColWidth });
+    doc.font("Helvetica").text(value, valueColX, rowY, { width: valueColWidth });
+    rowY += rowHeights[i] + rowGap;
   });
 
-  const nextStepsY = detailsY + 150;
+  const nextStepsY = detailsY + boxHeight + 20;
   doc.fillColor(BRAND_RED).fontSize(12).font("Helvetica-Bold").text("What's Next?", PAGE_LEFT, nextStepsY);
   doc.fillColor("#333333").fontSize(10).font("Helvetica").text(
     "• Your ServiceEngineerApp login credentials have been sent to your registered email.\n" +

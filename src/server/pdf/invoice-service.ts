@@ -91,17 +91,25 @@ export function drawColoredHeader(doc: PDFKit.PDFDocument, title: string, subtit
   doc.fillColor("#000000");
 }
 
-function drawInfoBox(doc: PDFKit.PDFDocument, x: number, y: number, w: number, label: string, lines: string[]) {
-  doc.rect(x, y, w, 14 + lines.length * 15).fill(GRAY_BG).stroke(GRAY_BORDER);
+export function drawInfoBox(doc: PDFKit.PDFDocument, x: number, y: number, w: number, label: string, lines: string[]): number {
+  const textWidth = w - 20;
+  doc.fontSize(9).font("Helvetica");
+  const lineHeights = lines.map((line) => Math.max(15, doc.heightOfString(line, { width: textWidth })));
+  const boxHeight = 20 + lineHeights.reduce((sum, h) => sum + h, 0);
+
+  doc.rect(x, y, w, boxHeight).fill(GRAY_BG).stroke(GRAY_BORDER);
   doc.fillColor(BRAND_DARK).fontSize(9).font("Helvetica-Bold").text(label, x + 10, y + 5);
   doc.fillColor("#333333").font("Helvetica").fontSize(9);
+  let lineY = y + 20;
   lines.forEach((line, i) => {
-    doc.text(line, x + 10, y + 20 + i * 15);
+    doc.text(line, x + 10, lineY, { width: textWidth });
+    lineY += lineHeights[i];
   });
   doc.fillColor("#000000");
+  return boxHeight;
 }
 
-function drawTableHeader(doc: PDFKit.PDFDocument, y: number, cols: Array<{ label: string; x: number; width: number; align?: string }>) {
+export function drawTableHeader(doc: PDFKit.PDFDocument, y: number, cols: Array<{ label: string; x: number; width: number; align?: string }>) {
   doc.rect(PAGE_LEFT, y, PAGE_WIDTH, 22).fill(BRAND_DARK);
   doc.fillColor("#FFFFFF").fontSize(9).font("Helvetica-Bold");
   cols.forEach((col) => {
@@ -111,19 +119,21 @@ function drawTableHeader(doc: PDFKit.PDFDocument, y: number, cols: Array<{ label
   return y + 22;
 }
 
-function drawTableRow(doc: PDFKit.PDFDocument, y: number, cols: Array<{ text: string; x: number; width: number; align?: string }>, isEven: boolean) {
+export function drawTableRow(doc: PDFKit.PDFDocument, y: number, cols: Array<{ text: string; x: number; width: number; align?: string }>, isEven: boolean, rowHeight: number = 22) {
   if (isEven) {
-    doc.rect(PAGE_LEFT, y, PAGE_WIDTH, 22).fill(GRAY_BG);
+    doc.rect(PAGE_LEFT, y, PAGE_WIDTH, rowHeight).fill(GRAY_BG);
   }
   doc.fillColor("#333333").fontSize(9).font("Helvetica");
   cols.forEach((col) => {
-    doc.text(col.text, col.x, y + 6, { width: col.width, align: (col.align as any) || "left", ellipsis: true });
+    // `ellipsis` only truncates when a `height` is also given — without it,
+    // pdfkit just wraps normally and long cell text overflows into the next row.
+    doc.text(col.text, col.x, y + 6, { width: col.width, height: rowHeight - 8, align: (col.align as any) || "left", ellipsis: true });
   });
   doc.fillColor("#000000");
-  return y + 22;
+  return y + rowHeight;
 }
 
-function drawTotalSection(doc: PDFKit.PDFDocument, y: number, rows: Array<{ label: string; value: string; bold?: boolean }>) {
+export function drawTotalSection(doc: PDFKit.PDFDocument, y: number, rows: Array<{ label: string; value: string; bold?: boolean }>) {
   const boxX = 350;
   const boxW = PAGE_RIGHT - boxX;
   let currentY = y;
@@ -147,8 +157,10 @@ function drawTotalSection(doc: PDFKit.PDFDocument, y: number, rows: Array<{ labe
   return currentY;
 }
 
-export function drawFooter(doc: PDFKit.PDFDocument, terms: string[]) {
-  const y = 720;
+export function drawFooter(doc: PDFKit.PDFDocument, terms: string[], docTypeLabel: string = "invoice") {
+  // Kept comfortably inside the A4 content area (bottom margin ~792pt) —
+  // pushing this any lower causes the last line to spill onto a wasted page 2.
+  const y = 695;
   doc.moveTo(PAGE_LEFT, y).lineTo(PAGE_RIGHT, y).lineWidth(0.5).strokeColor(GRAY_BORDER).stroke();
   doc.strokeColor("#000000").lineWidth(1);
 
@@ -163,7 +175,7 @@ export function drawFooter(doc: PDFKit.PDFDocument, terms: string[]) {
     { width: PAGE_WIDTH, align: "center" }
   );
   doc.fillColor(GRAY_TEXT).fontSize(7).font("Helvetica").text(
-    `Generated on ${formatDate(new Date())}  |  This is a computer-generated invoice.`,
+    `Generated on ${formatDate(new Date())}  |  This is a computer-generated ${docTypeLabel}.`,
     PAGE_LEFT, y + 10 + terms.length * 11 + 22,
     { width: PAGE_WIDTH, align: "center" }
   );
@@ -217,7 +229,7 @@ export async function generateBookingInvoice(bookingId: string): Promise<Buffer>
     ...(booking.owner.email ? [`Email: ${booking.owner.email}`] : []),
     ...(booking.restaurant.fssaiNumber ? [`FSSAI: ${booking.restaurant.fssaiNumber}`] : []),
   ];
-  drawInfoBox(doc, PAGE_LEFT, metaY, 240, "BILL TO", billToLines);
+  const billToHeight = drawInfoBox(doc, PAGE_LEFT, metaY, 240, "BILL TO", billToLines);
 
   const invoiceLines = [
     `Invoice #: ${invoiceNumber}`,
@@ -228,7 +240,7 @@ export async function generateBookingInvoice(bookingId: string): Promise<Buffer>
       ? [`Engineer: ${booking.engineerAssignments[0].engineer.name}`]
       : []),
   ];
-  drawInfoBox(doc, 310, metaY, 235, "INVOICE DETAILS", invoiceLines);
+  const invoiceDetailsHeight = drawInfoBox(doc, 310, metaY, 235, "INVOICE DETAILS", invoiceLines);
 
   // ===== ITEMS TABLE =====
   const tableCols = [
@@ -239,8 +251,7 @@ export async function generateBookingInvoice(bookingId: string): Promise<Buffer>
     { label: "Price", x: 405, width: 65, align: "right" },
     { label: "Amount", x: 475, width: 65, align: "right" },
   ];
-  const boxHeight = Math.max(billToLines.length, invoiceLines.length) * 15 + 14;
-  let tableY = metaY + boxHeight + 20;
+  let tableY = metaY + Math.max(billToHeight, invoiceDetailsHeight) + 20;
   tableY = drawTableHeader(doc, tableY, tableCols);
 
   booking.items.forEach((item, i) => {
@@ -326,7 +337,7 @@ export async function generateOrderInvoice(orderId: string): Promise<Buffer> {
     `${order.restaurant.city} - ${order.restaurant.pincode || "N/A"}`,
     ...(order.owner.phone ? [`Phone: ${order.owner.phone}`] : []),
   ];
-  drawInfoBox(doc, PAGE_LEFT, metaY, 240, "SHIP TO", shipToLines);
+  const shipToHeight = drawInfoBox(doc, PAGE_LEFT, metaY, 240, "SHIP TO", shipToLines);
 
   const invoiceLines = [
     `Invoice #: ${invoiceNumber}`,
@@ -336,7 +347,7 @@ export async function generateOrderInvoice(orderId: string): Promise<Buffer> {
     ...(order.actualDeliveryDate ? [`Delivered: ${formatDate(order.actualDeliveryDate)}`] : []),
     ...(order.expectedDeliveryDate && !order.actualDeliveryDate ? [`Expected: ${formatDate(order.expectedDeliveryDate)}`] : []),
   ];
-  drawInfoBox(doc, 310, metaY, 235, "ORDER DETAILS", invoiceLines);
+  const orderDetailsHeight = drawInfoBox(doc, 310, metaY, 235, "ORDER DETAILS", invoiceLines);
 
   // ===== ITEMS TABLE =====
   const tableCols = [
@@ -347,8 +358,7 @@ export async function generateOrderInvoice(orderId: string): Promise<Buffer> {
     { label: "Price", x: 370, width: 75, align: "right" },
     { label: "Amount", x: 450, width: 90, align: "right" },
   ];
-  const boxHeight = Math.max(shipToLines.length, invoiceLines.length) * 15 + 14;
-  let tableY = metaY + boxHeight + 20;
+  let tableY = metaY + Math.max(shipToHeight, orderDetailsHeight) + 20;
   tableY = drawTableHeader(doc, tableY, tableCols);
 
   order.items.forEach((item, i) => {

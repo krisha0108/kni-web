@@ -1,5 +1,16 @@
 import PDFDocument from "pdfkit";
 import { db } from "@/server/db";
+import {
+  BRAND_DARK,
+  PAGE_LEFT,
+  PAGE_WIDTH,
+  drawColoredHeader,
+  drawInfoBox,
+  drawTableHeader,
+  drawTableRow,
+  drawTotalSection,
+  drawFooter,
+} from "./invoice-service";
 
 // ========================================
 // UTILITY FUNCTIONS
@@ -83,76 +94,46 @@ export async function generateExpenseReceipt(expenseId: string): Promise<Buffer>
   const receiptNumber = `RCP-${dateStr}-${shortId}`;
 
   // ===== HEADER =====
-  doc.fontSize(20).font("Helvetica-Bold").text(expense.restaurant.name, 50, 50);
-  doc.fontSize(10).font("Helvetica").text(expense.restaurant.address);
-  doc.text(`${expense.restaurant.city} - ${expense.restaurant.pincode || "N/A"}`);
+  drawColoredHeader(doc, "EXPENSE RECEIPT", receiptNumber);
 
-  // Horizontal line
-  doc.moveTo(50, 120).lineTo(550, 120).stroke();
+  // ===== INFO BOXES =====
+  const metaY = 140;
+  const restaurantLines = [
+    expense.restaurant.name,
+    expense.restaurant.address,
+    `${expense.restaurant.city} - ${expense.restaurant.pincode || "N/A"}`,
+  ];
+  const restaurantHeight = drawInfoBox(doc, PAGE_LEFT, metaY, 240, "RESTAURANT", restaurantLines);
 
-  // ===== RECEIPT TITLE =====
-  doc.fontSize(24).font("Helvetica-Bold").text("EXPENSE RECEIPT", 50, 140);
-  doc.fontSize(10).font("Helvetica").text(`Receipt #: ${receiptNumber}`, 400, 145);
-  doc.text(`Date: ${formatDate(expense.expenseDate)}`, 400, 160);
+  const detailLines = [
+    `Date: ${formatDate(expense.expenseDate)}`,
+    `Category: ${expense.category.replace(/_/g, " ")}`,
+    `Recorded By: ${expense.owner.name}`,
+    `Created: ${formatDate(expense.createdAt)}`,
+  ];
+  const detailHeight = drawInfoBox(doc, 310, metaY, 235, "RECEIPT DETAILS", detailLines);
 
-  // ===== RECEIPT DETAILS =====
-  const detailsTop = 200;
-  doc.fontSize(12).font("Helvetica-Bold").text("RECEIPT DETAILS:", 50, detailsTop);
+  let y = metaY + Math.max(restaurantHeight, detailHeight) + 20;
 
-  doc.moveTo(50, detailsTop + 18).lineTo(550, detailsTop + 18).stroke();
+  // ===== DESCRIPTION =====
+  doc.fillColor(BRAND_DARK).fontSize(11).font("Helvetica-Bold").text("Description", PAGE_LEFT, y);
+  y += 16;
+  doc.fillColor("#333333").fontSize(10).font("Helvetica");
+  const descriptionHeight = doc.heightOfString(expense.description, { width: PAGE_WIDTH });
+  doc.text(expense.description, PAGE_LEFT, y, { width: PAGE_WIDTH });
+  y += Math.max(15, descriptionHeight) + 25;
+  doc.fillColor("#000000");
 
-  let y = detailsTop + 30;
-  const labelX = 50;
-  const valueX = 200;
-
-  doc.fontSize(11).font("Helvetica-Bold").text("Date:", labelX, y);
-  doc.fontSize(11).font("Helvetica").text(formatDate(expense.expenseDate), valueX, y);
-
-  y += 25;
-  doc.fontSize(11).font("Helvetica-Bold").text("Category:", labelX, y);
-  doc.fontSize(11).font("Helvetica").text(expense.category.replace(/_/g, " "), valueX, y);
-
-  y += 25;
-  doc.fontSize(11).font("Helvetica-Bold").text("Amount:", labelX, y);
-  doc.fontSize(14).font("Helvetica-Bold").text(formatCurrency(expense.amount), valueX, y);
-
-  y += 30;
-  doc.fontSize(11).font("Helvetica-Bold").text("Description:", labelX, y);
-  doc.fontSize(11).font("Helvetica").text(expense.description, valueX, y, {
-    width: 340,
-  });
-
-  y += 50;
-  doc.fontSize(11).font("Helvetica-Bold").text("Recorded By:", labelX, y);
-  doc.fontSize(11).font("Helvetica").text(expense.owner.name, valueX, y);
-
-  y += 25;
-  doc.fontSize(11).font("Helvetica-Bold").text("Created At:", labelX, y);
-  doc.fontSize(11).font("Helvetica").text(formatDate(expense.createdAt), valueX, y);
-
-  // Line
-  y += 30;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
-  // ===== TOTAL BOX =====
-  y += 15;
-  doc.fontSize(14).font("Helvetica-Bold").text("TOTAL AMOUNT", 50, y);
-  doc.text(formatCurrency(expense.amount), 400, y, { width: 150, align: "right" });
+  // ===== TOTAL =====
+  drawTotalSection(doc, y, [
+    { label: "TOTAL AMOUNT", value: formatCurrency(expense.amount), bold: true },
+  ]);
 
   // ===== FOOTER =====
-  const footerTop = 700;
-  doc.fontSize(8).font("Helvetica").text(
-    "This is a computer-generated receipt and does not require a signature.",
-    50,
-    footerTop,
-    { align: "center", width: 500 }
-  );
-  doc.text(
-    `Generated on ${formatDate(new Date())}`,
-    50,
-    footerTop + 15,
-    { align: "center", width: 500 }
-  );
+  drawFooter(doc, [
+    "1. This is a computer-generated receipt and does not require a signature.",
+    "2. Retain this receipt for your accounting and reimbursement records.",
+  ], "receipt");
 
   // Finalize PDF
   doc.end();
@@ -396,59 +377,7 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
   const bufferPromise = pdfToBuffer(doc);
 
   // ===== HEADER =====
-  doc.fontSize(22).font("Helvetica-Bold").text("ANNUAL MAINTENANCE CONTRACT", 50, 50, {
-    align: "center",
-    width: 500,
-  });
-
-  // Horizontal line
-  doc.moveTo(50, 85).lineTo(550, 85).stroke();
-
-  // ===== CONTRACT INFO =====
-  doc.fontSize(10).font("Helvetica").text(
-    `Contract #: ${contract.contractNumber}`,
-    400,
-    95
-  );
-  doc.text(`Status: ${contract.status}`, 400, 110);
-
-  // ===== CUSTOMER DETAILS =====
-  const custTop = 95;
-  doc.fontSize(12).font("Helvetica-Bold").text("CUSTOMER:", 50, custTop);
-
-  let y = custTop + 20;
-  doc.fontSize(10).font("Helvetica").text(contract.owner.name, 50, y);
-  y += 15;
-  doc.text(contract.restaurant.name, 50, y);
-  y += 15;
-  doc.text(contract.restaurant.address, 50, y);
-  y += 15;
-  doc.text(`${contract.restaurant.city} - ${contract.restaurant.pincode || "N/A"}`, 50, y);
-  if (contract.owner.phone) {
-    y += 15;
-    doc.text(`Phone: ${contract.owner.phone}`, 50, y);
-  }
-  if (contract.owner.email) {
-    y += 15;
-    doc.text(`Email: ${contract.owner.email}`, 50, y);
-  }
-
-  // ===== CONTRACT DATES =====
-  y += 30;
-  doc.fontSize(12).font("Helvetica-Bold").text("CONTRACT PERIOD:", 50, y);
-  y += 18;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
-  const labelX = 50;
-  const valueX = 200;
-
-  y += 10;
-  doc.fontSize(10).font("Helvetica-Bold").text("Start Date:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(formatDate(contract.startDate), valueX, y);
-
-  y += 20;
-  doc.fontSize(10).font("Helvetica-Bold").text("End Date:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(formatDate(contract.endDate), valueX, y);
+  drawColoredHeader(doc, "ANNUAL MAINTENANCE CONTRACT", contract.contractNumber || "—");
 
   // Calculate duration
   const startDate = new Date(contract.startDate);
@@ -458,20 +387,36 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
     (endDate.getMonth() - startDate.getMonth());
   const durationStr =
     durationMonths >= 12
-      ? `${Math.floor(durationMonths / 12)} Year(s) ${durationMonths % 12 > 0 ? `${durationMonths % 12} Month(s)` : ""}`
+      ? `${Math.floor(durationMonths / 12)} Year(s) ${durationMonths % 12 > 0 ? `${durationMonths % 12} Month(s)` : ""}`.trim()
       : `${durationMonths} Month(s)`;
 
-  y += 20;
-  doc.fontSize(10).font("Helvetica-Bold").text("Duration:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(durationStr.trim(), valueX, y);
+  // ===== INFO BOXES =====
+  const metaY = 140;
+  const customerLines = [
+    contract.owner.name,
+    contract.restaurant.name,
+    contract.restaurant.address,
+    `${contract.restaurant.city} - ${contract.restaurant.pincode || "N/A"}`,
+    ...(contract.owner.phone ? [`Phone: ${contract.owner.phone}`] : []),
+    ...(contract.owner.email ? [`Email: ${contract.owner.email}`] : []),
+  ];
+  const customerHeight = drawInfoBox(doc, PAGE_LEFT, metaY, 240, "CUSTOMER", customerLines);
+
+  const periodLines = [
+    `Status: ${contract.status}`,
+    `Start: ${formatDate(contract.startDate)}`,
+    `End: ${formatDate(contract.endDate)}`,
+    `Duration: ${durationStr}`,
+  ];
+  const periodHeight = drawInfoBox(doc, 310, metaY, 235, "CONTRACT PERIOD", periodLines);
+
+  let y = metaY + Math.max(customerHeight, periodHeight) + 20;
 
   // ===== EQUIPMENT COVERED =====
-  y += 35;
-  doc.fontSize(12).font("Helvetica-Bold").text("EQUIPMENT COVERED:", 50, y);
+  doc.fillColor(BRAND_DARK).fontSize(11).font("Helvetica-Bold").text("EQUIPMENT COVERED", PAGE_LEFT, y);
+  doc.fillColor("#000000");
   y += 18;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
 
-  y += 10;
   const coveredEquipment = (contract.coveredEquipment ||
     contract.proposal?.coveredEquipment) as Array<{
     name?: string;
@@ -481,120 +426,70 @@ export async function generateAMCContract(contractId: string): Promise<Buffer> {
   }> | null;
 
   if (coveredEquipment && Array.isArray(coveredEquipment) && coveredEquipment.length > 0) {
-    coveredEquipment.forEach((equip) => {
-      const name = equip.name || "Unknown";
-      const details = [equip.brand, equip.model, equip.category].filter(Boolean).join(" | ");
-      doc.fontSize(10).font("Helvetica").text(`• ${name}${details ? ` (${details})` : ""}`, 60, y, {
-        width: 480,
-      });
-      y += 18;
+    const equipCols = [
+      { label: "Equipment", x: PAGE_LEFT + 5, width: 140 },
+      { label: "Brand", x: 200, width: 105 },
+      { label: "Model", x: 310, width: 140 },
+      { label: "Category", x: 455, width: 85 },
+    ];
+    y = drawTableHeader(doc, y, equipCols);
+    coveredEquipment.forEach((equip, i) => {
+      y = drawTableRow(doc, y, [
+        { text: equip.name || "Unknown", x: PAGE_LEFT + 5, width: 140 },
+        { text: equip.brand || "-", x: 200, width: 105 },
+        { text: equip.model || "-", x: 310, width: 140 },
+        { text: equip.category || "-", x: 455, width: 85 },
+      ], i % 2 === 0, 36);
     });
+    y += 15;
   } else {
-    doc.fontSize(10).font("Helvetica").text("As per site survey and proposal.", 60, y);
-    y += 18;
+    doc.fontSize(10).font("Helvetica").text("As per site survey and proposal.", PAGE_LEFT, y);
+    y += 25;
   }
 
-  // ===== SERVICE DETAILS =====
-  y += 15;
-  doc.fontSize(12).font("Helvetica-Bold").text("SERVICE TERMS:", 50, y);
-  y += 18;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
-  y += 10;
-  doc.fontSize(10).font("Helvetica-Bold").text("Preventive Visits:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(
-    `${contract.preventiveVisits} per contract period`,
-    valueX,
-    y
-  );
-
-  y += 20;
-  doc.fontSize(10).font("Helvetica-Bold").text("Free Breakdown Visits:", labelX, y);
-  doc.fontSize(10).font("Helvetica").text(
-    `${contract.freeBreakdownVisits} (${contract.breakdownVisitsUsed} used)`,
-    valueX,
-    y
-  );
-
-  if (contract.responseTimeSLA) {
-    y += 20;
-    doc.fontSize(10).font("Helvetica-Bold").text("Response Time SLA:", labelX, y);
-    doc.fontSize(10).font("Helvetica").text(contract.responseTimeSLA, valueX, y);
-  }
-
-  if (contract.resolutionTimeSLA) {
-    y += 20;
-    doc.fontSize(10).font("Helvetica-Bold").text("Resolution Time SLA:", labelX, y);
-    doc.fontSize(10).font("Helvetica").text(contract.resolutionTimeSLA, valueX, y);
-  }
+  // ===== SERVICE TERMS =====
+  const serviceTermsLines = [
+    `Preventive Visits: ${contract.preventiveVisits} per contract period`,
+    `Free Breakdown Visits: ${contract.freeBreakdownVisits} (${contract.breakdownVisitsUsed} used)`,
+    ...(contract.responseTimeSLA ? [`Response Time SLA: ${contract.responseTimeSLA}`] : []),
+    ...(contract.resolutionTimeSLA ? [`Resolution Time SLA: ${contract.resolutionTimeSLA}`] : []),
+  ];
+  const serviceTermsHeight = drawInfoBox(doc, PAGE_LEFT, y, PAGE_WIDTH, "SERVICE TERMS", serviceTermsLines);
+  y += serviceTermsHeight + 20;
 
   // ===== AMOUNT =====
-  y += 35;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
+  y = drawTotalSection(doc, y, [
+    { label: "CONTRACT AMOUNT", value: formatCurrency(contract.amount), bold: true },
+  ]);
+  y += 5;
+  doc.fillColor("#6C757D").fontSize(8).font("Helvetica").text("For the full contract period", PAGE_LEFT, y);
+  doc.fillColor("#000000");
   y += 15;
-  doc.fontSize(14).font("Helvetica-Bold").text("CONTRACT AMOUNT:", 50, y);
-  doc.text(
-    formatCurrency(contract.amount),
-    400,
-    y,
-    { width: 150, align: "right" }
-  );
 
-  y += 20;
-  doc.fontSize(10).font("Helvetica").text(`For the full contract period`, 50, y);
-
-  // ===== TERMS =====
-  y += 35;
-  doc.fontSize(10).font("Helvetica-Bold").text("TERMS & CONDITIONS:", 50, y);
+  // ===== TERMS & CONDITIONS =====
   y += 15;
-  doc.fontSize(8).font("Helvetica");
-  doc.text(
+  doc.fillColor(BRAND_DARK).fontSize(9).font("Helvetica-Bold").text("TERMS & CONDITIONS", PAGE_LEFT, y);
+  y += 14;
+  doc.fillColor("#6C757D").fontSize(8).font("Helvetica");
+  const termsConditions = [
     "1. This contract is valid for the period mentioned above.",
-    60,
-    y,
-    { width: 480 }
-  );
-  y += 12;
-  doc.text(
     "2. Spare parts and consumables may be charged separately unless specified otherwise.",
-    60,
-    y,
-    { width: 480 }
-  );
-  y += 12;
-  doc.text(
     "3. Service requests beyond the included visits will be charged at standard rates.",
-    60,
-    y,
-    { width: 480 }
-  );
-  y += 12;
-  doc.text(
     "4. The contract is non-transferable without prior written consent.",
-    60,
-    y,
-    { width: 480 }
-  );
-  y += 12;
-  doc.text("5. All disputes are subject to Mumbai jurisdiction.", 60, y, {
-    width: 480,
+    "5. All disputes are subject to Mumbai jurisdiction.",
+  ];
+  termsConditions.forEach((term) => {
+    const termHeight = doc.heightOfString(term, { width: PAGE_WIDTH });
+    doc.text(term, PAGE_LEFT, y, { width: PAGE_WIDTH });
+    y += Math.max(11, termHeight) + 2;
   });
+  doc.fillColor("#000000");
 
   // ===== FOOTER =====
-  const footerTop = 750;
-  doc.fontSize(8).font("Helvetica").text(
-    "This is a computer-generated document.",
-    50,
-    footerTop,
-    { align: "center", width: 500 }
-  );
-  doc.text(
-    `Generated on ${formatDate(new Date())}`,
-    50,
-    footerTop + 15,
-    { align: "center", width: 500 }
-  );
+  drawFooter(doc, [
+    "1. This is a computer-generated document and does not require a signature.",
+    "2. Contact the KNI Services team for any queries regarding this contract.",
+  ], "document");
 
   // Finalize PDF
   doc.end();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,153 +29,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import {
-  UserCheck,
-  Search,
-  Loader2,
-  Eye,
-  ArrowRight,
-  FileText,
-  Video,
-  Star,
-  Send,
-  QrCode,
-  Download,
-} from "lucide-react";
+import { UserCheck, Search, Loader2, Eye, Star, Send, QrCode, Download } from "lucide-react";
 import QRCode from "qrcode";
 import { formatDate } from "@/lib/utils";
-import { SKILLS_BY_POSITION, EQUIPMENT_LIST, ENGAGEMENT_TYPE_OPTIONS } from "@/app/apply/config";
+import { SKILLS_BY_POSITION, EQUIPMENT_LIST } from "@/app/apply/config";
+import { Candidate, POSITION_LABELS, STATUS_LABELS, STATUS_COLORS } from "./_shared";
 
 const ALL_SKILLS = Array.from(new Set(Object.values(SKILLS_BY_POSITION).flat())).sort();
 
-const ENGAGEMENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
-  ENGAGEMENT_TYPE_OPTIONS.map((o) => [o.value, o.label])
-);
-
-interface Candidate {
-  id: string;
-  fullName: string;
-  mobile: string;
-  email: string | null;
-  city: string;
-  state: string;
-  position: string;
-  totalExperienceYears: number | null;
-  currentSalary: number | null;
-  expectedSalary: number | null;
-  engagementType: string | null;
-  finalCommissionRate: number | null;
-  finalMonthlySalary: number | null;
-  status: string;
-  rating: number | null;
-  rejectionReason: string | null;
-  interviewScheduledAt: string | null;
-  interviewNotes: string | null;
-  convertedUserId: string | null;
-  photoUrl: string | null;
-  aadhaarUrl: string | null;
-  panUrl: string | null;
-  resumeUrl: string | null;
-  drivingLicenseUrl: string | null;
-  videoIntroUrl: string | null;
-  skills: Record<string, boolean> | null;
-  equipmentExperience: Record<string, boolean> | null;
-  workCapability: Record<string, boolean> | null;
-  createdAt: string;
-  notes?: { id: string; note: string; createdAt: string; author: { name: string } }[];
-  activities?: { id: string; description: string; createdAt: string }[];
-}
-
-const POSITION_LABELS: Record<string, string> = {
-  TECHNICIAN_MECHANICAL: "Mechanical",
-  TECHNICIAN_ELECTRICAL: "Electrical",
-  TECHNICIAN_REFRIGERATION: "Refrigeration",
-  TECHNICIAN_INDUCTION: "Induction",
-  TECHNICIAN_COMMERCIAL_KITCHEN: "Commercial Kitchen",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "New",
-  UNDER_REVIEW: "Under Review",
-  SHORTLISTED: "Shortlisted",
-  ON_HOLD: "On Hold",
-  REJECTED: "Rejected",
-  INTERVIEW_SCHEDULED: "Interview Scheduled",
-  TECHNICAL_EVALUATION: "Technical Evaluation",
-  APPROVED: "Approved",
-  REGISTRATION_PAYMENT_PENDING: "Payment Pending",
-  REGISTERED_PARTNER: "Registered Partner",
-  TRAINING_PENDING: "Training Pending",
-  ACTIVE_TECHNICIAN: "Active Technician",
-};
-
-const STATUS_COLORS: Record<string, "default" | "secondary" | "success" | "destructive" | "warning"> = {
-  NEW: "secondary",
-  UNDER_REVIEW: "default",
-  SHORTLISTED: "warning",
-  ON_HOLD: "secondary",
-  REJECTED: "destructive",
-  INTERVIEW_SCHEDULED: "default",
-  TECHNICAL_EVALUATION: "default",
-  APPROVED: "success",
-  REGISTRATION_PAYMENT_PENDING: "warning",
-  REGISTERED_PARTNER: "success",
-  TRAINING_PENDING: "warning",
-  ACTIVE_TECHNICIAN: "success",
-};
-
-const ACTIONS: Record<string, { value: string; label: string; variant?: "default" | "destructive" }[]> = {
-  NEW: [
-    { value: "UNDER_REVIEW", label: "Start Review" },
-    { value: "SHORTLISTED", label: "Shortlist" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  UNDER_REVIEW: [
-    { value: "SHORTLISTED", label: "Shortlist" },
-    { value: "ON_HOLD", label: "Hold" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  SHORTLISTED: [
-    { value: "INTERVIEW_SCHEDULED", label: "Schedule Interview" },
-    { value: "ON_HOLD", label: "Hold" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  ON_HOLD: [
-    { value: "UNDER_REVIEW", label: "Resume Review" },
-    { value: "SHORTLISTED", label: "Shortlist" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  INTERVIEW_SCHEDULED: [
-    { value: "TECHNICAL_EVALUATION", label: "Move to Technical Evaluation" },
-    { value: "ON_HOLD", label: "Hold" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  TECHNICAL_EVALUATION: [
-    { value: "APPROVED", label: "Approve" },
-    { value: "ON_HOLD", label: "Hold" },
-    { value: "REJECTED", label: "Reject", variant: "destructive" },
-  ],
-  APPROVED: [{ value: "REGISTRATION_PAYMENT_PENDING", label: "Send Payment Link" }],
-  REGISTRATION_PAYMENT_PENDING: [{ value: "REGISTERED_PARTNER", label: "Mark Payment Received" }],
-  REGISTERED_PARTNER: [{ value: "TRAINING_PENDING", label: "Move to Training" }],
-  TRAINING_PENDING: [{ value: "ACTIVE_TECHNICIAN", label: "Mark Active Technician" }],
-  REJECTED: [{ value: "UNDER_REVIEW", label: "Reopen" }],
-};
-
-const DOC_LINKS: { key: keyof Candidate; label: string }[] = [
-  { key: "photoUrl", label: "Photo" },
-  { key: "aadhaarUrl", label: "Aadhaar" },
-  { key: "panUrl", label: "PAN" },
-  { key: "resumeUrl", label: "Resume" },
-  { key: "drivingLicenseUrl", label: "Driving License" },
-];
-
 export default function AdminRecruitmentPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -194,21 +61,6 @@ export default function AdminRecruitmentPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selected, setSelected] = useState<Candidate | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showRejectReason, setShowRejectReason] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [finalCommissionRateInput, setFinalCommissionRateInput] = useState("20");
-  const [finalMonthlySalaryInput, setFinalMonthlySalaryInput] = useState("");
-  const [sendingPaymentLink, setSendingPaymentLink] = useState(false);
-  const [showInterviewForm, setShowInterviewForm] = useState(false);
-  const [interviewDateTime, setInterviewDateTime] = useState("");
-  const [interviewNotesInput, setInterviewNotesInput] = useState("");
-  const [schedulingInterview, setSchedulingInterview] = useState(false);
-  const [ratingInput, setRatingInput] = useState("");
-  const [noteInput, setNoteInput] = useState("");
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkChannel, setBulkChannel] = useState<"SMS" | "EMAIL">("EMAIL");
@@ -221,6 +73,21 @@ export default function AdminRecruitmentPage() {
 
   useEffect(() => {
     setApplyUrl(`${window.location.origin}/apply`);
+  }, []);
+
+  // Auto-open the bulk-message dialog pre-seeded with one candidate when
+  // arriving from the candidate detail page's "Message" button
+  // (`/admin/recruitment?message=<id>`). Deliberately reads window.location
+  // directly instead of useSearchParams() to avoid the Suspense-boundary
+  // requirement that App Router imposes on that hook.
+  useEffect(() => {
+    const messageId = new URLSearchParams(window.location.search).get("message");
+    if (messageId) {
+      setCheckedIds([messageId]);
+      setBulkOpen(true);
+      router.replace("/admin/recruitment");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGenerateQr = async () => {
@@ -288,179 +155,6 @@ export default function AdminRecruitmentPage() {
   useEffect(() => {
     fetchCandidates();
   }, [fetchCandidates]);
-
-  const refreshSelected = async (id: string) => {
-    const res = await fetch(`/api/admin/recruitment/${id}`);
-    const data = await res.json();
-    if (data.ok) setSelected(data.data);
-  };
-
-  const handleStatusChange = async (id: string, status: string) => {
-    if (status === "REJECTED" && !showRejectReason) {
-      setShowRejectReason(true);
-      return;
-    }
-    if (status === "REGISTRATION_PAYMENT_PENDING") {
-      setFinalCommissionRateInput(String(selected?.finalCommissionRate ?? 20));
-      setFinalMonthlySalaryInput(
-        selected?.finalMonthlySalary ? String(selected.finalMonthlySalary) : ""
-      );
-      setShowPaymentForm(true);
-      return;
-    }
-    if (status === "INTERVIEW_SCHEDULED") {
-      setShowInterviewForm(true);
-      return;
-    }
-    setIsUpdating(true);
-    try {
-      const res = await fetch(`/api/admin/recruitment/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          ...(status === "REJECTED" ? { rejectionReason: rejectReason } : {}),
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast({ title: "Status updated", description: `Moved to ${STATUS_LABELS[status]}` });
-        setShowRejectReason(false);
-        setRejectReason("");
-        await refreshSelected(id);
-        fetchCandidates();
-      } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleCreatePayment = async () => {
-    if (!selected) return;
-    const amount = parseInt(paymentAmount);
-    if (!amount || amount <= 0) {
-      toast({ title: "Enter a valid amount", variant: "destructive" });
-      return;
-    }
-    const isSalary = (selected.engagementType ?? "COMMISSION") === "SALARY";
-    const finalMonthlySalary = isSalary ? parseInt(finalMonthlySalaryInput) : undefined;
-    if (isSalary && (!finalMonthlySalary || finalMonthlySalary <= 0)) {
-      toast({ title: "Enter a valid final monthly salary", variant: "destructive" });
-      return;
-    }
-    const finalCommissionRate = !isSalary
-      ? parseInt(finalCommissionRateInput) || 20
-      : undefined;
-    setSendingPaymentLink(true);
-    try {
-      const res = await fetch(`/api/admin/recruitment/${selected.id}/create-payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          ...(isSalary ? { finalMonthlySalary } : { finalCommissionRate }),
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast({ title: "Payment link sent", description: data.data.paymentLink });
-        setShowPaymentForm(false);
-        setPaymentAmount("");
-        await refreshSelected(selected.id);
-        fetchCandidates();
-      } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to create payment link", variant: "destructive" });
-    } finally {
-      setSendingPaymentLink(false);
-    }
-  };
-
-  const handleScheduleInterview = async () => {
-    if (!selected) return;
-    if (!interviewDateTime) {
-      toast({ title: "Select an interview date & time", variant: "destructive" });
-      return;
-    }
-    setSchedulingInterview(true);
-    try {
-      const res = await fetch(`/api/admin/recruitment/${selected.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "INTERVIEW_SCHEDULED",
-          interviewScheduledAt: new Date(interviewDateTime).toISOString(),
-          interviewNotes: interviewNotesInput || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast({ title: "Interview scheduled" });
-        setShowInterviewForm(false);
-        setInterviewDateTime("");
-        setInterviewNotesInput("");
-        await refreshSelected(selected.id);
-        fetchCandidates();
-      } else {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to schedule interview", variant: "destructive" });
-    } finally {
-      setSchedulingInterview(false);
-    }
-  };
-
-  const handleRatingSave = async () => {
-    if (!selected) return;
-    const rating = parseInt(ratingInput);
-    if (!rating || rating < 1 || rating > 10) {
-      toast({ title: "Enter a rating between 1 and 10", variant: "destructive" });
-      return;
-    }
-    setIsUpdating(true);
-    try {
-      const res = await fetch(`/api/admin/recruitment/${selected.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast({ title: "Rating saved" });
-        setRatingInput("");
-        await refreshSelected(selected.id);
-        fetchCandidates();
-      }
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleAddNote = async () => {
-    if (!selected || !noteInput.trim()) return;
-    setIsUpdating(true);
-    try {
-      const res = await fetch(`/api/admin/recruitment/${selected.id}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: noteInput }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setNoteInput("");
-        await refreshSelected(selected.id);
-      }
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handleBulkSend = async () => {
     if (!bulkMessage.trim() || checkedIds.length === 0) return;
@@ -702,7 +396,7 @@ export default function AdminRecruitmentPage() {
                         variant="ghost"
                         size="icon"
                         title="View"
-                        onClick={async () => { await refreshSelected(c.id); setShowRejectReason(false); setShowPaymentForm(false); setShowInterviewForm(false); }}
+                        onClick={() => router.push(`/admin/recruitment/${c.id}`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -734,251 +428,13 @@ export default function AdminRecruitmentPage() {
         </div>
       )}
 
-      {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setShowRejectReason(false); setShowPaymentForm(false); setShowInterviewForm(false); } }}>
-        <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:max-w-[650px] sm:w-full">
-          <DialogHeader>
-            <DialogTitle>{selected?.fullName}</DialogTitle>
-            <DialogDescription>{selected && (POSITION_LABELS[selected.position] || selected.position)} — {selected?.city}, {selected?.state}</DialogDescription>
-          </DialogHeader>
-
-          {selected && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-muted-foreground">Status</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setCheckedIds([selected.id]); setBulkOpen(true); }}
-                  >
-                    <Send className="mr-1 h-3 w-3" /> Message
-                  </Button>
-                  <Badge variant={STATUS_COLORS[selected.status] || "default"} className="text-sm">
-                    {STATUS_LABELS[selected.status] || selected.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {selected.convertedUserId && (
-                <div className="flex gap-2">
-                  <Link href={`/admin/engineers/${selected.convertedUserId}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Technician Profile
-                    </Button>
-                  </Link>
-                  <a href={`/api/admin/recruitment/${selected.id}/welcome-kit`} className="flex-1" target="_blank" rel="noreferrer">
-                    <Button variant="outline" size="sm" className="w-full">
-                      Download Welcome Kit
-                    </Button>
-                  </a>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Mobile:</span> <span className="font-medium">{selected.mobile}</span></div>
-                <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{selected.email || "-"}</span></div>
-                <div><span className="text-muted-foreground">Experience:</span> <span className="font-medium">{selected.totalExperienceYears ?? "-"} yrs</span></div>
-                <div><span className="text-muted-foreground">Engagement Type:</span> <span className="font-medium">{selected.engagementType ? ENGAGEMENT_TYPE_LABELS[selected.engagementType] : "-"}</span></div>
-                <div><span className="text-muted-foreground">Current Salary:</span> <span className="font-medium">{selected.currentSalary ? `₹${selected.currentSalary.toLocaleString("en-IN")}` : "-"}</span></div>
-                <div><span className="text-muted-foreground">Expected Salary:</span> <span className="font-medium">{selected.expectedSalary ? `₹${selected.expectedSalary.toLocaleString("en-IN")}` : "-"}</span></div>
-              </div>
-
-              {selected.rejectionReason && (
-                <div><Label className="text-muted-foreground">Rejection Reason</Label><p className="rounded bg-muted p-2 text-sm text-red-600">{selected.rejectionReason}</p></div>
-              )}
-
-              {/* Skills */}
-              {selected.skills && Object.keys(selected.skills).length > 0 && (
-                <div>
-                  <Label className="text-muted-foreground">Skills</Label>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {Object.entries(selected.skills).filter(([, v]) => v).map(([k]) => (
-                      <Badge key={k} variant="outline" className="text-xs">{k}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Documents */}
-              <div>
-                <Label className="text-muted-foreground">Documents</Label>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {DOC_LINKS.map((d) => {
-                    const url = selected[d.key] as string | null;
-                    return url ? (
-                      <a key={d.label} href={url} target="_blank" rel="noreferrer">
-                        <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                          <FileText className="h-3 w-3" /> {d.label}
-                        </Badge>
-                      </a>
-                    ) : null;
-                  })}
-                  {selected.videoIntroUrl && (
-                    <a href={selected.videoIntroUrl} target="_blank" rel="noreferrer">
-                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                        <Video className="h-3 w-3" /> Video Intro
-                      </Badge>
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Rating */}
-              <div className="flex items-end gap-2 border-t pt-3">
-                <div className="flex-1">
-                  <Label>Recruiter Rating (1-10)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={ratingInput}
-                    placeholder={selected.rating ? String(selected.rating) : "Rate candidate"}
-                    onChange={(e) => setRatingInput(e.target.value)}
-                  />
-                </div>
-                <Button disabled={isUpdating} onClick={handleRatingSave}>Save</Button>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2 border-t pt-3">
-                <Label>Recruiter Notes</Label>
-                <div className="flex gap-2">
-                  <Textarea rows={2} value={noteInput} onChange={(e) => setNoteInput(e.target.value)} placeholder="Add a note..." />
-                  <Button disabled={isUpdating} onClick={handleAddNote}>Add</Button>
-                </div>
-                <div className="max-h-40 space-y-2 overflow-y-auto">
-                  {selected.notes?.map((n) => (
-                    <div key={n.id} className="rounded bg-muted p-2 text-xs">
-                      <p>{n.note}</p>
-                      <p className="mt-1 text-muted-foreground">{n.author.name} — {formatDate(n.createdAt)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Reject reason form */}
-              {showRejectReason && (
-                <div className="space-y-2 border-t pt-3">
-                  <Label>Rejection Reason *</Label>
-                  <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2} />
-                  <div className="flex gap-2">
-                    <Button variant="destructive" disabled={isUpdating || !rejectReason.trim()} onClick={() => handleStatusChange(selected.id, "REJECTED")}>
-                      Confirm Reject
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowRejectReason(false)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Registration payment link form */}
-              {showPaymentForm && (
-                <div className="space-y-2 border-t pt-3">
-                  <Label>Registration Fee Amount (₹) *</Label>
-                  <Input
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="e.g. 2000"
-                  />
-                  {(selected.engagementType ?? "COMMISSION") === "SALARY" ? (
-                    <>
-                      <Label>Final Monthly Salary (₹) *</Label>
-                      <Input
-                        type="number"
-                        value={finalMonthlySalaryInput}
-                        onChange={(e) => setFinalMonthlySalaryInput(e.target.value)}
-                        placeholder="e.g. 18000"
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Label>Final Commission Rate (%) *</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={finalCommissionRateInput}
-                        onChange={(e) => setFinalCommissionRateInput(e.target.value)}
-                        placeholder="e.g. 20"
-                      />
-                    </>
-                  )}
-                  <div className="flex gap-2">
-                    <Button
-                      disabled={
-                        sendingPaymentLink ||
-                        !paymentAmount ||
-                        ((selected.engagementType ?? "COMMISSION") === "SALARY" &&
-                          !finalMonthlySalaryInput)
-                      }
-                      onClick={handleCreatePayment}
-                    >
-                      {sendingPaymentLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Send Payment Link
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowPaymentForm(false)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Interview scheduling form */}
-              {showInterviewForm && (
-                <div className="space-y-2 border-t pt-3">
-                  <Label>Interview Date & Time *</Label>
-                  <Input
-                    type="datetime-local"
-                    value={interviewDateTime}
-                    onChange={(e) => setInterviewDateTime(e.target.value)}
-                  />
-                  <Label>Notes (interviewer, location, etc.)</Label>
-                  <Textarea rows={2} value={interviewNotesInput} onChange={(e) => setInterviewNotesInput(e.target.value)} />
-                  <div className="flex gap-2">
-                    <Button disabled={schedulingInterview || !interviewDateTime} onClick={handleScheduleInterview}>
-                      {schedulingInterview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Confirm Schedule
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowInterviewForm(false)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-              {selected.interviewScheduledAt && (
-                <div className="rounded bg-muted p-2 text-sm">
-                  <span className="text-muted-foreground">Interview scheduled:</span>{" "}
-                  {new Date(selected.interviewScheduledAt).toLocaleString("en-IN")}
-                  {selected.interviewNotes && <p className="mt-1 text-xs text-muted-foreground">{selected.interviewNotes}</p>}
-                </div>
-              )}
-            </div>
-          )}
-
-          {selected && !showRejectReason && !showPaymentForm && !showInterviewForm && (ACTIONS[selected.status] || []).length > 0 && (
-            <DialogFooter className="flex-col gap-2 sm:flex-row">
-              {(ACTIONS[selected.status] || []).map((action) => (
-                <Button
-                  key={action.value}
-                  variant={action.variant || "default"}
-                  disabled={isUpdating}
-                  onClick={() => handleStatusChange(selected.id, action.value)}
-                  className="w-full sm:w-auto"
-                >
-                  {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                  {action.label}
-                </Button>
-              ))}
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Bulk message dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
               {checkedIds.length === 1
-                ? `Message ${candidates.find((c) => c.id === checkedIds[0])?.fullName || selected?.fullName || "candidate"}`
+                ? `Message ${candidates.find((c) => c.id === checkedIds[0])?.fullName || "candidate"}`
                 : `Message ${checkedIds.length} candidates`}
             </DialogTitle>
           </DialogHeader>

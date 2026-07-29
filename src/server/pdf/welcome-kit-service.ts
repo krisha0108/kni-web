@@ -14,6 +14,7 @@ import {
 const POSITION_LABELS: Record<string, string> = {
   TECHNICIAN_MECHANICAL: "Service Technician – Mechanical",
   TECHNICIAN_ELECTRICAL: "Service Technician – Electrical",
+  TECHNICIAN_ELECTRONIC: "Service Technician – Electronic",
   TECHNICIAN_REFRIGERATION: "Service Technician – Refrigeration",
   TECHNICIAN_INDUCTION: "Service Technician – Induction Equipment",
   TECHNICIAN_COMMERCIAL_KITCHEN: "Service Technician – Complete Commercial Kitchen Equipment",

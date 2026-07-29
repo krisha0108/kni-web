@@ -1,6 +1,7 @@
 export const POSITIONS = [
   { value: "TECHNICIAN_MECHANICAL", label: "Service Technician – Mechanical" },
   { value: "TECHNICIAN_ELECTRICAL", label: "Service Technician – Electrical" },
+  { value: "TECHNICIAN_ELECTRONIC", label: "Service Technician – Electronic" },
   { value: "TECHNICIAN_REFRIGERATION", label: "Service Technician – Refrigeration" },
   { value: "TECHNICIAN_INDUCTION", label: "Service Technician – Induction Equipment" },
   {
@@ -31,6 +32,16 @@ export const SKILLS_BY_POSITION: Record<PositionValue, string[]> = {
     "MCB",
     "Electrical Troubleshooting",
     "PLC Basics",
+    "Kitchen Equipment Service",
+    "Installation",
+    "Preventive Maintenance",
+  ],
+  TECHNICIAN_ELECTRONIC: [
+    "PCB / Circuit Board Repair",
+    "Control Board Troubleshooting",
+    "Sensor Calibration",
+    "Digital Display Repair",
+    "Microcontroller Basics",
     "Kitchen Equipment Service",
     "Installation",
     "Preventive Maintenance",

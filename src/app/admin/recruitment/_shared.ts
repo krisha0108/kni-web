@@ -74,6 +74,7 @@ export interface Candidate {
 export const POSITION_LABELS: Record<string, string> = {
   TECHNICIAN_MECHANICAL: "Mechanical",
   TECHNICIAN_ELECTRICAL: "Electrical",
+  TECHNICIAN_ELECTRONIC: "Electronic",
   TECHNICIAN_REFRIGERATION: "Refrigeration",
   TECHNICIAN_INDUCTION: "Induction",
   TECHNICIAN_COMMERCIAL_KITCHEN: "Commercial Kitchen",

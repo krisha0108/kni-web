@@ -31,7 +31,6 @@ import {
   TECHNICAL_QUALIFICATION_OPTIONS,
   MARITAL_STATUS_OPTIONS,
   NOTICE_PERIOD_OPTIONS,
-  INDIAN_STATES,
   ENGAGEMENT_TYPE_OPTIONS,
   type PositionValue,
   type EngagementTypeValue,
@@ -270,9 +269,34 @@ export default function ApplyPage() {
   const [emailError, setEmailError] = useState("");
   const [customQualification, setCustomQualification] = useState(false);
   const [customTechnicalQualification, setCustomTechnicalQualification] = useState(false);
+  const [serviceStates, setServiceStates] = useState<{ id: string; name: string }[]>([]);
+  const [serviceCities, setServiceCities] = useState<{ id: string; name: string }[]>([]);
+  const [selectedStateId, setSelectedStateId] = useState("");
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    fetch("/api/public/locations?type=states")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) setServiceStates(data.data || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedStateId) {
+      fetch(`/api/public/locations?type=cities&stateId=${selectedStateId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) setServiceCities(data.data || []);
+        })
+        .catch(() => {});
+    } else {
+      setServiceCities([]);
+    }
+  }, [selectedStateId]);
 
   const toggleFlag = (group: "skills" | "equipmentExperience" | "workCapability", key: string) =>
     setForm((prev) => ({
@@ -570,9 +594,21 @@ export default function ApplyPage() {
                       </Button>
                     </div>
                   )}
-                  <Button variant="outline" className="w-full" onClick={() => setStep(0)}>
-                    Back
-                  </Button>
+                  {emailVerified && (
+                    <p className="flex items-center gap-1 text-sm text-green-600">
+                      <CheckCircle2 className="h-4 w-4" /> Email verified
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setStep(0)}>
+                      Back
+                    </Button>
+                    {emailVerified && (
+                      <Button className="flex-1" onClick={() => setStep(2)}>
+                        Continue
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -633,18 +669,41 @@ export default function ApplyPage() {
                       onChange={(e) => update("permanentAddress", e.target.value)}
                     />
                   </Field>
-                  <Field label="City *" error={errors.city}>
-                    <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
-                  </Field>
                   <Field label="State *" error={errors.state}>
-                    <Select value={form.state} onValueChange={(v) => update("state", v)}>
+                    <Select
+                      value={selectedStateId}
+                      onValueChange={(id) => {
+                        setSelectedStateId(id);
+                        const st = serviceStates.find((s) => s.id === id);
+                        update("state", st?.name || "");
+                        update("city", "");
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select state" />
                       </SelectTrigger>
                       <SelectContent>
-                        {INDIAN_STATES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
+                        {serviceStates.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="City *" error={errors.city}>
+                    <Select
+                      value={form.city}
+                      onValueChange={(v) => update("city", v)}
+                      disabled={!selectedStateId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedStateId ? "Select city" : "Select state first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceCities.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -990,13 +1049,19 @@ export default function ApplyPage() {
                       className="flex-1"
                       disabled={submitting}
                       onClick={() => {
+                        // Application was already submitted once (e.g. user came back
+                        // from the documents step via Back) — don't create a duplicate.
+                        if (candidateId) {
+                          setStep(7);
+                          return;
+                        }
                         const e = validateDrivingFamilyBank(form);
                         setErrors(e);
                         if (Object.keys(e).length === 0) submitApplication();
                       }}
                     >
                       {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                      Submit Application
+                      {candidateId ? "Continue" : "Submit Application"}
                     </Button>
                   </div>
                 </div>
@@ -1080,9 +1145,14 @@ export default function ApplyPage() {
                     />
                   </div>
 
-                  <Button className="w-full" disabled={!canFinish} onClick={() => setDone(true)}>
-                    Finish
-                  </Button>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setStep(6)}>
+                      Back
+                    </Button>
+                    <Button className="flex-1" disabled={!canFinish} onClick={() => setDone(true)}>
+                      Finish
+                    </Button>
+                  </div>
                   {!canFinish && (
                     <p className="text-center text-xs text-muted-foreground">
                       Photo, Aadhaar Card and Resume are required before finishing.
@@ -1152,7 +1222,11 @@ function VideoIntroRecorder({
     setCameraError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+        // `ideal` (not a bare string) so this is a soft preference — most
+        // desktop/laptop webcams don't report a "user"-facing capability at
+        // all, and a hard requirement here throws OverconstrainedError on
+        // those devices even when camera/mic permission is fully granted.
+        video: { facingMode: { ideal: "user" } },
         audio: true,
       });
       streamRef.current = stream;
@@ -1161,10 +1235,29 @@ function VideoIntroRecorder({
         await videoRef.current.play().catch(() => {});
       }
       setPhase("live");
-    } catch {
-      setCameraError(
-        "Camera/microphone access denied. Please allow access, or use Upload File instead."
-      );
+    } catch (err) {
+      const name = err instanceof Error ? err.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setCameraError(
+          "Camera/microphone access denied. Please allow access, or use Upload File instead."
+        );
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setCameraError(
+          "No camera or microphone found on this device. Please use Upload File instead."
+        );
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        setCameraError(
+          "Camera/microphone is already in use by another app or browser tab. Close it and try again, or use Upload File instead."
+        );
+      } else if (name === "SecurityError") {
+        setCameraError(
+          "Camera access requires a secure (https) connection. Please use Upload File instead."
+        );
+      } else {
+        setCameraError(
+          "Could not access camera/microphone. Please use Upload File instead."
+        );
+      }
     }
   };
 

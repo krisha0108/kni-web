@@ -4,6 +4,7 @@ import { requireAdmin } from "@/server/auth/rbac";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { sendEngineerWelcomeEmail } from "@/lib/email";
+import { checkEngineerAvailability } from "@/server/engineers/availability";
 
 // Validation schema for engineer creation
 const createEngineerSchema = z
@@ -33,7 +34,7 @@ const createEngineerSchema = z
     { message: "monthlySalary is required when payoutMethod is SALARY", path: ["monthlySalary"] }
   );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
@@ -47,6 +48,7 @@ export async function GET() {
         email: true,
         phone: true,
         isActive: true,
+        isAvailable: true,
         createdAt: true,
         engineerProfile: {
           select: {
@@ -58,6 +60,32 @@ export async function GET() {
       },
       orderBy: { name: "asc" },
     });
+
+    // Optional availability-for-a-specific-slot check, used by the booking
+    // Assign Engineer dialog once a date/time has been picked. Absent these
+    // params, the response shape is unchanged for other callers of this route.
+    const searchParams = request.nextUrl.searchParams;
+    const rangeStartParam = searchParams.get("rangeStart");
+    const rangeEndParam = searchParams.get("rangeEnd");
+    const excludeBookingId = searchParams.get("excludeBookingId") || undefined;
+
+    if (rangeStartParam && rangeEndParam) {
+      const rangeStart = new Date(rangeStartParam);
+      const rangeEnd = new Date(rangeEndParam);
+      if (!isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime())) {
+        const conflictsByEngineer = await checkEngineerAvailability(
+          engineers.map((e) => e.id),
+          rangeStart,
+          rangeEnd,
+          { excludeBookingId }
+        );
+        const withAvailability = engineers.map((e) => {
+          const conflicts = conflictsByEngineer.get(e.id) ?? [];
+          return { ...e, availableAt: conflicts.length === 0, conflicts };
+        });
+        return NextResponse.json({ ok: true, data: withAvailability });
+      }
+    }
 
     return NextResponse.json({ ok: true, data: engineers });
   } catch (error) {

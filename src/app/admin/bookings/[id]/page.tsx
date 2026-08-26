@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Calendar, User, CheckCircle, XCircle, UserPlus, Wrench, Package, Grid3X3 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { formatDate, formatPrice } from "@/lib/utils";
+import { formatDate, formatDateTime, formatPrice } from "@/lib/utils";
 import { RejectionReasonInput } from "@/components/rejection-reason-input";
 
 interface Booking {
@@ -84,6 +84,10 @@ interface Engineer {
   id: string;
   name: string;
   phone: string;
+  isActive?: boolean;
+  isAvailable?: boolean;
+  availableAt?: boolean;
+  conflicts?: { type: string; label: string; start: string; end: string }[];
 }
 
 const timeSlots = [
@@ -143,9 +147,16 @@ export default function AdminBookingDetailPage() {
     }
   };
 
-  const fetchEngineers = async () => {
+  const fetchEngineers = async (rangeStart?: string, rangeEnd?: string) => {
     try {
-      const response = await fetch("/api/admin/engineers");
+      const searchParams = new URLSearchParams();
+      if (rangeStart && rangeEnd) {
+        searchParams.set("rangeStart", rangeStart);
+        searchParams.set("rangeEnd", rangeEnd);
+        searchParams.set("excludeBookingId", bookingId);
+      }
+      const qs = searchParams.toString();
+      const response = await fetch(`/api/admin/engineers${qs ? `?${qs}` : ""}`);
       const data = await response.json();
       if (data.ok) {
         setEngineers(data.data);
@@ -159,6 +170,17 @@ export default function AdminBookingDetailPage() {
     fetchBooking();
     fetchEngineers();
   }, [bookingId]);
+
+  // Re-check availability whenever the admin picks/changes the date or time
+  // slot inside the Assign Engineer dialog, so busy/free badges stay current.
+  useEffect(() => {
+    if (!isAssignOpen || !scheduledDate || !scheduledTimeSlot) return;
+    const [startTime, endTime] = scheduledTimeSlot.split("-");
+    const slotStart = `${scheduledDate}T${startTime}:00`;
+    const slotEnd = `${scheduledDate}T${endTime}:00`;
+    fetchEngineers(slotStart, slotEnd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAssignOpen, scheduledDate, scheduledTimeSlot]);
 
   const handleVerifyPayment = async () => {
     setIsVerifying(true);
@@ -821,43 +843,6 @@ export default function AdminBookingDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Engineers * (Select one or more)</Label>
-              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
-                {engineers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No engineers available</p>
-                ) : (
-                  engineers.map((eng) => (
-                    <div key={eng.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`engineer-${eng.id}`}
-                        checked={selectedEngineers.includes(eng.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedEngineers([...selectedEngineers, eng.id]);
-                          } else {
-                            setSelectedEngineers(selectedEngineers.filter((id) => id !== eng.id));
-                          }
-                        }}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                      <label
-                        htmlFor={`engineer-${eng.id}`}
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        {eng.name}
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
-              {selectedEngineers.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedEngineers.length} engineer(s) selected
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="date">Scheduled Date *</Label>
               <Input
                 id="date"
@@ -880,6 +865,60 @@ export default function AdminBookingDetailPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Engineers * (Select one or more)</Label>
+              {!(scheduledDate && scheduledTimeSlot) && (
+                <p className="text-xs text-muted-foreground">
+                  Pick a date and time above to see who&apos;s available for that slot.
+                </p>
+              )}
+              <div className="border rounded-md p-3 max-h-56 overflow-y-auto space-y-2">
+                {engineers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No engineers available</p>
+                ) : (
+                  engineers.map((eng) => (
+                    <div key={eng.id} className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`engineer-${eng.id}`}
+                        checked={selectedEngineers.includes(eng.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEngineers([...selectedEngineers, eng.id]);
+                          } else {
+                            setSelectedEngineers(selectedEngineers.filter((id) => id !== eng.id));
+                          }
+                        }}
+                        className="h-4 w-4 mt-0.5 rounded border-gray-300"
+                      />
+                      <div className="flex-1">
+                        <label
+                          htmlFor={`engineer-${eng.id}`}
+                          className="flex items-center gap-2 text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {eng.name}
+                          {scheduledDate && scheduledTimeSlot && (
+                            <Badge variant={eng.availableAt === false ? "destructive" : "success"} className="text-xs">
+                              {eng.availableAt === false ? "Busy" : "Available"}
+                            </Badge>
+                          )}
+                        </label>
+                        {eng.availableAt === false && eng.conflicts && eng.conflicts.length > 0 && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Busy: {eng.conflicts[0].label}, {formatDateTime(eng.conflicts[0].start)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedEngineers.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedEngineers.length} engineer(s) selected
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

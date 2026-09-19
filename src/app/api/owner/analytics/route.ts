@@ -141,7 +141,10 @@ export async function GET(request: NextRequest) {
       _count: { id: true },
     });
 
-    // Daily booking trend (last 7 days)
+    // Daily booking trend — matches the requested period, capped so a 1Y
+    // range doesn't hand a chart hundreds of daily points to render.
+    const trendStartDate = new Date();
+    trendStartDate.setDate(trendStartDate.getDate() - Math.min(periodDays, 90));
     const dailyBookingTrendRaw = await db.$queryRaw<
       Array<{ date: Date; count: bigint; revenue: number }>
     >`
@@ -151,7 +154,7 @@ export async function GET(request: NextRequest) {
         SUM(totalAmount) as revenue
       FROM ServiceBooking
       WHERE restaurantId = ${restaurantId}
-        AND createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND createdAt >= ${trendStartDate}
       GROUP BY DATE(createdAt)
       ORDER BY date DESC
     `;
@@ -163,7 +166,7 @@ export async function GET(request: NextRequest) {
       revenue: item.revenue,
     }));
 
-    // Daily expense trend (last 7 days)
+    // Daily expense trend — same period-aware, capped range as bookings above.
     const dailyExpenseTrendRaw = await db.$queryRaw<
       Array<{ date: Date; count: bigint; total: number }>
     >`
@@ -173,7 +176,7 @@ export async function GET(request: NextRequest) {
         SUM(amount) as total
       FROM Expense
       WHERE restaurantId = ${restaurantId}
-        AND expenseDate >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND expenseDate >= ${trendStartDate}
       GROUP BY DATE(expenseDate)
       ORDER BY date DESC
     `;

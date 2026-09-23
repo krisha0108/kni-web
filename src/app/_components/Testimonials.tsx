@@ -1,22 +1,33 @@
 import { db } from "@/server/db";
 
 async function getTopReviews() {
-  const ratings = await db.engineerRating.findMany({
-    where: { isPublished: true, review: { not: null } },
-    orderBy: [{ overallRating: "desc" }, { createdAt: "desc" }],
-    take: 20,
-    select: {
-      id: true,
-      overallRating: true,
-      review: true,
-      owner: { select: { name: true } },
-      restaurant: { select: { name: true } },
-    },
-  });
+  // Next.js pre-renders this page at build time (even with ISR), and the
+  // database isn't reachable in every environment that runs a build — CI,
+  // for one. Fail soft: if the query can't run, just show no testimonials
+  // for that render instead of crashing the whole build. The real site's
+  // scheduled revalidation (see revalidate in page.tsx) will pick up real
+  // reviews once it's running against a live database.
+  try {
+    const ratings = await db.engineerRating.findMany({
+      where: { isPublished: true, review: { not: null } },
+      orderBy: [{ overallRating: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: {
+        id: true,
+        overallRating: true,
+        review: true,
+        owner: { select: { name: true } },
+        restaurant: { select: { name: true } },
+      },
+    });
 
-  return ratings
-    .filter((r) => r.review && r.review.trim().length > 0)
-    .slice(0, 3);
+    return ratings
+      .filter((r) => r.review && r.review.trim().length > 0)
+      .slice(0, 3);
+  } catch (error) {
+    console.error("Testimonials: failed to load reviews, hiding section for this render", error);
+    return [];
+  }
 }
 
 export default async function Testimonials() {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { db } from "@/server/db";
 import { sendContactInquiryEmail } from "@/lib/email";
 
 const contactSchema = z.object({
@@ -15,7 +16,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = contactSchema.parse(body);
 
-    await sendContactInquiryEmail(data);
+    await db.contactInquiry.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        subject: data.subject || null,
+        message: data.message || null,
+      },
+    });
+
+    try {
+      await sendContactInquiryEmail(data);
+    } catch (emailError) {
+      // The inquiry is already saved — don't fail the request just because
+      // the notification email didn't go out.
+      console.error("Contact inquiry email failed (inquiry still saved):", emailError);
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {

@@ -19,6 +19,7 @@ enum Role {
   OWNER
   VENDOR
   ENGINEER
+  SALESMAN
 }
 
 enum RestaurantStatus {
@@ -261,6 +262,11 @@ model User {
   // Per-owner discount override for service/parts bookings (percent, 0-100).
   // Null means "use PlatformSettings.defaultBookingDiscountPercent".
   serviceDiscountPercent Int?
+  // Set true only when Admin creates the account with a temporary password
+  // (currently just Salesman) - forces a mandatory change-password prompt
+  // on first login, then flips back to false. Defaults false for every
+  // other role so self-registered/existing accounts are unaffected.
+  mustChangePassword     Boolean   @default(false)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   deletedAt              DateTime?
@@ -271,6 +277,7 @@ model User {
   vendorProfile                 VendorProfile?
   vendorCoverage                VendorCoverage?
   engineerProfile               EngineerProfile?
+  salesmanProfile               SalesmanProfile?
   notifications                 Notification[]
   restaurants                   Restaurant[]
   categoryRequests              CategoryRequest[]
@@ -335,6 +342,8 @@ model User {
   candidateNotes                CandidateNote[]
   trainingAttendances           TrainingAttendance[]
   restaurantDeletionRequests    RestaurantDeletionRequest[]
+  assignedInquiries             LaunchPadInquiry[]           @relation("SalesmanInquiries")
+  salesmanVisits                SalesmanVisit[]              @relation("SalesmanVisits")
 
   @@index([email])
   @@index([role])
@@ -415,6 +424,15 @@ model EngineerProfile {
   commissionRate Int          @default(20) // percentage, used when COMMISSION
   monthlySalary  Int? // Rupees, used when SALARY
   createdAt      DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SalesmanProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  region    String?
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -2733,35 +2751,40 @@ enum InquiryActivityType {
 }
 
 model LaunchPadInquiry {
-  id             String          @id @default(cuid())
-  name           String
-  email          String
-  phone          String
-  city           String
-  businessType   BusinessType
-  businessName   String?
-  budgetRange    BudgetRange?
-  areaInSqFt     Int?
-  timeline       LaunchTimeline?
-  message        String?         @db.Text
-  servicesNeeded String?         @db.Text // comma-separated
-  source         String          @default("website")
-  status         InquiryStatus   @default(NEW)
-  priority       InquiryPriority @default(MEDIUM)
-  assignedTo     String? // Plain text: person/team name
-  followUpDate   DateTime?
-  accessToken    String?         @unique // Token for public portal access
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  name               String
+  email              String
+  phone              String
+  city               String
+  address            String?         @db.Text // full address; salesman-entered leads collect this, website form only asks city
+  businessType       BusinessType
+  businessName       String?
+  budgetRange        BudgetRange?
+  areaInSqFt         Int?
+  timeline           LaunchTimeline?
+  message            String?         @db.Text
+  servicesNeeded     String?         @db.Text // comma-separated
+  source             String          @default("website")
+  status             InquiryStatus   @default(NEW)
+  priority           InquiryPriority @default(MEDIUM)
+  assignedTo         String? // Plain text: person/team name (existing admin Launchpad UI, left as-is)
+  assignedSalesmanId String? // Real FK assignment to a SALESMAN user, additive alongside assignedTo above
+  assignedSalesman   User?           @relation("SalesmanInquiries", fields: [assignedSalesmanId], references: [id], onDelete: SetNull)
+  followUpDate       DateTime?
+  accessToken        String?         @unique // Token for public portal access
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   threads    LaunchPadInquiryThread[]
   activities LaunchPadActivityLog[]
+  visits     SalesmanVisit[]
 
   @@index([status])
   @@index([priority])
   @@index([businessType])
   @@index([email])
   @@index([createdAt])
+  @@index([assignedSalesmanId])
 }
 
 model LaunchPadInquiryThread {
@@ -2790,6 +2813,55 @@ model LaunchPadActivityLog {
   @@index([inquiryId])
   @@index([type])
   @@index([createdAt])
+}
+
+enum SalesmanVisitStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+model SalesmanVisit {
+  id               String              @id @default(cuid())
+  salesmanId       String
+  salesman         User                @relation("SalesmanVisits", fields: [salesmanId], references: [id], onDelete: Cascade)
+  inquiryId        String?
+  inquiry          LaunchPadInquiry?   @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  companyName      String
+  address          String?             @db.Text
+  contactPerson    String?
+  mobileNumber     String?
+  email            String?
+  visitDate        DateTime
+  purpose          String?             @db.Text
+  discussion       String?             @db.Text
+  followUpRequired Boolean             @default(false)
+  nextFollowUpDate DateTime?
+  status           SalesmanVisitStatus @default(COMPLETED)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([salesmanId])
+  @@index([inquiryId])
+  @@index([visitDate])
+}
+
+// ========================================
+// PUBLIC CONTACT FORM (landing page)
+// ========================================
+
+model ContactInquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  subject   String?
+  message   String?  @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([isRead])
 }
 
 // ========================================

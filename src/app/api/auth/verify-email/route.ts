@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
       ownerApprovalStatus: user.ownerProfile?.approvalStatus ?? null,
       vendorApprovalStatus: user.vendorProfile?.approvalStatus ?? null,
       vendorSubscriptionStatus: user.vendorProfile?.subscriptionStatus ?? null,

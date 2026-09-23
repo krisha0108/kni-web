@@ -245,6 +245,39 @@ export async function sendEngineerWelcomeEmail(
   });
 }
 
+// 1b. Salesman Welcome Email
+export async function sendSalesmanWelcomeEmail(
+  salesmanEmail: string,
+  salesmanName: string,
+  password: string
+): Promise<void> {
+  const content = `
+    <h2>Welcome to KNI Super App!</h2>
+    <p>Hello ${salesmanName},</p>
+    <p>You have been registered as a salesman on the KNI Super App platform. You can now log in to work your assigned inquiries and log customer visits.</p>
+
+    <div class="credentials">
+      <strong>Your Login Credentials:</strong>
+      <ul>
+        <li><strong>Email:</strong> ${salesmanEmail}</li>
+        <li><strong>Password:</strong> ${password}</li>
+      </ul>
+      <p><em>⚠️ You will be asked to set your own password the first time you log in.</em></p>
+    </div>
+
+    <a href="${APP_URL}/login" class="button">Login to Dashboard</a>
+
+    <p>If you have any questions, please contact the admin.</p>
+    <p>Best regards,<br>KNI Super App Team</p>
+  `;
+
+  await sendEmail({
+    to: salesmanEmail,
+    subject: "Welcome to KNI Super App - Salesman Account Created",
+    html: emailTemplate(content, "Welcome Salesman"),
+  });
+}
+
 // 2. Booking Confirmation Email (Owner)
 export async function sendBookingConfirmationEmail(
   ownerEmail: string,
@@ -1451,6 +1484,7 @@ export async function sendBulkEmail(
 
 export default {
   sendEngineerWelcomeEmail,
+  sendSalesmanWelcomeEmail,
   sendBookingConfirmationEmail,
   sendPaymentVerifiedEmail,
   sendEngineerAssignedEmail,

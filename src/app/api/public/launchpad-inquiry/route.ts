@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { getNextSalesmanForAutoAssign } from "@/server/salesman/auto-assign";
 import { z } from "zod";
 
 const inquirySchema = z.object({
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const assignedSalesmanId = await getNextSalesmanForAutoAssign();
+
     const inquiry = await db.launchPadInquiry.create({
       data: {
         name: validated.name,
@@ -52,8 +55,22 @@ export async function POST(request: NextRequest) {
         message: validated.message || null,
         servicesNeeded: validated.servicesNeeded || null,
         source: validated.source || "website",
+        assignedSalesmanId,
       },
     });
+
+    if (assignedSalesmanId) {
+      const salesman = await db.user.findUnique({ where: { id: assignedSalesmanId }, select: { name: true } });
+      await db.launchPadActivityLog.create({
+        data: {
+          inquiryId: inquiry.id,
+          type: "STATUS_CHANGED",
+          description: `Auto-assigned to salesman ${salesman?.name ?? "salesman"}`,
+          metadata: JSON.stringify({ from: null, to: assignedSalesmanId, auto: true }),
+          performedBy: "System (auto-assign)",
+        },
+      });
+    }
 
     return NextResponse.json({ ok: true, data: { id: inquiry.id } }, { status: 201 });
   } catch (error) {

@@ -21,6 +21,7 @@ export interface SessionUser {
   hasApprovedRestaurant?: boolean;
   hasAnyRestaurant?: boolean;
   hasApprovedLocation?: boolean;
+  mustChangePassword: boolean;
 }
 
 export async function createSession(userId: string): Promise<string> {
@@ -111,6 +112,7 @@ export async function getSession(): Promise<SessionUser | null> {
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
     hasAnyRestaurant: session.user._count.restaurants > 0 || session.user.restaurantMemberships.length > 0,
     hasApprovedLocation: session.user.vendorLocationRequests.length > 0,
+    mustChangePassword: session.user.mustChangePassword,
   };
 }
 

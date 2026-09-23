@@ -200,6 +200,7 @@ export async function POST(request: NextRequest) {
       hasApprovedRestaurant: user.restaurants.length > 0 || user.restaurantMemberships.length > 0,
       hasAnyRestaurant: user._count.restaurants > 0 || user.restaurantMemberships.length > 0,
       hasApprovedLocation: user.vendorLocationRequests.length > 0,
+      mustChangePassword: user.mustChangePassword,
     };
 
     const redirectUrl = getRoleDashboardUrl(user.role, sessionData);

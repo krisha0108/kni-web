@@ -47,6 +47,7 @@ import {
   StickyNote,
   UserCircle,
   AlertCircle,
+  UserCheck,
 } from "lucide-react";
 
 type InquiryStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST" | "ON_HOLD";
@@ -87,8 +88,28 @@ interface Inquiry {
   priority: InquiryPriority;
   followUpDate: string | null;
   accessToken: string | null;
+  assignedSalesmanId: string | null;
+  assignedSalesman: { id: string; name: string } | null;
+  visits: InquiryVisit[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface InquiryVisit {
+  id: string;
+  companyName: string;
+  visitDate: string;
+  status: string;
+  discussion: string | null;
+  purpose: string | null;
+  followUpRequired: boolean;
+  nextFollowUpDate: string | null;
+}
+
+interface SalesmanOption {
+  id: string;
+  name: string;
+  isActive: boolean;
 }
 
 const STATUS_COLORS: Record<InquiryStatus, string> = {
@@ -138,6 +159,7 @@ export default function AdminLaunchPadDetailPage() {
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [salesmen, setSalesmen] = useState<SalesmanOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -147,6 +169,7 @@ export default function AdminLaunchPadDetailPage() {
   const [status, setStatus] = useState<InquiryStatus>("NEW");
   const [priority, setPriority] = useState<InquiryPriority>("MEDIUM");
   const [followUpDate, setFollowUpDate] = useState("");
+  const [assignedSalesmanId, setAssignedSalesmanId] = useState<string>("");
 
   // Thread compose
   const [messageSubject, setMessageSubject] = useState("");
@@ -167,7 +190,18 @@ export default function AdminLaunchPadDetailPage() {
     fetchInquiry();
     fetchThreads();
     fetchActivities();
+    fetchSalesmen();
   }, [inquiryId]);
+
+  const fetchSalesmen = async () => {
+    try {
+      const response = await fetch("/api/admin/salesmen");
+      const data = await response.json();
+      if (data.ok) setSalesmen(data.data);
+    } catch {
+      // silent
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -189,6 +223,7 @@ export default function AdminLaunchPadDetailPage() {
         setStatus(inq.status);
         setPriority(inq.priority);
         setFollowUpDate(inq.followUpDate ? inq.followUpDate.split("T")[0] : "");
+        setAssignedSalesmanId(inq.assignedSalesmanId || "");
       } else {
         toast({ title: "Error", description: data.error || "Failed to fetch inquiry", variant: "destructive" });
       }
@@ -229,6 +264,7 @@ export default function AdminLaunchPadDetailPage() {
           status,
           priority,
           followUpDate: followUpDate || null,
+          assignedSalesmanId: assignedSalesmanId || null,
         }),
       });
       const data = await response.json();
@@ -537,6 +573,36 @@ export default function AdminLaunchPadDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Related Visits — logged by the assigned salesman */}
+          {inquiry.visits.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  Salesman Visits
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {inquiry.visits.map((v) => (
+                  <div key={v.id} className="border rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{v.companyName}</p>
+                      <Badge variant="outline" className="text-xs capitalize">{v.status.toLowerCase()}</Badge>
+                    </div>
+                    {v.purpose && <p className="text-xs text-muted-foreground">Purpose: {v.purpose}</p>}
+                    {v.discussion && <p className="text-sm">{v.discussion}</p>}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatDate(v.visitDate)}</span>
+                      {v.followUpRequired && v.nextFollowUpDate && (
+                        <span className="text-amber-600">Follow-up: {formatDate(v.nextFollowUpDate)}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Message */}
           {inquiry.message && (
             <Card>
@@ -715,6 +781,33 @@ export default function AdminLaunchPadDetailPage() {
                   value={followUpDate}
                   onChange={(e) => setFollowUpDate(e.target.value)}
                 />
+              </div>
+
+              {/* Assign to Salesman */}
+              <div>
+                <Label className="text-sm font-medium flex items-center gap-1">
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Assign to Salesman
+                </Label>
+                <Select
+                  value={assignedSalesmanId || "unassigned"}
+                  onValueChange={(v) => setAssignedSalesmanId(v === "unassigned" ? "" : v)}
+                >
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {salesmen.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}{!s.isActive ? " (inactive)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {inquiry.assignedSalesman && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Currently: {inquiry.assignedSalesman.name}
+                  </p>
+                )}
               </div>
 
               {/* Save All Button */}

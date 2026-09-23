@@ -49,6 +49,7 @@ import {
   Rocket,
   CalendarPlus,
   Gift,
+  Mail,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -299,6 +300,8 @@ export const adminSidebarItems: SidebarEntry[] = [
   // ── Lead Management ──
   { sectionTitle: "Lead Management" },
   { title: "Launch Pad", href: "/admin/launchpad", icon: Rocket },
+  { title: "Salesmen", href: "/admin/salesmen", icon: Users },
+  { title: "Contact Inquiries", href: "/admin/contact-inquiries", icon: Mail },
 
   // ── Others ──
   { sectionTitle: "Others" },
@@ -401,4 +404,11 @@ export const engineerSidebarItems: SidebarItem[] = [
   { title: "My Earnings", href: "/engineer/earnings", icon: Wallet },
   { title: "Notifications", href: "/engineer/notifications", icon: Bell },
   { title: "Profile", href: "/engineer/profile", icon: User },
+];
+
+export const salesmanSidebarItems: SidebarItem[] = [
+  { title: "Dashboard", href: "/salesman/dashboard", icon: LayoutDashboard },
+  { title: "Inquiries", href: "/salesman/inquiries", icon: ClipboardList },
+  { title: "Visits", href: "/salesman/visits", icon: MapPin },
+  { title: "Profile", href: "/salesman/profile", icon: User },
 ];

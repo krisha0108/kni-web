@@ -9,6 +9,7 @@ const ROLE_ROUTES = {
   OWNER: "/owner",
   VENDOR: "/vendor",
   ENGINEER: "/engineer",
+  SALESMAN: "/salesman",
 };
 
 // Vendor pages that unapproved vendors can access

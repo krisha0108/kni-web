@@ -48,6 +48,10 @@ export async function requireEngineer(): Promise<SessionUser> {
   return requireRole(Role.ENGINEER);
 }
 
+export async function requireSalesman(): Promise<SessionUser> {
+  return requireRole(Role.SALESMAN);
+}
+
 // Mobile-compatible versions
 export async function requireAdminMobile(request: NextRequest): Promise<SessionUser> {
   return requireRoleMobile(request, Role.ADMIN);
@@ -137,6 +141,8 @@ export function getRoleDashboardUrl(role: Role, session?: SessionUser): string {
       return "/vendor/dashboard";
     case Role.ENGINEER:
       return "/engineer/dashboard";
+    case Role.SALESMAN:
+      return "/salesman/dashboard";
     default:
       return "/login";
   }

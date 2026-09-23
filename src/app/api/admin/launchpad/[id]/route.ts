@@ -12,6 +12,10 @@ export async function GET(
 
     const inquiry = await db.launchPadInquiry.findUnique({
       where: { id },
+      include: {
+        assignedSalesman: { select: { id: true, name: true } },
+        visits: { orderBy: { visitDate: "desc" } },
+      },
     });
 
     if (!inquiry) {
@@ -52,13 +56,15 @@ export async function PATCH(
       );
     }
 
-    const allowedFields = ["status", "priority", "assignedTo", "followUpDate"];
+    const allowedFields = ["status", "priority", "assignedTo", "assignedSalesmanId", "followUpDate"];
     const updateData: any = {};
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         if (field === "followUpDate" && body[field]) {
           updateData[field] = new Date(body[field]);
+        } else if (field === "assignedSalesmanId") {
+          updateData[field] = body[field] || null;
         } else {
           updateData[field] = body[field];
         }
@@ -68,6 +74,10 @@ export async function PATCH(
     const inquiry = await db.launchPadInquiry.update({
       where: { id },
       data: updateData,
+      include: {
+        assignedSalesman: { select: { id: true, name: true } },
+        visits: { orderBy: { visitDate: "desc" } },
+      },
     });
 
     // Get admin name for activity logging
@@ -98,6 +108,22 @@ export async function PATCH(
           type: "PRIORITY_CHANGED",
           description: `Priority changed from ${currentInquiry.priority} to ${body.priority}`,
           metadata: JSON.stringify({ from: currentInquiry.priority, to: body.priority }),
+          performedBy: adminName,
+        },
+      });
+    }
+
+    // Log salesman (re)assignment
+    if (body.assignedSalesmanId !== undefined && body.assignedSalesmanId !== currentInquiry.assignedSalesmanId) {
+      const salesmanName = inquiry.assignedSalesman?.name;
+      await db.launchPadActivityLog.create({
+        data: {
+          inquiryId: id,
+          type: "STATUS_CHANGED",
+          description: salesmanName
+            ? `Assigned to salesman ${salesmanName} by ${adminName}`
+            : `Unassigned from salesman by ${adminName}`,
+          metadata: JSON.stringify({ from: currentInquiry.assignedSalesmanId, to: body.assignedSalesmanId || null }),
           performedBy: adminName,
         },
       });

@@ -75,5 +75,6 @@ export async function getMobileSession(request?: NextRequest): Promise<SessionUs
     ownerApprovalStatus: session.user.ownerProfile?.approvalStatus ?? null,
     hasApprovedRestaurant: session.user.restaurants.length > 0 || session.user.restaurantMemberships.length > 0,
     hasAnyRestaurant: session.user._count.restaurants > 0 || session.user.restaurantMemberships.length > 0,
+    mustChangePassword: session.user.mustChangePassword,
   };
 }

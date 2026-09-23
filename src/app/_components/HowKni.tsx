@@ -12,7 +12,7 @@ export default function HowKni() {
             </p>
             <div className="main_feature py-8">
               <div className="features left">
-                
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy"
@@ -24,7 +24,7 @@ export default function HowKni() {
                     <h3 className="feature-title">Simplifying Service Management</h3>
                   </div>
                 </div>
-      
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy" src="/landing/assests/VerifiedProfessionals.svg" alt="Icon" />
@@ -35,7 +35,7 @@ export default function HowKni() {
                     </h3>
                   </div>
                 </div>
-      
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy"
@@ -48,16 +48,16 @@ export default function HowKni() {
                   </div>
                 </div>
               </div>
-      
+
               <div className="features center-logo">
                 <div className="animationview"></div>
                 <div className="img_view">
                   <img loading="lazy" src="/landing/assests/Kni-red-logo.webp" alt="kni logo" />
                 </div>
               </div>
-      
+
               <div className="features right">
-                
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy" src="/landing/assests/ReducingDowntime.svg" alt="Icon" />
@@ -68,7 +68,7 @@ export default function HowKni() {
                     </h3>
                   </div>
                 </div>
-      
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy" src="/landing/assests/ComprehensiveSolutions.svg" alt="Icon" />
@@ -77,7 +77,7 @@ export default function HowKni() {
                     <h3 className="feature-title">Comprehensive Solutions</h3>
                   </div>
                 </div>
-      
+
                 <div className="feature-box">
                   <div className="feature-icon">
                     <img loading="lazy" src="/landing/assests/Cost-Efficiency.svg" alt="Icon" />

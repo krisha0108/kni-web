@@ -24,6 +24,12 @@ const afacad = Afacad({ subsets: ["latin"], weight: ["400", "500", "600", "700"]
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://kniservices.com";
 
+// Testimonials pulls live data from the database (real Owner reviews) — without
+// this, Next.js would statically render the homepage once at build time and the
+// testimonials would only ever update on the next deploy, not as real reviews
+// come in.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Commercial Kitchen Equipment, AMC & Service | KNI",
   description:

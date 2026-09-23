@@ -41,6 +41,43 @@ html {
   50% { opacity: 0; }
 }
 
+/* "How KNI Improves" card swap — a livelier pop/slide than a plain fade */
+@keyframes cardSwap {
+  0% { opacity: 0; transform: translateX(18px) scale(0.98); }
+  60% { opacity: 1; transform: translateX(-3px) scale(1.005); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-card-swap {
+  animation: cardSwap 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* "How KNI Improves" row auto-advance progress bar */
+@keyframes rowProgress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-row-progress {
+  animation: rowProgress 4s linear;
+}
+
+/* "Our Process" staggered step reveal, on scroll into view */
+@keyframes stepIn {
+  0% { opacity: 0; transform: translateY(22px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-step-in {
+  animation: stepIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-swap,
+  .animate-row-progress,
+  .animate-step-in {
+    animation: none;
+    opacity: 1 !important;
+  }
+}
+
 /* Get in touch Form css  */
 .custom-shadow {
   box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px,
@@ -434,7 +471,7 @@ ul.list-red > li::marker {
   border: 1px dashed #6b6b6b;
   position: absolute;
   right: -200px;
-  top: 50px;
+  top: 58px; /* aligned to the dot's true vertical center (50% of the 120px box) */
   z-index: 0;
 }
 
@@ -459,48 +496,58 @@ ul.list-red > li::marker {
   border: 1px dashed #6b6b6b;
   position: absolute;
   left: -200px;
-  top: 46px;
+  top: 58px; /* aligned to the dot's true vertical center (50% of the 120px box) */
   z-index: 0;
 }
 
 .right .feature-box:nth-child(1):after {
   height: 150px;
   border: 1px dashed #6b6b6b;
-  border-radius: 30px;
+  /* no border-radius here on purpose — a dashed border can't space its
+     dashes evenly around a curve, so a rounded elbow renders as a broken/
+     clumped-up dash right at the bend. A sharp corner keeps every segment
+     evenly dashed. */
   border-right: 0;
   border-bottom: 0;
-  width: 220px;
+  /* width used to be 220px (20px more than the straight connector's
+     200px) so the curve had room to bend smoothly. That extra 20px
+     extends the border-top dash back across the box's own edge — and
+     since this ::after is a CHILD of its own .feature-box, it always
+     paints on top of that box's background (z-index can't hide an
+     element behind its own parent), so that overhang was never actually
+     hidden — it showed as a stray dash poking out past the dot. Matching
+     the straight connector's 200px removes the overhang entirely. */
+  width: 200px;
+  top: 59px; /* this box's visible edge is border-top, so it must sit exactly at the dot's center */
 
 }
 
 .left .feature-box:nth-child(1):after {
   height: 150px;
   border: 1px dashed #6b6b6b;
-  border-radius: 30px;
   border-left: 0;
   border-bottom: 0;
-  width: 220px;
+  width: 200px;
+  top: 59px; /* this box's visible edge is border-top, so it must sit exactly at the dot's center */
 }
 
 .left .feature-box:nth-child(3):after {
-  width: 220px;
+  width: 200px;
   height: 150px;
   border: 1px dashed #6b6b6b;
-  border-radius: 30px;
   right: -200px;
-  top: -88px;
+  top: -91px; /* visible edge is border-bottom (top+height), so top+height must equal the dot's center (59px) */
   z-index: 0;
   border-top: 0;
   border-left: 0;
 }
 
 .right .feature-box:nth-child(3):after {
-  width: 220px;
+  width: 200px;
   height: 150px;
   border: 1px dashed #6b6b6b;
-  border-radius: 30px;
   left: -200px;
-  top: -88px;
+  top: -91px; /* visible edge is border-bottom (top+height), so top+height must equal the dot's center (59px) */
   z-index: 0;
   border-top: 0;
   border-right: 0;
@@ -644,22 +691,30 @@ ul.list-red > li::marker {
 @media only screen and (max-width: 1220px) {
   .left .feature-box::after {
       right: -150px;
-      top: 68px;
+      top: 58px;
   }
 
   .right .feature-box::after {
       left: -150px;
-      top: 68px;
+      top: 58px;
+  }
+
+  .left .feature-box:nth-child(1):after {
+      top: 59px;
+  }
+
+  .right .feature-box:nth-child(1):after {
+      top: 59px;
   }
 
   .left .feature-box:nth-child(3):after {
       right: -150px;
-      top: -78px;
+      top: -91px;
   }
 
   .right .feature-box:nth-child(3):after {
       left: -150px;
-      top: -78px;
+      top: -91px;
   }
 }
 
@@ -734,7 +789,6 @@ ul.list-red > li::marker {
   .right .feature-box:nth-child(1):after {
       height: 150px;
       border: 1px dashed #6b6b6b;
-      border-radius: 30px;
       width: 220px;
   }
 

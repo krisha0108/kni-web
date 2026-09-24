@@ -18,7 +18,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Plus, Pencil, Trash2, Loader2, Eye } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, Pencil, Trash2, Loader2, Eye, MoreVertical, Power } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface Salesman {
@@ -186,7 +189,8 @@ export default function AdminSalesmenPage() {
                       {formatDate(salesman.createdAt)}
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">
-                      <div className="flex gap-2">
+                      {/* Full inline row of actions from sm: up */}
+                      <div className="hidden sm:flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -220,6 +224,33 @@ export default function AdminSalesmenPage() {
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
+                      </div>
+                      {/* Collapsed into one menu below sm: so buttons don't get cramped on phones */}
+                      <div className="sm:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-9 w-9">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => router.push(`/admin/salesmen/${salesman.id}`)}>
+                              <Eye className="mr-2 h-4 w-4" /> View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`/admin/salesmen/${salesman.id}/edit`)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStatus(salesman.id, salesman.isActive)}>
+                              <Power className="mr-2 h-4 w-4" /> {salesman.isActive ? "Deactivate" : "Activate"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteTarget({ id: salesman.id, name: salesman.name })}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>

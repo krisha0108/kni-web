@@ -84,6 +84,13 @@ export async function GET(
         : db.launchPadActivityLog.findMany({
             where: {
               performedBy: salesman.name,
+              // Name match alone isn't enough — a customer and a later-added
+              // salesman can share a name (real collision hit 2026-09-24: a
+              // customer "Krisha Ghadiya" from an old inquiry leaked into a
+              // new salesman of the same name's activity feed). Requiring
+              // the inquiry to be currently assigned to this salesman scopes
+              // it correctly.
+              inquiry: { assignedSalesmanId: id },
               ...(inquiryId ? { inquiryId } : {}),
               ...(dateFrom || dateTo
                 ? { createdAt: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lt: dateTo } : {}) } }

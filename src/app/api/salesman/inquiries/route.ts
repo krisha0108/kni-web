@@ -44,6 +44,7 @@ const createInquirySchema = z.object({
   message: z.string().optional(),
   servicesNeeded: z.string().optional(),
   source: z.enum(["WhatsApp", "Phone", "Reference", "Other"]),
+  companyId: z.string().optional(),
 });
 
 // POST — salesman self-entering a new inquiry they picked up via
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
         message: data.message,
         servicesNeeded: data.servicesNeeded,
         source: data.source,
+        companyId: data.companyId,
         assignedSalesmanId: session.id,
         assignedTo: session.name,
       },

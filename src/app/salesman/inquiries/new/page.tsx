@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { CompanyPicker, CompanyPickerTrigger, type PickedCompany } from "@/components/salesman/company-picker";
 
 interface FormData {
   name: string;
@@ -56,8 +57,23 @@ export default function NewSalesmanInquiryPage() {
     servicesNeeded: "", source: "WhatsApp",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [company, setCompany] = useState<PickedCompany | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  const handleCompanySelected = (picked: PickedCompany) => {
+    setCompany(picked);
+    setFormData((f) => ({
+      ...f,
+      name: picked.contactName || f.name,
+      email: picked.email || f.email,
+      phone: picked.phone || f.phone,
+      businessName: picked.name || f.businessName,
+      city: picked.city || f.city,
+      address: picked.address || f.address,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +84,7 @@ export default function NewSalesmanInquiryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          companyId: company?.id,
           budgetRange: formData.budgetRange || undefined,
           areaInSqFt: formData.areaInSqFt ? parseInt(formData.areaInSqFt, 10) : undefined,
           timeline: formData.timeline || undefined,
@@ -106,6 +123,12 @@ export default function NewSalesmanInquiryPage() {
             <CardDescription>This will be assigned to you and tracked in the CRM</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Company</Label>
+              <CompanyPickerTrigger selected={company} onOpen={() => setPickerOpen(true)} />
+              <p className="text-xs text-muted-foreground">Selecting a company auto-fills the fields below — you can still edit them for this inquiry.</p>
+            </div>
+
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Contact Name <span className="text-destructive">*</span></Label>
@@ -205,6 +228,8 @@ export default function NewSalesmanInquiryPage() {
           </CardContent>
         </Card>
       </form>
+
+      <CompanyPicker open={pickerOpen} onOpenChange={setPickerOpen} onSelect={handleCompanySelected} />
     </div>
   );
 }

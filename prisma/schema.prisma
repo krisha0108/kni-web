@@ -344,6 +344,7 @@ model User {
   restaurantDeletionRequests    RestaurantDeletionRequest[]
   assignedInquiries             LaunchPadInquiry[]           @relation("SalesmanInquiries")
   salesmanVisits                SalesmanVisit[]              @relation("SalesmanVisits")
+  companiesCreated              Company[]                    @relation("CompaniesCreatedBySalesman")
 
   @@index([email])
   @@index([role])
@@ -2770,6 +2771,8 @@ model LaunchPadInquiry {
   assignedTo         String? // Plain text: person/team name (existing admin Launchpad UI, left as-is)
   assignedSalesmanId String? // Real FK assignment to a SALESMAN user, additive alongside assignedTo above
   assignedSalesman   User?           @relation("SalesmanInquiries", fields: [assignedSalesmanId], references: [id], onDelete: SetNull)
+  companyId          String? // Additive link to a Company master record; name/email/phone/etc. above stay as-is for backward compat (public website leads never set this)
+  company            Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
   followUpDate       DateTime?
   accessToken        String?         @unique // Token for public portal access
   createdAt          DateTime        @default(now())
@@ -2785,6 +2788,7 @@ model LaunchPadInquiry {
   @@index([email])
   @@index([createdAt])
   @@index([assignedSalesmanId])
+  @@index([companyId])
 }
 
 model LaunchPadInquiryThread {
@@ -2827,6 +2831,8 @@ model SalesmanVisit {
   salesman         User                @relation("SalesmanVisits", fields: [salesmanId], references: [id], onDelete: Cascade)
   inquiryId        String?
   inquiry          LaunchPadInquiry?   @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  companyId        String? // Additive link to a Company master record; companyName/address/etc. below stay as-is for backward compat
+  company          Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyName      String
   address          String?             @db.Text
   contactPerson    String?
@@ -2844,6 +2850,49 @@ model SalesmanVisit {
   @@index([salesmanId])
   @@index([inquiryId])
   @@index([visitDate])
+  @@index([companyId])
+}
+
+// ========================================
+// COMPANY / CONTACT MASTER
+// ========================================
+// One Company can have many LaunchPadInquiry and SalesmanVisit records
+// (and multiple contacts) without duplicating its info on every one —
+// mirrors how Restaurant fans out to many ServiceBooking/MarketplaceOrder/etc.
+
+model Company {
+  id                  String   @id @default(cuid())
+  name                String
+  address             String?  @db.Text
+  city                String?
+  gstNumber           String?
+  website             String?
+  createdBySalesmanId String?
+  createdBySalesman   User?    @relation("CompaniesCreatedBySalesman", fields: [createdBySalesmanId], references: [id], onDelete: SetNull)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  contacts  CompanyContact[]
+  inquiries LaunchPadInquiry[]
+  visits    SalesmanVisit[]
+
+  @@index([name])
+  @@index([createdBySalesmanId])
+}
+
+model CompanyContact {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  designation String?
+  phone       String?
+  altPhone    String?
+  email       String?
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
 }
 
 // ========================================

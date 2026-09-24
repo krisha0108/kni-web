@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
 const createVisitSchema = z.object({
   inquiryId: z.string().optional(),
+  companyId: z.string().optional(),
   companyName: z.string().min(1, "Company name is required"),
   address: z.string().optional(),
   contactPerson: z.string().optional(),
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
       data: {
         salesmanId: session.id,
         inquiryId: data.inquiryId,
+        companyId: data.companyId,
         companyName: data.companyName,
         address: data.address,
         contactPerson: data.contactPerson,

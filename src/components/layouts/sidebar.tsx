@@ -300,6 +300,7 @@ export const adminSidebarItems: SidebarEntry[] = [
   // ── Lead Management ──
   { sectionTitle: "Lead Management" },
   { title: "Launch Pad", href: "/admin/launchpad", icon: Rocket },
+  { title: "Companies", href: "/admin/companies", icon: Building2 },
   { title: "Salesmen", href: "/admin/salesmen", icon: Users },
   { title: "Contact Inquiries", href: "/admin/contact-inquiries", icon: Mail },
 

@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, MapPin } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { CompanyPicker, CompanyPickerTrigger, type PickedCompany } from "@/components/salesman/company-picker";
 
 interface Inquiry {
   id: string;
@@ -40,6 +41,8 @@ function SalesmanVisitsInner() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [company, setCompany] = useState<PickedCompany | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -55,6 +58,18 @@ function SalesmanVisitsInner() {
     followUpRequired: false,
     nextFollowUpDate: "",
   });
+
+  const handleCompanySelected = (picked: PickedCompany) => {
+    setCompany(picked);
+    setFormData((f) => ({
+      ...f,
+      companyName: picked.name || f.companyName,
+      address: picked.address || f.address,
+      contactPerson: picked.contactName || f.contactPerson,
+      mobileNumber: picked.phone || f.mobileNumber,
+      email: picked.email || f.email,
+    }));
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -85,6 +100,7 @@ function SalesmanVisitsInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          companyId: company?.id,
           inquiryId: formData.inquiryId || undefined,
           nextFollowUpDate: formData.nextFollowUpDate || undefined,
         }),
@@ -97,6 +113,7 @@ function SalesmanVisitsInner() {
           email: "", visitDate: new Date().toISOString().slice(0, 16), purpose: "", discussion: "",
           followUpRequired: false, nextFollowUpDate: "",
         });
+        setCompany(null);
         router.replace("/salesman/visits");
         fetchData();
       } else {
@@ -132,10 +149,15 @@ function SalesmanVisitsInner() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Company</Label>
+                <CompanyPickerTrigger selected={company} onOpen={() => setPickerOpen(true)} />
+                <p className="text-xs text-muted-foreground">Selecting a company auto-fills the fields below — you can still edit them for this visit.</p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="companyName">Company Visited <span className="text-destructive">*</span></Label>
                 <Input id="companyName" required value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input id="contactPerson" value={formData.contactPerson} onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })} />
@@ -207,6 +229,8 @@ function SalesmanVisitsInner() {
           </CardContent>
         </Card>
       </div>
+
+      <CompanyPicker open={pickerOpen} onOpenChange={setPickerOpen} onSelect={handleCompanySelected} />
     </div>
   );
 }

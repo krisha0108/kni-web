@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   // Required for Docker containerization
   output: "standalone",
 
-  // Keep pdfkit out of webpack bundle — it needs fs access to load .afm font files
-  serverExternalPackages: ["pdfkit"],
+  // Keep pdfkit out of webpack bundle — it needs fs access to load .afm font files.
+  // Same for tesseract.js — bundling mangles its worker-script path resolution
+  // (__dirname gets rewritten to a fake path), so it must load via real Node require().
+  serverExternalPackages: ["pdfkit", "tesseract.js"],
 
   // Disable Next.js image optimizer so uploaded images served directly via /uploads/ work correctly
   images: {

@@ -140,10 +140,10 @@ export default function SalesmanActivityPage() {
         <CardHeader><CardTitle className="text-base">Activity History</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-3 mb-4">
-            <div className="space-y-1">
+            <div className="space-y-1 w-full sm:w-auto">
               <p className="text-xs text-muted-foreground">Date range</p>
               <Select value={range} onValueChange={setRange}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All time</SelectItem>
                   <SelectItem value="today">Today</SelectItem>
@@ -156,21 +156,21 @@ export default function SalesmanActivityPage() {
 
             {range === "custom" && (
               <>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full sm:w-auto">
                   <p className="text-xs text-muted-foreground">From</p>
-                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-[160px]" />
+                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-full sm:w-[160px]" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full sm:w-auto">
                   <p className="text-xs text-muted-foreground">To</p>
-                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-[160px]" />
+                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full sm:w-[160px]" />
                 </div>
               </>
             )}
 
-            <div className="space-y-1">
+            <div className="space-y-1 w-full sm:w-auto">
               <p className="text-xs text-muted-foreground">Inquiry</p>
               <Select value={inquiryFilter} onValueChange={setInquiryFilter}>
-                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All inquiries</SelectItem>
                   {inquiries.map((inq) => (
@@ -180,10 +180,10 @@ export default function SalesmanActivityPage() {
               </Select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 w-full sm:w-auto">
               <p className="text-xs text-muted-foreground">Type</p>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Visits + Tasks</SelectItem>
                   <SelectItem value="visit">Visits only</SelectItem>

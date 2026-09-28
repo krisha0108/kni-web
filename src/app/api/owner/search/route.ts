@@ -65,11 +65,13 @@ export async function GET(request: NextRequest) {
             restaurantId,
             OR: [
               { id: { contains: q } },
+              { bookingNumber: { contains: q } },
               { restaurant: { name: { contains: q } } },
             ],
           },
           select: {
             id: true,
+            bookingNumber: true,
             status: true,
             totalAmount: true,
             restaurant: { select: { name: true } },
@@ -123,11 +125,13 @@ export async function GET(request: NextRequest) {
             restaurantId,
             OR: [
               { id: { contains: q } },
+              { orderNumber: { contains: q } },
               { vendor: { name: { contains: q } } },
             ],
           },
           select: {
             id: true,
+            orderNumber: true,
             totalAmount: true,
             status: true,
             vendor: { select: { name: true } },
@@ -174,6 +178,7 @@ export async function GET(request: NextRequest) {
         })),
         bookings: bookings.map((b) => ({
           id: b.id,
+          bookingNumber: b.bookingNumber,
           restaurantName: b.restaurant.name,
           status: b.status,
           amount: b.totalAmount,
@@ -195,6 +200,7 @@ export async function GET(request: NextRequest) {
         })),
         orders: orders.map((o) => ({
           id: o.id,
+          orderNumber: o.orderNumber,
           vendorName: o.vendor.name,
           amount: o.totalAmount,
           status: o.status,

@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
       where,
       select: {
         id: true,
+        bookingNumber: true,
         status: true,
         totalAmount: true,
         slotStartDateTime: true,
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
       const assignment = order.engineerAssignments[0];
       return {
         id: order.id,
-        order_id: `ORD-${order.id.slice(0, 8).toUpperCase()}`,
+        order_id: order.bookingNumber ?? `ORD-${order.id.slice(0, 8).toUpperCase()}`,
         status: order.status,
         tracking_status: order.status.toLowerCase().replace("_", " "),
         total_amount: order.totalAmount,

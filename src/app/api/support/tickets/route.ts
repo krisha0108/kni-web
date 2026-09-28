@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
 import { saveUploadedFile } from "@/server/upload/localUpload";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 /**
  * GET /api/support/tickets
@@ -98,14 +99,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ticket = await db.serviceBooking.create({
-      data: {
-        ownerId: session.id,
-        restaurantId: restaurant.id,
-        status: "DRAFT",
-        totalAmount: 0,
-        problemDescription: `TICKET: ${title}\nEquipment: ${equipmentName}\nCategory: ${category || "General"}\nDescription: ${description}`,
-      },
+    const ticket = await db.$transaction(async (tx) => {
+      const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
+      return tx.serviceBooking.create({
+        data: {
+          bookingNumber,
+          ownerId: session.id,
+          restaurantId: restaurant.id,
+          status: "DRAFT",
+          totalAmount: 0,
+          problemDescription: `TICKET: ${title}\nEquipment: ${equipmentName}\nCategory: ${category || "General"}\nDescription: ${description}`,
+        },
+      });
     });
 
     return NextResponse.json({

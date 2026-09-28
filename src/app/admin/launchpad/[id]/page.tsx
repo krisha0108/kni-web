@@ -72,6 +72,7 @@ interface ActivityLog {
 
 interface Inquiry {
   id: string;
+  inquiryNumber: string | null;
   name: string;
   email: string;
   phone: string;
@@ -470,7 +471,7 @@ export default function AdminLaunchPadDetailPage() {
           <div>
             <h1 className="text-2xl font-bold">{inquiry.name}</h1>
             <p className="text-muted-foreground">
-              Inquiry #{inquiry.id.slice(-8).toUpperCase()} &middot; {inquiry.businessType.replace(/_/g, " ")}
+              Inquiry #{inquiry.inquiryNumber ?? inquiry.id.slice(-8).toUpperCase()} &middot; {inquiry.businessType.replace(/_/g, " ")}
             </p>
           </div>
         </div>

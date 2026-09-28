@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireVendorMobile } from "@/server/auth/rbac";
 import { createNotification, notifyRestaurantTeam } from "@/server/notifications/service";
 import { RestaurantRole } from "@prisma/client";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 export async function POST(
   request: NextRequest,
@@ -89,8 +90,10 @@ export async function POST(
         priceSnapshot: item.priceSnapshot,
       }));
 
+      const orderNumber = await generateReferenceNumber(tx, () => tx.marketplaceOrder.count(), "OR");
       const newOrder = await tx.marketplaceOrder.create({
         data: {
+          orderNumber,
           ownerId: payment.ownerId,
           vendorId: payment.vendorId,
           restaurantId: payment.restaurantId,
@@ -136,7 +139,7 @@ export async function POST(
           entryType: "PURCHASE",
           amount: payment.totalAmount,
           description: `Marketplace order - ${items.length} items`,
-          billNumber: `MKT-${newOrder.id.substring(0, 8)}`,
+          billNumber: newOrder.orderNumber ?? `MKT-${newOrder.id.substring(0, 8)}`,
           billDate: new Date(),
           balanceAfter: newBalance,
           entryDate: new Date(),
@@ -219,7 +222,7 @@ export async function POST(
     createNotification({
       userId: payment.ownerId,
       title: "Payment Verified!",
-      message: `Your payment has been verified. Order #${order.id.substring(0, 8)} has been confirmed.`,
+      message: `Your payment has been verified. Order #${order.orderNumber ?? order.id.substring(0, 8)} has been confirmed.`,
       type: "PAYMENT",
       linkUrl: "/owner/marketplace/orders",
     }).catch(console.error);
@@ -230,7 +233,7 @@ export async function POST(
       excludeUserIds: [payment.ownerId],
       roles: [RestaurantRole.MANAGER],
       title: "Marketplace Payment Verified",
-      message: `Payment has been verified. Order #${order.id.substring(0, 8)} has been confirmed.`,
+      message: `Payment has been verified. Order #${order.orderNumber ?? order.id.substring(0, 8)} has been confirmed.`,
       type: "PAYMENT",
       linkUrl: "/owner/marketplace/orders",
     });

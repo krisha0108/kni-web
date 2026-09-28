@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { requireSalesman } from "@/server/auth/rbac";
 import { InquiryStatus } from "@prisma/client";
 import { z } from "zod";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 // GET — the salesman's own assigned inquiries (website leads assigned to
 // them by Admin, plus inquiries they self-entered).
@@ -65,25 +66,29 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    const inquiry = await db.launchPadInquiry.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        city: data.city,
-        address: data.address,
-        businessName: data.businessName,
-        businessType: data.businessType,
-        budgetRange: data.budgetRange,
-        areaInSqFt: data.areaInSqFt,
-        timeline: data.timeline,
-        message: data.message,
-        servicesNeeded: data.servicesNeeded,
-        source: data.source,
-        companyId: data.companyId,
-        assignedSalesmanId: session.id,
-        assignedTo: session.name,
-      },
+    const inquiry = await db.$transaction(async (tx) => {
+      const inquiryNumber = await generateReferenceNumber(tx, () => tx.launchPadInquiry.count(), "INQ");
+      return tx.launchPadInquiry.create({
+        data: {
+          inquiryNumber,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          city: data.city,
+          address: data.address,
+          businessName: data.businessName,
+          businessType: data.businessType,
+          budgetRange: data.budgetRange,
+          areaInSqFt: data.areaInSqFt,
+          timeline: data.timeline,
+          message: data.message,
+          servicesNeeded: data.servicesNeeded,
+          source: data.source,
+          companyId: data.companyId,
+          assignedSalesmanId: session.id,
+          assignedTo: session.name,
+        },
+      });
     });
 
     await db.launchPadActivityLog.create({

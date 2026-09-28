@@ -41,6 +41,7 @@ interface AnalyticsData {
   recent: {
     bookings: Array<{
       id: string;
+      bookingNumber: string | null;
       status: string;
       totalAmount: number;
       createdAt: string;
@@ -353,7 +354,7 @@ export default function OwnerAnalyticsPage() {
               {analytics.recent.bookings.map((booking) => (
                 <div key={booking.id} className="flex items-center justify-between border-b pb-2">
                   <div>
-                    <p className="text-sm font-medium">#{booking.id.slice(0, 8)}</p>
+                    <p className="text-sm font-medium">#{booking.bookingNumber ?? booking.id.slice(0, 8)}</p>
                     <p className="text-xs text-muted-foreground">{booking.status}</p>
                   </div>
                   <div className="text-right">

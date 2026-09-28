@@ -43,6 +43,7 @@ interface AnalyticsData {
   recent: {
     orders: Array<{
       id: string;
+      orderNumber: string | null;
       status: string;
       totalAmount: number;
       createdAt: string;
@@ -322,7 +323,7 @@ export default function VendorAnalyticsPage() {
             {analytics.recent.orders.map((order) => (
               <div key={order.id} className="flex items-center justify-between border-b pb-3">
                 <div>
-                  <p className="text-sm font-medium">#{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-sm font-medium">#{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}</p>
                   <p className="text-xs text-muted-foreground">
                     {order.restaurant.name}, {order.restaurant.city}
                   </p>

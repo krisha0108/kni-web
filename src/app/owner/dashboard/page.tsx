@@ -360,7 +360,7 @@ export default function OwnerDashboardPage() {
                     className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
                   >
                     <div>
-                      <p className="font-medium text-sm">#{booking.id.slice(0, 8)}</p>
+                      <p className="font-medium text-sm">#{booking.bookingNumber ?? booking.id.slice(0, 8)}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(booking.createdAt).toLocaleDateString()}
                       </p>

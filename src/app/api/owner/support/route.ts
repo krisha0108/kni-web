@@ -4,6 +4,7 @@ import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 import { createNotificationForRole } from "@/server/notifications/service";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 const createTicketSchema = z.object({
   restaurantId: z.string().optional(),
@@ -106,29 +107,33 @@ export async function POST(request: NextRequest) {
       ? await getRestaurantOwnerId(restaurantId)
       : session.id;
 
-    const ticket = await db.supportTicket.create({
-      data: {
-        ownerId,
-        restaurantId: restaurantId || null,
-        title,
-        equipmentName: equipmentName || null,
-        category,
-        description,
-        photoUrl: photoUrl || null,
-      },
-      include: {
-        restaurant: {
-          select: {
-            id: true,
-            name: true,
+    const ticket = await db.$transaction(async (tx) => {
+      const ticketNumber = await generateReferenceNumber(tx, () => tx.supportTicket.count(), "TKT");
+      return tx.supportTicket.create({
+        data: {
+          ticketNumber,
+          ownerId,
+          restaurantId: restaurantId || null,
+          title,
+          equipmentName: equipmentName || null,
+          category,
+          description,
+          photoUrl: photoUrl || null,
+        },
+        include: {
+          restaurant: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              threads: true,
+            },
           },
         },
-        _count: {
-          select: {
-            threads: true,
-          },
-        },
-      },
+      });
     });
 
     // Notify admins about new support ticket

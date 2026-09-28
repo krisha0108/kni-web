@@ -4,6 +4,7 @@ import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { z } from "zod";
 import { resolveNegotiatedPrice } from "@/lib/marketplace-pricing";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 const createOrderSchema = z.object({
   restaurantId: z.string().min(1, "Restaurant ID is required"),
@@ -264,8 +265,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the order
+      const orderNumber = await generateReferenceNumber(tx, () => tx.marketplaceOrder.count(), "OR");
       const newOrder = await tx.marketplaceOrder.create({
         data: {
+          orderNumber,
           ownerId,
           vendorId,
           restaurantId,
@@ -316,7 +319,7 @@ export async function POST(request: NextRequest) {
           entryType: "PURCHASE",
           amount: totalAmount,
           description: `Marketplace order - ${newOrder.items.length} items`,
-          billNumber: `MKT-${newOrder.id.substring(0, 8)}`,
+          billNumber: newOrder.orderNumber ?? `MKT-${newOrder.id.substring(0, 8)}`,
           billDate: new Date(),
           balanceAfter: newBalance,
           entryDate: new Date(),

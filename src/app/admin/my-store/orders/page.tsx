@@ -37,6 +37,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  orderNumber: string | null;
   status: MarketplaceOrderStatus;
   totalAmount: number;
   statusNotes: string | null;
@@ -238,6 +239,7 @@ export default function MyStoreOrdersPage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((order) =>
         order.id.toLowerCase().includes(query) ||
+        order.orderNumber?.toLowerCase().includes(query) ||
         order.owner.name.toLowerCase().includes(query) ||
         order.restaurant.name.toLowerCase().includes(query) ||
         getOrderStatusLabel(order.status).toLowerCase().includes(query)
@@ -278,7 +280,7 @@ export default function MyStoreOrdersPage() {
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <CardTitle className="text-lg">
-              Order #{order.id.slice(0, 8)}
+              Order #{order.orderNumber ?? order.id.slice(0, 8)}
             </CardTitle>
             <CardDescription>
               {formatDateTime(order.createdAt)}
@@ -514,7 +516,7 @@ export default function MyStoreOrdersPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Order ID:</span>
-                      <span className="font-mono">{selectedOrder.id}</span>
+                      <span className="font-mono">{selectedOrder.orderNumber ?? selectedOrder.id}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Status:</span>
@@ -678,7 +680,7 @@ export default function MyStoreOrdersPage() {
             <DialogHeader>
               <DialogTitle>Update Order Status</DialogTitle>
               <DialogDescription>
-                Change the status of order #{selectedOrder?.id.slice(0, 8).toUpperCase()}
+                Change the status of order #{selectedOrder?.orderNumber ?? selectedOrder?.id.slice(0, 8).toUpperCase()}
               </DialogDescription>
             </DialogHeader>
 

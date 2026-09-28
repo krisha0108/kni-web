@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
+import { generateReferenceNumber } from "@/server/reference-number";
 import { z } from "zod";
 
 const equipmentBookingSchema = z.object({
@@ -94,28 +95,32 @@ export async function POST(request: NextRequest) {
 
     // Create the booking
     const ownerId = await getRestaurantOwnerId(restaurantId);
-    const booking = await db.serviceBooking.create({
-      data: {
-        ownerId,
-        restaurantId,
-        equipmentId,
-        slotStartDateTime: new Date(slotStartDateTime),
-        status: "SLOT_SELECTED",
-        totalAmount,
-        problemDescription,
-        items: bookingItems.length > 0 ? {
-          create: bookingItems,
-        } : undefined,
-      },
-      include: {
-        restaurant: { select: { id: true, name: true } },
-        equipment: { select: { id: true, name: true } },
-        items: {
-          include: {
-            serviceItem: { select: { id: true, name: true } },
+    const booking = await db.$transaction(async (tx) => {
+      const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
+      return tx.serviceBooking.create({
+        data: {
+          bookingNumber,
+          ownerId,
+          restaurantId,
+          equipmentId,
+          slotStartDateTime: new Date(slotStartDateTime),
+          status: "SLOT_SELECTED",
+          totalAmount,
+          problemDescription,
+          items: bookingItems.length > 0 ? {
+            create: bookingItems,
+          } : undefined,
+        },
+        include: {
+          restaurant: { select: { id: true, name: true } },
+          equipment: { select: { id: true, name: true } },
+          items: {
+            include: {
+              serviceItem: { select: { id: true, name: true } },
+            },
           },
         },
-      },
+      });
     });
 
     return NextResponse.json({ ok: true, data: booking });

@@ -14,6 +14,7 @@ import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Booking {
   id: string;
+  bookingNumber: string | null;
   status: string;
   slotStartDateTime: string;
   slotEndDateTime?: string;
@@ -220,7 +221,7 @@ export default function BookingDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Booking Details</h1>
-          <p className="text-muted-foreground font-mono">{booking.id}</p>
+          <p className="text-muted-foreground font-mono">{booking.bookingNumber ?? booking.id}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusColors[booking.status]} className="text-sm py-1 px-3">

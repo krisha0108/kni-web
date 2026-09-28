@@ -27,6 +27,7 @@ import { formatDate } from "@/lib/utils";
 
 interface SupportTicket {
   id: string;
+  ticketNumber: string | null;
   title: string;
   equipmentName: string | null;
   category: string;
@@ -631,7 +632,7 @@ export default function OwnerSupportPage() {
                     
                     <TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openTicketDetail(ticket)}>
                       <TableCell className="hidden md:table-cell font-mono text-sm">
-                        #{ticket.id.slice(0, 8)}
+                        #{ticket.ticketNumber ?? ticket.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -713,7 +714,7 @@ export default function OwnerSupportPage() {
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-              <span className="text-base sm:text-lg">Ticket #{selectedTicket?.id.slice(0, 8)}</span>
+              <span className="text-base sm:text-lg">Ticket #{selectedTicket?.ticketNumber ?? selectedTicket?.id.slice(0, 8)}</span>
               {selectedTicket && (
                 <Badge variant={getStatusConfig(selectedTicket.status).color} className="text-xs sm:text-sm w-fit">
                   {getStatusConfig(selectedTicket.status).label}

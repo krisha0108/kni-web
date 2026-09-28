@@ -4,6 +4,7 @@ import { requireAdmin } from "@/server/auth/rbac";
 import { getOrCreateSystemVendor } from "@/server/my-store";
 import { createNotification } from "@/server/notifications/service";
 import { sendMarketplacePaymentVerifiedEmail } from "@/lib/email";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 export async function POST(
   request: NextRequest,
@@ -88,8 +89,10 @@ export async function POST(
         priceSnapshot: item.priceSnapshot,
       }));
 
+      const orderNumber = await generateReferenceNumber(tx, () => tx.marketplaceOrder.count(), "OR");
       const newOrder = await tx.marketplaceOrder.create({
         data: {
+          orderNumber,
           ownerId: payment.ownerId,
           vendorId: payment.vendorId,
           restaurantId: payment.restaurantId,
@@ -132,7 +135,7 @@ export async function POST(
           entryType: "PURCHASE",
           amount: payment.totalAmount,
           description: `Marketplace order - ${items.length} items`,
-          billNumber: `MKT-${newOrder.id.substring(0, 8)}`,
+          billNumber: newOrder.orderNumber ?? `MKT-${newOrder.id.substring(0, 8)}`,
           billDate: new Date(),
           balanceAfter: newBalance,
           entryDate: new Date(),
@@ -188,7 +191,7 @@ export async function POST(
     createNotification({
       userId: payment.ownerId,
       title: "Payment Verified!",
-      message: `Your payment has been verified. Order #${order.id.substring(0, 8)} has been confirmed.`,
+      message: `Your payment has been verified. Order #${order.orderNumber ?? order.id.substring(0, 8)} has been confirmed.`,
       type: "PAYMENT",
       linkUrl: "/owner/marketplace/orders",
     }).catch(console.error);

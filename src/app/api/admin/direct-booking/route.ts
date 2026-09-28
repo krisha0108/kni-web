@@ -10,6 +10,7 @@ import {
 import { sendSMS } from "@/server/sms/service";
 import { computeBookingTotal, computeCategorySubtotals } from "@/lib/booking-pricing";
 import { getEffectiveDiscount } from "@/server/pricing/discount";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 // --- Zod Schema ---
 const directBookingSchema = z
@@ -295,10 +296,12 @@ export async function POST(req: NextRequest) {
       );
       const { source: discountSource } = discount;
       const pricing = computeBookingTotal(itemTotal, discount.amount, 0);
+      const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
 
       // Step 5: Create ServiceBooking
       const booking = await tx.serviceBooking.create({
         data: {
+          bookingNumber,
           ownerId,
           restaurantId,
           equipmentId,

@@ -420,7 +420,7 @@ export default function VendorDashboardPage() {
                   className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
                 >
                   <div>
-                    <p className="font-medium text-sm">#{order.id.slice(0, 8)}</p>
+                    <p className="font-medium text-sm">#{order.orderNumber ?? order.id.slice(0, 8)}</p>
                     <p className="text-xs text-muted-foreground">
                       {order.restaurant.name} • {new Date(order.createdAt).toLocaleDateString()}
                     </p>

@@ -7,6 +7,7 @@ import { verifyRazorpayPayment, refundRazorpayPayment } from "@/lib/razorpay";
 import { createNotification } from "@/server/notifications/service";
 import { activateAMCContract } from "@/server/amc/activate-contract";
 import { computeMarketplaceAdvance } from "@/lib/marketplace-pricing";
+import { generateReferenceNumber } from "@/server/reference-number";
 import { z } from "zod";
 
 const marketplaceSchema = z.object({
@@ -197,8 +198,10 @@ async function handleMarketplacePayment(session: any, body: any) {
     }
 
     // Create order
+    const orderNumber = await generateReferenceNumber(tx, () => tx.marketplaceOrder.count(), "OR");
     const newOrder = await tx.marketplaceOrder.create({
       data: {
+        orderNumber,
         ownerId,
         vendorId,
         restaurantId,
@@ -265,7 +268,7 @@ async function handleMarketplacePayment(session: any, body: any) {
         entryType: "PURCHASE",
         amount: totalAmount,
         description: `Marketplace order (Razorpay) - ${itemSnapshots.length} items`,
-        billNumber: `MKT-${newOrder.id.substring(0, 8)}`,
+        billNumber: newOrder.orderNumber ?? `MKT-${newOrder.id.substring(0, 8)}`,
         billDate: new Date(),
         balanceAfter: previousBalance + totalAmount,
         entryDate: new Date(),
@@ -302,7 +305,7 @@ async function handleMarketplacePayment(session: any, body: any) {
   createNotification({
     userId: ownerId,
     title: "Payment Successful!",
-    message: `Your Razorpay payment of ₹${totalAmount.toLocaleString("en-IN")} is verified. Order #${order.id.substring(0, 8)} confirmed.`,
+    message: `Your Razorpay payment of ₹${totalAmount.toLocaleString("en-IN")} is verified. Order #${order.orderNumber ?? order.id.substring(0, 8)} confirmed.`,
     type: "PAYMENT",
     linkUrl: "/owner/marketplace/orders",
   }).catch(console.error);
@@ -313,7 +316,7 @@ async function handleMarketplacePayment(session: any, body: any) {
     createNotification({
       userId: admin.id,
       title: "New Razorpay Order",
-      message: `Order #${order.id.substring(0, 8)} - ₹${totalAmount.toLocaleString("en-IN")} paid via Razorpay.`,
+      message: `Order #${order.orderNumber ?? order.id.substring(0, 8)} - ₹${totalAmount.toLocaleString("en-IN")} paid via Razorpay.`,
       type: "PAYMENT",
       linkUrl: "/admin/my-store/orders",
     }).catch(console.error);
@@ -431,8 +434,10 @@ async function handleMarketplaceAdvancePayment(session: any, body: any) {
       data: { stockQuantity: { decrement: quantity } },
     });
 
+    const orderNumber = await generateReferenceNumber(tx, () => tx.marketplaceOrder.count(), "OR");
     const newOrder = await tx.marketplaceOrder.create({
       data: {
+        orderNumber,
         ownerId,
         vendorId,
         restaurantId: priceUnlockRequest.restaurantId,
@@ -497,7 +502,7 @@ async function handleMarketplaceAdvancePayment(session: any, body: any) {
         entryType: "PURCHASE",
         amount: advanceAmount,
         description: `Marketplace order (negotiated, 30% advance) - ${priceUnlockRequest.product.product?.name || "product"}`,
-        billNumber: `MKT-${newOrder.id.substring(0, 8)}-ADV`,
+        billNumber: `${newOrder.orderNumber ?? `MKT-${newOrder.id.substring(0, 8)}`}-ADV`,
         billDate: new Date(),
         balanceAfter: previousBalance + advanceAmount,
         entryDate: new Date(),
@@ -559,7 +564,7 @@ async function handleMarketplaceAdvancePayment(session: any, body: any) {
   createNotification({
     userId: ownerId,
     title: "Advance Payment Successful!",
-    message: `Your advance of ₹${advanceAmount.toLocaleString("en-IN")} is verified. Order #${order.id.substring(0, 8)} confirmed. Remaining ₹${(totalAmount - advanceAmount).toLocaleString("en-IN")} will be due on delivery.`,
+    message: `Your advance of ₹${advanceAmount.toLocaleString("en-IN")} is verified. Order #${order.orderNumber ?? order.id.substring(0, 8)} confirmed. Remaining ₹${(totalAmount - advanceAmount).toLocaleString("en-IN")} will be due on delivery.`,
     type: "PAYMENT",
     linkUrl: "/owner/marketplace/orders",
   }).catch(console.error);
@@ -569,7 +574,7 @@ async function handleMarketplaceAdvancePayment(session: any, body: any) {
     createNotification({
       userId: admin.id,
       title: "New Negotiated Order (Advance Paid)",
-      message: `Order #${order.id.substring(0, 8)} - ₹${advanceAmount.toLocaleString("en-IN")} advance paid via Razorpay.`,
+      message: `Order #${order.orderNumber ?? order.id.substring(0, 8)} - ₹${advanceAmount.toLocaleString("en-IN")} advance paid via Razorpay.`,
       type: "PAYMENT",
       linkUrl: "/admin/my-store/orders",
     }).catch(console.error);
@@ -649,7 +654,7 @@ async function handleMarketplaceFinalPayment(session: any, body: any) {
         entryType: "PURCHASE",
         amount: payment.totalAmount,
         description: `Marketplace order (negotiated, final 70%) - ${productNames}`,
-        billNumber: `MKT-${payment.orderId?.substring(0, 8)}-FIN`,
+        billNumber: `${order?.orderNumber ?? `MKT-${payment.orderId?.substring(0, 8)}`}-FIN`,
         billDate: new Date(),
         balanceAfter: previousBalance + payment.totalAmount,
         entryDate: new Date(),
@@ -682,7 +687,7 @@ async function handleMarketplaceFinalPayment(session: any, body: any) {
     createNotification({
       userId: admin.id,
       title: "Final Payment Received",
-      message: `Final payment of ₹${payment.totalAmount.toLocaleString("en-IN")} received via Razorpay for order ${payment.orderId?.substring(0, 8) || ""}.`,
+      message: `Final payment of ₹${payment.totalAmount.toLocaleString("en-IN")} received via Razorpay for order ${order?.orderNumber ?? payment.orderId?.substring(0, 8) ?? ""}.`,
       type: "PAYMENT",
       linkUrl: "/admin/my-store/orders",
     }).catch(console.error);

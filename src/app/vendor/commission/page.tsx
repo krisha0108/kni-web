@@ -40,6 +40,7 @@ interface Commission {
   createdAt: string;
   order: {
     id: string;
+    orderNumber: string | null;
     totalAmount: number;
     status: string;
     createdAt: string;
@@ -452,7 +453,7 @@ export default function VendorCommissionPage() {
                 {paginatedCommissions.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono text-xs">
-                      {c.orderId.slice(0, 8)}
+                      {c.order.orderNumber ?? c.orderId.slice(0, 8)}
                     </TableCell>
 
                     <TableCell>{formatPrice(c.orderAmount)}</TableCell>

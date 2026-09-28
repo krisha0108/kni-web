@@ -42,6 +42,7 @@ import {
 
 interface ServiceBooking {
   id: string;
+  bookingNumber: string | null;
   status: string;
   slotStartDateTime: string | null;
   totalAmount: number;
@@ -72,6 +73,7 @@ interface MarketplacePayment {
 
 interface MarketplaceOrder {
   id: string;
+  orderNumber: string | null;
   status: string;
   totalAmount: number;
   createdAt: string;
@@ -354,6 +356,7 @@ export default function OrderTrackingPage() {
   const filteredServices = serviceBookings.filter((b) => {
     const matchesSearch = !searchQuery ||
       b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.bookingNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.equipment?.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = serviceStatusFilter === "all" || b.status === serviceStatusFilter;
     return matchesSearch && matchesStatus;
@@ -362,6 +365,7 @@ export default function OrderTrackingPage() {
   const filteredOrders = trackingItems.filter((t) => {
     const matchesSearch = !searchQuery ||
       t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.order?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.itemNames.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = orderStatusFilter === "all" || t.combinedStatus === orderStatusFilter;
@@ -535,7 +539,7 @@ export default function OrderTrackingPage() {
                               <StatusIcon className="h-3 w-3" />
                               {statusConfig.label}
                             </Badge>
-                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{booking.id.slice(0, 8)}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{booking.bookingNumber ?? booking.id.slice(0, 8)}</span>
                           </div>
                           <h3 className="font-semibold text-sm sm:text-base">{booking.equipment?.name || "General Service"}</h3>
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
@@ -621,7 +625,7 @@ export default function OrderTrackingPage() {
                               <StatusIcon className="h-3 w-3" />
                               {statusConfig.label}
                             </Badge>
-                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{tracking.id.slice(0, 8)}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">#{tracking.order?.orderNumber ?? tracking.id.slice(0, 8)}</span>
                           </div>
                           <h3 className="font-semibold text-sm sm:text-base truncate">
                             {tracking.itemNames || `${tracking.payment.items?.length || 0} item(s)`}
@@ -661,7 +665,7 @@ export default function OrderTrackingPage() {
       <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
         <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Service Booking #{selectedService?.id.slice(0, 8)}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Service Booking #{selectedService?.bookingNumber ?? selectedService?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
           {selectedService && (
             <div className="space-y-4 sm:space-y-6">
@@ -707,7 +711,7 @@ export default function OrderTrackingPage() {
       <Dialog open={!!selectedTracking} onOpenChange={() => setSelectedTracking(null)}>
         <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Order #{selectedTracking?.id.slice(0, 8)}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Order #{selectedTracking?.order?.orderNumber ?? selectedTracking?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
           {selectedTracking && (
             <div className="space-y-4 sm:space-y-6">

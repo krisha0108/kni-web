@@ -134,6 +134,7 @@ interface OwnerAnalyticsData {
   recent: {
     bookings: Array<{
       id: string;
+      bookingNumber: string | null;
       status: string;
       totalAmount: number;
       createdAt: string;
@@ -277,7 +278,7 @@ export function OwnerAnalyticsDocument({ data }: { data: OwnerAnalyticsData }) {
             {data.recent.bookings.slice(0, 5).map((booking) => (
               <View key={booking.id} style={styles.tableRow}>
                 <Text style={styles.tableCol}>
-                  {booking.id.slice(0, 8).toUpperCase()}
+                  {booking.bookingNumber ?? booking.id.slice(0, 8).toUpperCase()}
                 </Text>
                 <Text style={styles.tableCol}>{booking.status}</Text>
                 <Text style={styles.tableCol}>{formatCurrency(booking.totalAmount)}</Text>

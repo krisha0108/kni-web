@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 export async function GET(request: NextRequest) {
   try {
@@ -106,17 +107,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the booking/service request
-      const booking = await db.serviceBooking.create({
-        data: {
-          ownerId,
-          restaurantId,
-          equipmentId: equipmentId || null,
-          slotStartDateTime: new Date(slotStartDateTime),
-          slotEndDateTime: new Date(slotEndDateTime),
-          problemDescription,
-          status: "DRAFT",
-          totalAmount: estimatedPrice,
-        },
+      const booking = await db.$transaction(async (tx) => {
+        const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
+        return tx.serviceBooking.create({
+          data: {
+            bookingNumber,
+            ownerId,
+            restaurantId,
+            equipmentId: equipmentId || null,
+            slotStartDateTime: new Date(slotStartDateTime),
+            slotEndDateTime: new Date(slotEndDateTime),
+            problemDescription,
+            status: "DRAFT",
+            totalAmount: estimatedPrice,
+          },
+        });
       });
 
       return NextResponse.json({

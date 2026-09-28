@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
+          orderNumber: true,
           status: true,
           totalAmount: true,
           createdAt: true,

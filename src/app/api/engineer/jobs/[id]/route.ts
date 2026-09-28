@@ -532,7 +532,7 @@ export async function POST(
             entryType: "CASH_OUT", // Expense is cash out
             amount: totalExpense,
             paymentMode: "CASH", // Default to cash, ideally get from payment proof
-            description: `Equipment service payment - Booking #${booking.id.substring(0, 8)}`,
+            description: `Equipment service payment - Booking #${booking.bookingNumber ?? booking.id.substring(0, 8)}`,
             category: "MAINTENANCE",
             createdBy: booking.ownerId, // Required field
           },

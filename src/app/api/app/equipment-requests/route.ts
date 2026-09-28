@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSession } from "@/server/auth/session";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 /**
  * POST /api/app/equipment-requests
@@ -68,29 +69,33 @@ export async function POST(request: NextRequest) {
       priceSnapshot: Math.round(Number(item.price || item.unitPrice || 0)),
     })) : [];
 
-    const booking = await db.serviceBooking.create({
-      data: {
-        ownerId: session.id,
-        restaurantId: restaurant_id,
-        equipmentId: owner_equipment_id || undefined,
-        status: bookingStatus,
-        totalAmount: parsedTotalAmount,
-        slotStartDateTime: slotStart,
-        problemDescription: description || '',
-        items: bookingItems.length > 0 ? {
-          create: bookingItems,
-        } : undefined,
-      },
-      include: {
-        restaurant: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-          },
+    const booking = await db.$transaction(async (tx) => {
+      const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
+      return tx.serviceBooking.create({
+        data: {
+          bookingNumber,
+          ownerId: session.id,
+          restaurantId: restaurant_id,
+          equipmentId: owner_equipment_id || undefined,
+          status: bookingStatus,
+          totalAmount: parsedTotalAmount,
+          slotStartDateTime: slotStart,
+          problemDescription: description || '',
+          items: bookingItems.length > 0 ? {
+            create: bookingItems,
+          } : undefined,
         },
-        items: true,
-      },
+        include: {
+          restaurant: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+          items: true,
+        },
+      });
     });
 
     return NextResponse.json({
@@ -98,6 +103,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: booking.id,
         booking_id: booking.id,
+        booking_number: booking.bookingNumber,
         status: booking.status,
         restaurant: {
           id: booking.restaurant.id,

@@ -49,6 +49,7 @@ interface Thread {
 
 interface SupportTicket {
   id: string;
+  ticketNumber: string | null;
   title: string;
   description: string;
   category: string;
@@ -301,7 +302,7 @@ export default function AdminSupportTicketDetailPage() {
           <div>
             <h1 className="text-2xl font-bold">{ticket.title}</h1>
             <p className="text-muted-foreground">
-              Ticket #{ticket.id.slice(-8).toUpperCase()}
+              Ticket #{ticket.ticketNumber ?? ticket.id.slice(-8).toUpperCase()}
             </p>
           </div>
         </div>

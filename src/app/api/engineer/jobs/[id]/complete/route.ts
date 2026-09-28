@@ -111,7 +111,7 @@ export async function POST(
           entryType: "CASH_OUT",
           amount: assignment.booking.totalAmount,
           paymentMode: "CASH",
-          description: `Equipment service payment - Booking #${assignment.booking.id.substring(0, 8)}`,
+          description: `Equipment service payment - Booking #${assignment.booking.bookingNumber ?? assignment.booking.id.substring(0, 8)}`,
           category: "MAINTENANCE",
           createdBy: assignment.booking.ownerId,
         },

@@ -7,6 +7,7 @@ import { sendBookingConfirmationEmail } from "@/lib/email";
 import { createNotification, createNotificationForRole } from "@/server/notifications/service";
 import { computeBookingTotal, computeCategorySubtotals } from "@/lib/booking-pricing";
 import { getEffectiveDiscount } from "@/server/pricing/discount";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 const itemSchema = z.object({
   itemType: z.enum(["SERVICE", "PART"]),
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     const where = { restaurantId };
 
-    const [bookings, total] = await Promise.all([
+    const [bookings, total, statusGroups] = await Promise.all([
       db.serviceBooking.findMany({
         where,
         include: {
@@ -75,11 +76,22 @@ export async function GET(request: NextRequest) {
         ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
       }),
       page > 0 ? db.serviceBooking.count({ where }) : Promise.resolve(-1),
+      // Status breakdown across ALL matching bookings (not just the current
+      // page) - the mobile app's "Active"/"Completed" header stats and status
+      // tab counts need true totals, not counts of whatever page happened to
+      // load via pagination.
+      page > 0
+        ? db.serviceBooking.groupBy({ by: ["status"], where, _count: true })
+        : Promise.resolve([]),
     ]);
+
+    const statusCounts = Object.fromEntries(
+      statusGroups.map((g) => [g.status, g._count])
+    );
 
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: bookings, total, page, pageSize } : bookings,
+      data: page > 0 ? { items: bookings, total, page, pageSize, statusCounts } : bookings,
     });
   } catch (error) {
     console.error("Get bookings error:", error);
@@ -291,9 +303,11 @@ export async function POST(request: NextRequest) {
       }
 
       const pricing = computeBookingTotal(totalAmount, discount.amount, tipAmount);
+      const bookingNumber = await generateReferenceNumber(tx, () => tx.serviceBooking.count(), "BK");
 
       const booking = await tx.serviceBooking.create({
         data: {
+          bookingNumber,
           ownerId,
           restaurantId,
           equipmentId: equipmentId || null,

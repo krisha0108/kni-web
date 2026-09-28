@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 export async function GET(request: NextRequest) {
   try {
@@ -141,23 +142,27 @@ export async function POST(request: NextRequest) {
           break;
       }
 
-      const subscription = await db.aMCSubscription.create({
-        data: {
-          equipmentId,
-          ownerId,
-          restaurantId: equipment.restaurantId,
-          planName,
-          planDescription: planDescription || null,
-          duration,
-          serviceLimit,
-          featuresJson: featuresJson || [],
-          totalAmount: totalAmount || 0,
-          startDate: start,
-          endDate: end,
-          autoRenew: autoRenew || false,
-          status: "ACTIVE",
-          servicesUsed: 0,
-        },
+      const subscription = await db.$transaction(async (tx) => {
+        const contractNumber = await generateReferenceNumber(tx, () => tx.aMCSubscription.count(), "AMS");
+        return tx.aMCSubscription.create({
+          data: {
+            equipmentId,
+            ownerId,
+            restaurantId: equipment.restaurantId,
+            planName,
+            planDescription: planDescription || null,
+            duration,
+            serviceLimit,
+            featuresJson: featuresJson || [],
+            totalAmount: totalAmount || 0,
+            startDate: start,
+            endDate: end,
+            autoRenew: autoRenew || false,
+            status: "ACTIVE",
+            servicesUsed: 0,
+            contractNumber,
+          },
+        });
       });
 
       return NextResponse.json({

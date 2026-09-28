@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getNextSalesmanForAutoAssign } from "@/server/salesman/auto-assign";
+import { generateReferenceNumber } from "@/server/reference-number";
 import { z } from "zod";
 
 const inquirySchema = z.object({
@@ -41,22 +42,26 @@ export async function POST(request: NextRequest) {
 
     const assignedSalesmanId = await getNextSalesmanForAutoAssign();
 
-    const inquiry = await db.launchPadInquiry.create({
-      data: {
-        name: validated.name,
-        email: validated.email,
-        phone: validated.phone,
-        city: validated.city,
-        businessType: validated.businessType,
-        businessName: validated.businessName || null,
-        budgetRange: validated.budgetRange || null,
-        areaInSqFt: validated.areaInSqFt || null,
-        timeline: validated.timeline || null,
-        message: validated.message || null,
-        servicesNeeded: validated.servicesNeeded || null,
-        source: validated.source || "website",
-        assignedSalesmanId,
-      },
+    const inquiry = await db.$transaction(async (tx) => {
+      const inquiryNumber = await generateReferenceNumber(tx, () => tx.launchPadInquiry.count(), "INQ");
+      return tx.launchPadInquiry.create({
+        data: {
+          inquiryNumber,
+          name: validated.name,
+          email: validated.email,
+          phone: validated.phone,
+          city: validated.city,
+          businessType: validated.businessType,
+          businessName: validated.businessName || null,
+          budgetRange: validated.budgetRange || null,
+          areaInSqFt: validated.areaInSqFt || null,
+          timeline: validated.timeline || null,
+          message: validated.message || null,
+          servicesNeeded: validated.servicesNeeded || null,
+          source: validated.source || "website",
+          assignedSalesmanId,
+        },
+      });
     });
 
     if (assignedSalesmanId) {

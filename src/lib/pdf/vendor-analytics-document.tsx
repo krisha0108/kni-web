@@ -125,6 +125,7 @@ interface VendorAnalyticsData {
   recent: {
     orders: Array<{
       id: string;
+      orderNumber: string | null;
       status: string;
       totalAmount: number;
       createdAt: string;
@@ -282,7 +283,7 @@ export function VendorAnalyticsDocument({ data }: { data: VendorAnalyticsData })
             {data.recent.orders.slice(0, 10).map((order) => (
               <View key={order.id} style={styles.tableRow}>
                 <Text style={styles.tableCol}>
-                  {order.id.slice(0, 8).toUpperCase()}
+                  {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
                 </Text>
                 <Text style={[styles.tableCol, { flex: 1.5 }]}>
                   {order.restaurant.name}

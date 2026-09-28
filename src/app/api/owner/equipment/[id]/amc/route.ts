@@ -4,6 +4,7 @@ import { requireOwnerMobile } from "@/server/auth/rbac";
 import { requireRestaurantAccess, getRestaurantOwnerId } from "@/server/auth/restaurant-rbac";
 import { amcSubscriptionSchema } from "@/server/validators/amc";
 import { calculateAMCEndDate } from "@/lib/amc";
+import { generateReferenceNumber } from "@/server/reference-number";
 
 // GET /api/owner/equipment/[id]/amc - Get AMC subscriptions for equipment
 export async function GET(
@@ -178,41 +179,49 @@ export async function POST(
     // Use actual restaurant owner ID for FK
     const ownerId = await getRestaurantOwnerId(equipment.restaurantId);
 
-    // Create AMC subscription
-    const subscription = await db.aMCSubscription.create({
-      data: {
-        equipmentId,
-        ownerId,
-        restaurantId: equipment.restaurantId,
-        ...planData,
-        startDate,
-        endDate,
-        autoRenew: source === "EXTERNAL" ? false : (validation.data.autoRenew || false),
-        status: "ACTIVE",
-        source,
-        ...(source === "EXTERNAL" ? {
-          providerName: validation.data.providerName || null,
-          providerContact: validation.data.providerContact || null,
-          contractNumber: validation.data.contractNumber || null,
-          documentUrl: validation.data.documentUrl || null,
-        } : {}),
-      },
-      include: {
-        equipment: {
-          select: {
-            id: true,
-            name: true,
-            category: true,
+    // Create AMC subscription — internal ones get an auto-generated short
+    // reference number; external ones keep whatever the owner typed in for
+    // their own third-party contract (or null if they left it blank).
+    const subscription = await db.$transaction(async (tx) => {
+      const contractNumber = source === "EXTERNAL"
+        ? validation.data.contractNumber || null
+        : await generateReferenceNumber(tx, () => tx.aMCSubscription.count(), "AMS");
+
+      return tx.aMCSubscription.create({
+        data: {
+          equipmentId,
+          ownerId,
+          restaurantId: equipment.restaurantId,
+          ...planData,
+          startDate,
+          endDate,
+          autoRenew: source === "EXTERNAL" ? false : (validation.data.autoRenew || false),
+          status: "ACTIVE",
+          source,
+          contractNumber,
+          ...(source === "EXTERNAL" ? {
+            providerName: validation.data.providerName || null,
+            providerContact: validation.data.providerContact || null,
+            documentUrl: validation.data.documentUrl || null,
+          } : {}),
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+            },
+          },
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
           },
         },
-        plan: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
-      },
+      });
     });
 
     return NextResponse.json({ ok: true, data: subscription });

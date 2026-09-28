@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
         where: { restaurantId, createdAt: { gte: startDate } },
         select: {
           id: true,
+          bookingNumber: true,
           status: true,
           totalAmount: true,
           createdAt: true,
@@ -135,6 +136,7 @@ export async function GET(request: NextRequest) {
       recent: {
         bookings: recentBookings.map((b) => ({
           id: b.id,
+          bookingNumber: b.bookingNumber,
           status: b.status,
           totalAmount: b.totalAmount,
           createdAt: b.createdAt.toISOString(),

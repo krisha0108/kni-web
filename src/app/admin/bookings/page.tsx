@@ -27,6 +27,7 @@ import { formatDate, formatPrice } from "@/lib/utils";
 
 interface Booking {
   id: string;
+  bookingNumber: string | null;
   status: string;
   preferredDate: string;
   preferredTimeSlot: string;
@@ -239,7 +240,7 @@ export default function AdminBookingsPage() {
                   
                   <TableRow key={booking.id}>
                     <TableCell className="hidden md:table-cell font-mono text-xs">
-                      {booking.id.slice(0, 8)}...
+                      {booking.bookingNumber ?? booking.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="max-w-[120px] sm:max-w-none truncate">{booking.restaurant.name}</TableCell>
                     

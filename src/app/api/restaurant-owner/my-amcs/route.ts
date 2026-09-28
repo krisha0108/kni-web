@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         id: amc.id,
         equipment_name: amc.equipment?.name || amc.equipment?.category?.name || "Equipment",
         vendor_name: "KNI Services", // TODO: Add vendor relation
-        contract_number: `AMC-${amc.id.slice(0, 8).toUpperCase()}`,
+        contract_number: amc.contractNumber ?? `AMC-${amc.id.slice(0, 8).toUpperCase()}`,
         start_date: amc.startDate.toISOString(),
         end_date: amc.endDate?.toISOString(),
         amount: amc.plan?.price || amc.totalAmount || 0,

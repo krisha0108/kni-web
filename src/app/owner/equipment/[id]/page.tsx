@@ -1028,6 +1028,13 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                         </div>
 
+                        {/* Internal AMC reference number */}
+                        {!isExternal && amc.contractNumber && (
+                          <p className="text-sm text-muted-foreground mb-2">
+                            <span className="text-muted-foreground">Contract #:</span> <span className="font-mono">{amc.contractNumber}</span>
+                          </p>
+                        )}
+
                         {/* External provider info */}
                         {isExternal && amc.providerName && (
                           <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md text-sm">

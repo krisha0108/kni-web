@@ -719,6 +719,7 @@ model CartItem {
 
 model ServiceBooking {
   id                     String               @id @default(cuid())
+  bookingNumber          String?              @unique // Short human-readable reference, e.g. "BK-1024"
   ownerId                String
   restaurantId           String
   equipmentId            String? // Link to specific equipment being serviced
@@ -1016,6 +1017,7 @@ model PriceUnlockRequest {
 
 model MarketplaceOrder {
   id                   String                 @id @default(cuid())
+  orderNumber          String?                @unique // Short human-readable reference, e.g. "OR-1042"
   ownerId              String
   vendorId             String
   restaurantId         String
@@ -1389,7 +1391,7 @@ model AMCSubscription {
   source          AMCSource             @default(INTERNAL)
   providerName    String? // External provider name (e.g., "Voltas", "Blue Star")
   providerContact String? // External provider phone/email
-  contractNumber  String? // External contract/reference number
+  contractNumber  String?               @unique // External contract number (owner-entered) if source=EXTERNAL, else an auto-generated short reference (e.g. "AMS-12") for internal ones
   documentUrl     String?               @db.Text // URL to uploaded contract document
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
@@ -2411,6 +2413,7 @@ enum SupportTicketStatus {
 
 model SupportTicket {
   id            String              @id @default(cuid())
+  ticketNumber  String?             @unique // Short human-readable reference, e.g. "TKT-42"
   ownerId       String
   restaurantId  String?
   title         String
@@ -2753,6 +2756,7 @@ enum InquiryActivityType {
 
 model LaunchPadInquiry {
   id                 String          @id @default(cuid())
+  inquiryNumber      String?         @unique // Short human-readable reference, e.g. "INQ-42"
   name               String
   email              String
   phone              String

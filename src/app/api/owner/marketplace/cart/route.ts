@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
                   select: {
                     id: true,
                     name: true,
+                    vendorProfile: { select: { isSystemVendor: true } },
                   },
                 },
               },
@@ -106,6 +107,7 @@ export async function GET(request: NextRequest) {
       const resolved = resolveNegotiatedPrice(item.product, unlock);
       const price = resolved.price;
       const priceExpired = resolved.expired;
+      const isAdminStore = item.product.vendor.vendorProfile?.isSystemVendor === true;
 
       return {
         id: item.id,
@@ -119,8 +121,12 @@ export async function GET(request: NextRequest) {
           imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
           unit: item.product.product?.unit || item.product.unit,
           deliveryTime: item.product.deliveryTime,
-          vendor: item.product.vendor,
+          vendor: {
+            id: item.product.vendor.id,
+            name: isAdminStore ? "KNI Official Store" : item.product.vendor.name,
+          },
           category: (item.product as any).product?.marketplaceCategory || null,
+          isAdminStore,
         },
       };
     });
@@ -284,6 +290,7 @@ export async function POST(request: NextRequest) {
                   select: {
                     id: true,
                     name: true,
+                    vendorProfile: { select: { isSystemVendor: true } },
                   },
                 },
               },
@@ -310,6 +317,7 @@ export async function POST(request: NextRequest) {
       .map((item) => {
         const unlock = updatedUnlockMap.get(item.product.id);
         const price = resolveNegotiatedPrice(item.product, unlock).price;
+        const isAdminStore = item.product.vendor.vendorProfile?.isSystemVendor === true;
         return {
           id: item.id,
           quantity: item.quantity,
@@ -321,8 +329,12 @@ export async function POST(request: NextRequest) {
             imageUrl: item.product.product?.imageUrl || item.product.imageUrl,
             unit: item.product.product?.unit || item.product.unit,
             deliveryTime: item.product.deliveryTime,
-            vendor: item.product.vendor,
+            vendor: {
+              id: item.product.vendor.id,
+              name: isAdminStore ? "KNI Official Store" : item.product.vendor.name,
+            },
             category: (item.product as any).product?.marketplaceCategory || null,
+            isAdminStore,
           },
         };
       });

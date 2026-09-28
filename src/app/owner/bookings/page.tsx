@@ -39,6 +39,7 @@ import { useRestaurant } from "@/contexts/restaurant-context";
 
 interface Booking {
   id: string;
+  bookingNumber: string | null;
   status: string;
   slotStartDateTime: string;
   totalAmount: number;
@@ -160,6 +161,7 @@ export default function OwnerBookingsPage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((booking) =>
         booking.id.toLowerCase().includes(query) ||
+        booking.bookingNumber?.toLowerCase().includes(query) ||
         booking.restaurant.name.toLowerCase().includes(query) ||
         getStatusLabel(booking.status).toLowerCase().includes(query)
       );
@@ -516,7 +518,7 @@ export default function OwnerBookingsPage() {
                 
                 <TableRow key={booking.id}>
                   <TableCell className="hidden lg:table-cell font-mono text-sm">
-                    {booking.id.slice(0, 8)}...
+                    {booking.bookingNumber ?? booking.id.slice(0, 8)}
                   </TableCell>
                   <TableCell>{booking.restaurant.name}</TableCell>
                   

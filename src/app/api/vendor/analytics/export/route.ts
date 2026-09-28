@@ -109,6 +109,7 @@ export async function GET(request: NextRequest) {
       where: { vendorId: session.id, createdAt: { gte: startDate } },
       select: {
         id: true,
+        orderNumber: true,
         status: true,
         totalAmount: true,
         createdAt: true,
@@ -166,6 +167,7 @@ export async function GET(request: NextRequest) {
       recent: {
         orders: recentOrders.map((o) => ({
           id: o.id,
+          orderNumber: o.orderNumber,
           status: o.status,
           totalAmount: o.totalAmount,
           createdAt: o.createdAt.toISOString(),

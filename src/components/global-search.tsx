@@ -204,7 +204,7 @@ export function GlobalSearch() {
         subtitle = [item.brand, item.status].filter(Boolean).join(" - ");
         break;
       case "bookings":
-        title = `Booking #${item.id.slice(0, 8)}`;
+        title = `Booking #${item.bookingNumber ?? item.id.slice(0, 8)}`;
         subtitle = `${item.restaurantName} - ${item.status} - ${formatAmount(item.amount)}`;
         break;
       case "expenses":
@@ -216,7 +216,7 @@ export function GlobalSearch() {
         subtitle = `${item.designation} - ${item.phone}`;
         break;
       case "orders":
-        title = `Order #${item.id.slice(0, 8)}`;
+        title = `Order #${item.orderNumber ?? item.id.slice(0, 8)}`;
         subtitle = `${item.vendorName} - ${item.status} - ${formatAmount(item.amount)}`;
         break;
       case "vendors":

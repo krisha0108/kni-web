@@ -30,6 +30,7 @@ import { RejectionReasonInput } from "@/components/rejection-reason-input";
 
 interface Booking {
   id: string;
+  bookingNumber: string | null;
   status: string;
   slotStartDateTime?: string;
   slotEndDateTime?: string;
@@ -316,7 +317,7 @@ export default function AdminBookingDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Booking Details</h1>
-          <p className="text-muted-foreground font-mono">{booking.id}</p>
+          <p className="text-muted-foreground font-mono">{booking.bookingNumber ?? booking.id}</p>
         </div>
         <div className="flex items-center gap-2">
           {booking.isDirectBooking && (

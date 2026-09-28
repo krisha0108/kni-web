@@ -42,6 +42,7 @@ interface StatusHistoryItem {
 
 interface Order {
   id: string;
+  orderNumber: string | null;
   status: OrderStatus;
   totalAmount: number;
   createdAt: string;
@@ -242,7 +243,7 @@ export default function OwnerMarketplaceOrdersPage() {
         amount,
         currency,
         name: "KNI Official Store",
-        description: `Final payment - Order #${order.id.substring(0, 8)}`,
+        description: `Final payment - Order #${order.orderNumber ?? order.id.substring(0, 8)}`,
         order_id: razorpayOrderId,
         prefill: prefill || {},
         handler: async (response: any) => {
@@ -410,7 +411,7 @@ export default function OwnerMarketplaceOrdersPage() {
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <CardTitle className="text-lg">
-                          Order #{order.id.slice(0, 8).toUpperCase()}
+                          Order #{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-2">
                           <Calendar className="h-3 w-3" />
@@ -578,7 +579,7 @@ export default function OwnerMarketplaceOrdersPage() {
                           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
                             <p className="text-sm text-green-800 dark:text-green-200">
                               <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" />
-                              Payment verified! Order #{payment.orderId.slice(0, 8).toUpperCase()} has been placed.
+                              Payment verified! Order #{orders.find((o) => o.id === payment.orderId)?.orderNumber ?? payment.orderId.slice(0, 8).toUpperCase()} has been placed.
                             </p>
                           </div>
                         )}
@@ -679,7 +680,7 @@ export default function OwnerMarketplaceOrdersPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Order ID:</span>
-                    <span className="font-mono text-xs">{selectedOrder.id}</span>
+                    <span className="font-mono text-xs">{selectedOrder.orderNumber ?? selectedOrder.id}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
@@ -1056,7 +1057,7 @@ export default function OwnerMarketplaceOrdersPage() {
               {selectedPayment.status === "VERIFIED" && selectedPayment.orderId && (
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    <strong>Payment Verified!</strong> Order #{selectedPayment.orderId.slice(0, 8).toUpperCase()} has been created automatically.
+                    <strong>Payment Verified!</strong> Order #{orders.find((o) => o.id === selectedPayment.orderId)?.orderNumber ?? selectedPayment.orderId.slice(0, 8).toUpperCase()} has been created automatically.
                   </p>
                 </div>
               )}

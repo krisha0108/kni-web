@@ -14,13 +14,19 @@ export async function GET(request: NextRequest) {
 
       const where = { userId: session.id };
 
-      const [notifications, total] = await Promise.all([
+      const [notifications, total, typeGroups] = await Promise.all([
         db.notification.findMany({
           where,
           orderBy: { createdAt: "desc" },
           ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : { take: pageSize }),
         }),
         db.notification.count({ where }),
+        // Breakdown by type across ALL matching notifications (not just the
+        // current page) - the mobile app's summary-strip category counts
+        // need true totals, not counts of whatever page happened to load.
+        page > 0
+          ? db.notification.groupBy({ by: ["type"], where, _count: true })
+          : Promise.resolve([]),
       ]);
 
       const mapped = notifications.map((n) => ({
@@ -34,9 +40,13 @@ export async function GET(request: NextRequest) {
         createdAt: n.createdAt.toISOString(),
       }));
 
+      const typeCounts = Object.fromEntries(
+        typeGroups.map((g) => [g.type, g._count])
+      );
+
       return NextResponse.json({
         ok: true,
-        data: page > 0 ? { items: mapped, total, page, pageSize } : mapped,
+        data: page > 0 ? { items: mapped, total, page, pageSize, typeCounts } : mapped,
         total,
       });
     } catch (dbError) {

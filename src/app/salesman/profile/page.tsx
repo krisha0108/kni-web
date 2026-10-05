@@ -172,7 +172,7 @@ export default function SalesmanProfilePage() {
           <CardDescription>Update your personal details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />

@@ -40,16 +40,17 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    let url: string;
-    if (isCloudinaryConfigured) {
-      const cloudinaryResult = await uploadImage(buffer, "visiting-cards");
-      url = cloudinaryResult.url;
-    } else {
-      const localResult = await saveToLocalStorage(file, "visiting-cards");
-      url = localResult.url;
-    }
-
-    const rawText = await extractTextFromImage(buffer);
+    // Storing the photo and OCR-reading it are independent of each other —
+    // run them side by side instead of one after the other, since OCR
+    // (especially a cold worker) is the slow part and was otherwise making
+    // the salesman wait for the image upload to finish first for no reason.
+    const [uploadResult, rawText] = await Promise.all([
+      isCloudinaryConfigured
+        ? uploadImage(buffer, "visiting-cards")
+        : saveToLocalStorage(file, "visiting-cards"),
+      extractTextFromImage(buffer),
+    ]);
+    const url = uploadResult.url;
     const parsed = parseCardFields(rawText);
 
     return NextResponse.json({ ok: true, data: { url, side, ...parsed } });

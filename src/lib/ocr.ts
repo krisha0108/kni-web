@@ -1,18 +1,41 @@
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM, type Worker } from "tesseract.js";
 
 // Runs OCR on an image buffer server-side (Node build of tesseract.js) so a
 // salesman's phone never has to do the heavy lifting itself. English-only —
 // visiting cards in this business are expected to be in English/Latin script.
-export async function extractTextFromImage(buffer: Buffer): Promise<string> {
-  const worker = await createWorker("eng");
-  try {
-    const {
-      data: { text },
-    } = await worker.recognize(buffer);
-    return text;
-  } finally {
-    await worker.terminate();
+//
+// The worker is kept warm across requests instead of being created and
+// torn down on every scan. Spinning up a fresh worker means re-loading the
+// language model from disk each time, which was the single biggest
+// contributor to "scanning takes forever" — a cold worker can take several
+// seconds to boot before it even looks at the image. tesseract.js queues
+// concurrent `recognize()` calls on the same worker internally, so this is
+// safe if two salesmen scan at the same moment.
+let workerPromise: Promise<Worker> | null = null;
+
+async function getWorker(): Promise<Worker> {
+  if (!workerPromise) {
+    workerPromise = (async () => {
+      const worker = await createWorker("eng");
+      // Visiting cards are scattered blocks of text at different sizes
+      // (name, title, phone, address...), not a uniform paragraph — the
+      // default page-segmentation mode assumes the latter and both misses
+      // lines and jumbles their order. SPARSE_TEXT looks for text anywhere
+      // in the image without assuming a single block, which is a much
+      // better match and noticeably improves what gets picked up.
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+      return worker;
+    })();
   }
+  return workerPromise;
+}
+
+export async function extractTextFromImage(buffer: Buffer): Promise<string> {
+  const worker = await getWorker();
+  const {
+    data: { text },
+  } = await worker.recognize(buffer);
+  return text;
 }
 
 export interface ParsedCardFields {

@@ -129,7 +129,7 @@ export default function NewSalesmanInquiryPage() {
               <p className="text-xs text-muted-foreground">Selecting a company auto-fills the fields below — you can still edit them for this inquiry.</p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Contact Name <span className="text-destructive">*</span></Label>
                 <Input id="name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
@@ -161,7 +161,7 @@ export default function NewSalesmanInquiryPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
               </div>
@@ -195,7 +195,7 @@ export default function NewSalesmanInquiryPage() {
                   onChange={(e) => setFormData({ ...formData, areaInSqFt: e.target.value })}
                 />
               </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="timeline">When do they plan to start?</Label>
                 <Select value={formData.timeline || "none"} onValueChange={(v) => setFormData({ ...formData, timeline: v === "none" ? "" : v })}>
                   <SelectTrigger id="timeline"><SelectValue placeholder="Select timeline" /></SelectTrigger>

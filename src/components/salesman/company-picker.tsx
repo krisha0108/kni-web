@@ -291,8 +291,8 @@ export function CompanyPicker({
                 </div>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1 sm:col-span-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 col-span-2">
                   <Label htmlFor="cp-name">Company Name <span className="text-destructive">*</span></Label>
                   <Input id="cp-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 </div>
@@ -320,7 +320,7 @@ export function CompanyPicker({
                   <Label htmlFor="cp-city">City</Label>
                   <Input id="cp-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
                 </div>
-                <div className="space-y-1 sm:col-span-2">
+                <div className="space-y-1 col-span-2">
                   <Label htmlFor="cp-address">Address</Label>
                   <Input id="cp-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
                 </div>

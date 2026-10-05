@@ -157,7 +157,7 @@ function SalesmanVisitsInner() {
                 <Label htmlFor="companyName">Company Visited <span className="text-destructive">*</span></Label>
                 <Input id="companyName" required value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input id="contactPerson" value={formData.contactPerson} onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })} />

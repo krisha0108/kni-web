@@ -91,6 +91,19 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return NextResponse.json({ ok: false, error: "CRON_SECRET not configured" }, { status: 500 });
+    }
+
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const now = new Date();
 
     const [sponsoredToActivate, sponsoredToDeactivate] =

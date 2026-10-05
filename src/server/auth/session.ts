@@ -6,6 +6,16 @@ import type { User, Role, VendorApprovalStatus, VendorSubscriptionStatus, Vendor
 const SESSION_COOKIE_NAME = "kni_session";
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Where each role lands when it hits a section it's not authorized for
+// (e.g. a SALESMAN opening an /admin/* URL gets bounced here instead of /login).
+export const ROLE_HOME_PATH: Record<Role, string> = {
+  ADMIN: "/admin/dashboard",
+  OWNER: "/owner/dashboard",
+  VENDOR: "/vendor/dashboard",
+  ENGINEER: "/engineer/dashboard",
+  SALESMAN: "/salesman/dashboard",
+};
+
 export interface SessionUser {
   id: string;
   name: string;

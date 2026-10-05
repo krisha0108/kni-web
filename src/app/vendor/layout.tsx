@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Script from "next/script";
-import { getSession } from "@/server/auth/session";
+import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { vendorSidebarItems } from "@/components/layouts/sidebar";
 import { AlertTriangle, MapPin } from "lucide-react";
@@ -23,7 +23,7 @@ export default async function VendorLayout({
   }
 
   if (session.role !== "VENDOR") {
-    redirect("/login");
+    redirect(ROLE_HOME_PATH[session.role]);
   }
 
   // Get current path from middleware header

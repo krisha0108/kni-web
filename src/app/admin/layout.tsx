@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/server/auth/session";
+import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { adminSidebarItems } from "@/components/layouts/sidebar";
 
@@ -15,7 +15,7 @@ export default async function AdminLayout({
   }
 
   if (session.role !== "ADMIN") {
-    redirect("/login");
+    redirect(ROLE_HOME_PATH[session.role]);
   }
 
   return (

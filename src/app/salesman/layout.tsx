@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/server/auth/session";
+import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { salesmanSidebarItems } from "@/components/layouts/sidebar";
 import { ForcePasswordChangeDialog } from "@/components/salesman/force-password-change-dialog";
@@ -16,7 +16,7 @@ export default async function SalesmanLayout({
   }
 
   if (session.role !== "SALESMAN") {
-    redirect("/login");
+    redirect(ROLE_HOME_PATH[session.role]);
   }
 
   return (

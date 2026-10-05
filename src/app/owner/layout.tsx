@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Script from "next/script";
-import { getSession } from "@/server/auth/session";
+import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ownerSidebarItems } from "@/components/layouts/sidebar";
 import { RestaurantProvider } from "@/contexts/restaurant-context";
@@ -17,7 +17,7 @@ export default async function OwnerLayout({
   }
 
   if (session.role !== "OWNER") {
-    redirect("/login");
+    redirect(ROLE_HOME_PATH[session.role]);
   }
 
   return (

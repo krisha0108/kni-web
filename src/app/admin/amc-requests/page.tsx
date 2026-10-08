@@ -38,6 +38,7 @@ import { formatDate, formatPrice } from "@/lib/utils";
 interface AMCRequest {
   id: string;
   status: string;
+  contractCategory: string;
   equipmentCategories: string[];
   kitchenType: string;
   planType: string;
@@ -113,6 +114,7 @@ const statusLabels: Record<string, string> = {
 
 const planLabels: Record<string, string> = { BASIC: "Basic", STANDARD: "Standard", PREMIUM: "Premium" };
 const planColors: Record<string, string> = { BASIC: "bg-green-100 text-green-800", STANDARD: "bg-blue-100 text-blue-800", PREMIUM: "bg-purple-100 text-purple-800" };
+const categoryColors: Record<string, string> = { AMC: "bg-blue-100 text-blue-800", CAMC: "bg-purple-100 text-purple-800" };
 const frequencyLabels: Record<string, string> = { MONTHLY: "Monthly", BI_MONTHLY: "Bi-Monthly", QUARTERLY: "Quarterly" };
 const kitchenLabels: Record<string, string> = { CLOUD_KITCHEN: "Cloud Kitchen", QSR: "QSR", FINE_DINE: "Fine Dine", HOTEL: "Hotel", CAFE: "Cafe", CATERING: "Catering", HOSPITAL: "Hospital", INDUSTRIES: "Industries", INSTITUTE: "Institute" };
 
@@ -439,7 +441,7 @@ export default function AdminAMCRequestsPage() {
               <TableRow>
                 <TableHead>Restaurant</TableHead>
                 <TableHead className="hidden md:table-cell">Owner</TableHead>
-                
+                <TableHead>Category</TableHead>
                 <TableHead className="hidden lg:table-cell">Kitchen</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead className="hidden md:table-cell">Frequency</TableHead>
@@ -455,6 +457,7 @@ export default function AdminAMCRequestsPage() {
                 <TableRow key={req.id}>
                   <TableCell className="font-medium">{req.restaurant.name}<span className="block text-xs text-muted-foreground">{req.restaurant.city}</span></TableCell>
                   <TableCell className="hidden md:table-cell">{req.owner.name}<span className="block text-xs text-muted-foreground">{req.owner.phone}</span></TableCell>
+                  <TableCell><Badge className={categoryColors[req.contractCategory] || ""}>{req.contractCategory}</Badge></TableCell>
                   <TableCell className="hidden lg:table-cell">{kitchenLabels[req.kitchenType] || req.kitchenType}</TableCell>
                   <TableCell><Badge className={planColors[req.planType] || ""}>{planLabels[req.planType] || req.planType}</Badge></TableCell>
                   
@@ -526,7 +529,10 @@ export default function AdminAMCRequestsPage() {
                 <p className="text-sm text-muted-foreground">{selectedRequest.owner.email} | {selectedRequest.owner.phone}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
+                <div><Label className="text-muted-foreground">Category</Label><div className="mt-1"><Badge className={categoryColors[selectedRequest.contractCategory] || ""}>{selectedRequest.contractCategory}</Badge></div></div>
                 <div><Label className="text-muted-foreground">Plan</Label><div className="mt-1"><Badge className={planColors[selectedRequest.planType] || ""}>{planLabels[selectedRequest.planType] || selectedRequest.planType}</Badge></div></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div><Label className="text-muted-foreground">Frequency</Label><p className="font-medium">{frequencyLabels[selectedRequest.visitFrequency] || selectedRequest.visitFrequency}</p></div>
               </div>
               <div className="grid grid-cols-2 gap-4">

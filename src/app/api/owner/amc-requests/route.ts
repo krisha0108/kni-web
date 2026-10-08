@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     const {
       restaurantId,
+      contractCategory,
       equipmentCategories,
       kitchenType,
       planType,
@@ -71,9 +72,17 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!restaurantId || !equipmentCategories || !kitchenType || !planType || !visitFrequency || !preferredStartDate) {
+    if (!restaurantId || !contractCategory || !equipmentCategories || !kitchenType || !planType || !visitFrequency || !preferredStartDate) {
       return NextResponse.json(
         { ok: false, error: "All required fields must be provided" },
+        { status: 400 }
+      );
+    }
+
+    // Validate contract category
+    if (!["AMC", "CAMC"].includes(contractCategory)) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid contract category. Must be AMC or CAMC" },
         { status: 400 }
       );
     }
@@ -134,6 +143,7 @@ export async function POST(request: NextRequest) {
       data: {
         ownerId,
         restaurantId,
+        contractCategory,
         equipmentCategories: equipmentCategories,
         kitchenType,
         planType,

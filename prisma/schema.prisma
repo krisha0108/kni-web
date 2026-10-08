@@ -1439,6 +1439,7 @@ model AMCRequest {
   status       AMCRequestStatus @default(REQUESTED)
 
   // What owner selects
+  contractCategory    String   @default("AMC") // AMC / CAMC
   equipmentCategories Json     @default("[]")
   kitchenType         String
   planType            String // BASIC / STANDARD / PREMIUM

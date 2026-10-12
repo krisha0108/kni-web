@@ -47,6 +47,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# Copy server-only assets (e.g. the bundled Tesseract OCR language data used
+# by the visiting-card scanner — kept out of public/ so it isn't served over
+# HTTP, and copied explicitly here since Next.js's standalone output tracing
+# only follows files that are actually `import`ed/`require`d, not ones read
+# via fs at runtime)
+COPY --from=builder /app/server-assets ./server-assets
+
 # Copy Prisma schema and migrations so prisma commands work in the container
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

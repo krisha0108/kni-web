@@ -334,21 +334,21 @@ export default function VendorLocationsPage() {
             {approved.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Approved Locations ({approved.length})</h2>
-                <div className="border rounded-lg">
-                  
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
-                        
+
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {approved.map((loc) => (
-                        
+
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
@@ -358,9 +358,7 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
-                        
-                        
-                  
+                  </div>
                 </div>
               </div>
             )}
@@ -369,26 +367,26 @@ export default function VendorLocationsPage() {
             {pending.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Pending Requests ({pending.length})</h2>
-                <div className="border rounded-lg">
-                  
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Area</TableHead>
                         <TableHead>City</TableHead>
-                        
+
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Requested</TableHead>
                       </TableRow>
                     </TableHeader>
-                    
+
                     <TableBody>
                       {pending.map((loc) => (
                         <TableRow key={loc.id}>
                           <TableCell className="font-medium">{loc.area.name}</TableCell>
                           <TableCell>{loc.area.city.name}</TableCell>
-                          
+
                           <TableCell>{loc.area.city.state.name}</TableCell>
                           <TableCell>{getStatusBadge(loc.status)}</TableCell>
                           <TableCell className="text-sm">
@@ -398,10 +396,7 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
-                          
-                    
-                        
-                  
+                  </div>
                 </div>
               </div>
             )}
@@ -410,8 +405,8 @@ export default function VendorLocationsPage() {
             {rejected.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Rejected Requests ({rejected.length})</h2>
-                <div className="border rounded-lg">
-
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -439,10 +434,7 @@ export default function VendorLocationsPage() {
                       ))}
                     </TableBody>
                   </Table>
-
-
-
-
+                  </div>
                 </div>
               </div>
             )}

@@ -1,4 +1,6 @@
 import { createWorker, PSM, type Worker } from "tesseract.js";
+import path from "path";
+import os from "os";
 
 // Runs OCR on an image buffer server-side (Node build of tesseract.js) so a
 // salesman's phone never has to do the heavy lifting itself. English-only —
@@ -13,10 +15,25 @@ import { createWorker, PSM, type Worker } from "tesseract.js";
 // safe if two salesmen scan at the same moment.
 let workerPromise: Promise<Worker> | null = null;
 
+// The English trained-data file is bundled in the repo (server-assets/tessdata,
+// explicitly copied into the production Docker image) instead of relying on
+// tesseract.js's default behavior of fetching it from the jsdelivr CDN on
+// first use. That default silently breaks scanning in any environment
+// without outbound internet access to jsdelivr, or without a writable cache
+// directory at wherever tesseract.js's cwd-relative default resolves to —
+// the previous behavior worked in local dev only because the file had
+// already been fetched and cached there by an earlier run, masking the
+// problem until production.
+const TESSDATA_DIR = path.join(process.cwd(), "server-assets", "tessdata");
+
 async function getWorker(): Promise<Worker> {
   if (!workerPromise) {
     workerPromise = (async () => {
-      const worker = await createWorker("eng");
+      const worker = await createWorker("eng", undefined, {
+        langPath: TESSDATA_DIR,
+        cachePath: os.tmpdir(),
+        gzip: false,
+      });
       // Visiting cards are scattered blocks of text at different sizes
       // (name, title, phone, address...), not a uniform paragraph — the
       // default page-segmentation mode assumes the latter and both misses
@@ -49,7 +66,14 @@ export interface ParsedCardFields {
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 // Indian mobile numbers: 10 digits starting 6-9, optionally prefixed +91/91/0.
-const PHONE_RE = /(?:\+?91[\s-]?|0)?\b([6-9]\d{9})\b/g;
+// Each digit may be followed by a stray space/dot/hyphen — Tesseract's
+// SPARSE_TEXT mode frequently splits a single printed number into separate
+// "words" at the gaps a card's font kerning leaves between digit groups
+// (e.g. "98765 43210"), so a strict no-whitespace pattern was matching
+// nothing at all on most real cards even though the digits were right
+// there in the raw text. The capture group below keeps that noise in, and
+// the caller strips it before using the number.
+const PHONE_RE = /(?:\+?91[ \t.-]?|0)?\b([6-9](?:[ \t.-]?\d){9})\b/g;
 const WEBSITE_RE = /\b((?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.(?:com|in|co\.in|net|org|biz|io)(?:\/[^\s,]*)?)\b/gi;
 // India GSTIN: 2-digit state code + 10-char PAN + 1-digit entity code + 'Z' + 1 checksum char.
 const GST_RE = /\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b/g;
@@ -75,7 +99,7 @@ export function parseCardFields(rawText: string): ParsedCardFields {
   const websiteMatches = [...textWithoutEmails.matchAll(WEBSITE_RE)].map((m) => m[1]);
   const website = websiteMatches[0] || null;
 
-  const phoneMatches = [...rawText.matchAll(PHONE_RE)].map((m) => m[1]);
+  const phoneMatches = [...rawText.matchAll(PHONE_RE)].map((m) => m[1].replace(/[ \t.-]/g, ""));
   const uniquePhones = [...new Set(phoneMatches)];
   const phone = uniquePhones[0] || null;
   const altPhone = uniquePhones[1] || null;

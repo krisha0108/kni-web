@@ -13,6 +13,13 @@ export async function GET(request: NextRequest) {
     const restaurantId = searchParams.get("restaurantId");
     const page = parseInt(searchParams.get("page") || "0", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const sort = searchParams.get("sort") || "";
+    // Price sorts must reflect the DISPLAYED price (which can be overridden by a
+    // per-owner negotiated/unlocked price for KNI Official Store items), not the
+    // raw listed `price` column — so those sorts are applied in JS after the
+    // per-owner price transform below, rather than via Prisma's orderBy.
+    const sortByDisplayedPrice = sort === "price_asc" || sort === "price_desc";
+    const orderBy = sortByDisplayedPrice ? undefined : { createdAt: "desc" as const };
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -134,10 +141,12 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
-      ...(page > 0 ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      ...(orderBy ? { orderBy } : {}),
+      // Price sorts need every matching row in hand before they can be sorted
+      // by displayed price and paginated in JS (see sortByDisplayedPrice above).
+      ...(page > 0 && !sortByDisplayedPrice ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
     }),
-      page > 0 ? db.vendorProduct.count({ where: vpWhere }) : Promise.resolve(-1),
+      page > 0 && !sortByDisplayedPrice ? db.vendorProduct.count({ where: vpWhere }) : Promise.resolve(-1),
     ]);
 
     // Batch-fetch active price unlocks/negotiations for this owner. Negotiation
@@ -254,9 +263,27 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    if (sortByDisplayedPrice) {
+      // Items with a hidden price (null — pending/declined/un-negotiated price-on-request)
+      // can't be meaningfully placed in a price order, so they always sort last.
+      const direction = sort === "price_asc" ? 1 : -1;
+      productsForCustomer.sort((a, b) => {
+        if (a.price == null && b.price == null) return 0;
+        if (a.price == null) return 1;
+        if (b.price == null) return -1;
+        return (a.price - b.price) * direction;
+      });
+    }
+
+    const total = sortByDisplayedPrice ? productsForCustomer.length : vpTotal;
+    const items =
+      page > 0 && sortByDisplayedPrice
+        ? productsForCustomer.slice((page - 1) * pageSize, page * pageSize)
+        : productsForCustomer;
+
     return NextResponse.json({
       ok: true,
-      data: page > 0 ? { items: productsForCustomer, total: vpTotal, page, pageSize } : productsForCustomer,
+      data: page > 0 ? { items, total, page, pageSize } : items,
     });
   } catch (error) {
     console.error("Get marketplace products error:", error);

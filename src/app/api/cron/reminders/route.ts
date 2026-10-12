@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       feedbackReminders: 0,
       salaryDue: 0,
       invoiceOverdue: 0,
+      followUpsDue: 0,
       errors: [] as string[],
     };
 
@@ -303,6 +304,49 @@ export async function GET(request: NextRequest) {
       summary.errors.push(`invoiceOverdue: ${msg}`);
     }
 
+    // ─── 6. Salesman Follow-up Due Today ────────────────────────────────
+
+    try {
+      const tomorrowStart = new Date(todayStart);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+      const dueFollowUps = await db.salesmanFollowUp.findMany({
+        where: {
+          isDone: false,
+          followUpDate: { gte: todayStart, lt: tomorrowStart },
+        },
+        select: {
+          id: true,
+          salesmanId: true,
+          note: true,
+          inquiry: { select: { name: true, businessName: true } },
+          company: { select: { name: true } },
+        },
+      });
+
+      for (const followUp of dueFollowUps) {
+        const targetName =
+          followUp.company?.name || followUp.inquiry?.businessName || followUp.inquiry?.name || "a contact";
+        const title = `Follow-up Due: ${targetName}`;
+        if (await isDuplicateToday(followUp.salesmanId, title)) continue;
+
+        await createNotification({
+          userId: followUp.salesmanId,
+          title,
+          message: followUp.note,
+          type: NotificationType.SYSTEM,
+          linkUrl: `/salesman/follow-ups`,
+        });
+
+        summary.followUpsDue++;
+      }
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Salesman follow-up reminder error:", msg);
+      summary.errors.push(`followUpsDue: ${msg}`);
+    }
+
     // ─── Return Summary ─────────────────────────────────────────────────
 
     const totalSent =
@@ -310,7 +354,8 @@ export async function GET(request: NextRequest) {
       summary.pendingPayments +
       summary.feedbackReminders +
       summary.salaryDue +
-      summary.invoiceOverdue;
+      summary.invoiceOverdue +
+      summary.followUpsDue;
 
     return NextResponse.json({
       ok: true,

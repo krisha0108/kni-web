@@ -272,9 +272,36 @@ export default function ApplyPage() {
   const [serviceStates, setServiceStates] = useState<{ id: string; name: string }[]>([]);
   const [serviceCities, setServiceCities] = useState<{ id: string; name: string }[]>([]);
   const [selectedStateId, setSelectedStateId] = useState("");
+  const [dynamicPositions, setDynamicPositions] = useState<{ value: PositionValue; label: string }[]>([]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Position dropdown is admin-managed via /admin/job-positions (so add/rename/
+  // deactivate/delete there is reflected here) instead of the static POSITIONS
+  // list below — that list stays only as a fallback and as the source for
+  // SKILLS_BY_POSITION, which is still keyed by these same enum values.
+  useEffect(() => {
+    fetch("/api/public/job-positions")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.ok) return;
+        const linked = (data.data as { title: string; legacyPositionValue: PositionValue | null }[])
+          .filter((p) => p.legacyPositionValue)
+          .map((p) => ({ value: p.legacyPositionValue as PositionValue, label: p.title }));
+        if (linked.length > 0) setDynamicPositions(linked);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (dynamicPositions.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const preselect = params.get("position");
+    if (preselect && dynamicPositions.some((p) => p.value === preselect)) {
+      update("position", preselect as PositionValue);
+    }
+  }, [dynamicPositions]);
 
   useEffect(() => {
     fetch("/api/public/locations?type=states")
@@ -541,7 +568,7 @@ export default function ApplyPage() {
                         <SelectValue placeholder="Choose a position" />
                       </SelectTrigger>
                       <SelectContent>
-                        {POSITIONS.map((p) => (
+                        {(dynamicPositions.length > 0 ? dynamicPositions : POSITIONS).map((p) => (
                           <SelectItem key={p.value} value={p.value}>
                             {p.label}
                           </SelectItem>

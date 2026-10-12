@@ -13,7 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Blog", href: "/blog" },
   { label: "Owner Guide", href: "/guide/owner" },
   { label: "Launch Pad", href: "/launchpad" },
-  { label: "Careers", href: "/apply" },
+  { label: "Careers", href: "/careers" },
   { label: "Contact", target: "contact" },
 ];
 

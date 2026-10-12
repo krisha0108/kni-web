@@ -17,11 +17,11 @@ async function main() {
 
   // Create/Update Admin user
   const admin = await prisma.user.upsert({
-    where: { email: "admin@kni.com" },
+    where: { email: "info@kniservices.com" },
     update: {},
     create: {
       name: "Admin User",
-      email: "admin@kni.com",
+      email: "info@kniservices.com",
       passwordHash: adminPassword,
       role: Role.ADMIN,
       isActive: true,
@@ -301,6 +301,40 @@ async function main() {
   }
   console.log("Marketplace categories ready:", marketplaceCategories.length);
 
+  // ==========================================
+  // CAREERS - Seed the 6 existing Service Technician roles as JobPosition rows
+  // pointing at the unchanged /apply wizard, so the new Careers page isn't
+  // empty on day one. Any other position is added later by admin via
+  // /admin/job-positions and uses the simple popup form instead.
+  // ==========================================
+  const technicianPositions: { title: string; legacyPositionValue: string }[] = [
+    { title: "Service Technician – Mechanical", legacyPositionValue: "TECHNICIAN_MECHANICAL" },
+    { title: "Service Technician – Electrical", legacyPositionValue: "TECHNICIAN_ELECTRICAL" },
+    { title: "Service Technician – Electronic", legacyPositionValue: "TECHNICIAN_ELECTRONIC" },
+    { title: "Service Technician – Refrigeration", legacyPositionValue: "TECHNICIAN_REFRIGERATION" },
+    { title: "Service Technician – Induction Equipment", legacyPositionValue: "TECHNICIAN_INDUCTION" },
+    { title: "Service Technician – Complete Commercial Kitchen Equipment", legacyPositionValue: "TECHNICIAN_COMMERCIAL_KITCHEN" },
+  ];
+  let technicianPositionsCreated = 0;
+  for (const { title, legacyPositionValue } of technicianPositions) {
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    // Keyed on legacyPositionValue (not slug) so this self-heals even if the
+    // row's slug drifted (e.g. after a soft-delete suffix) or the title was
+    // renamed by admin — the enum link is the stable identity here.
+    const existing = await prisma.jobPosition.findFirst({ where: { legacyPositionValue: legacyPositionValue as never } });
+    if (!existing) {
+      await prisma.jobPosition.create({
+        data: { title, slug, externalApplyUrl: "/apply", isActive: true, sortOrder: 0, legacyPositionValue: legacyPositionValue as never },
+      });
+      technicianPositionsCreated++;
+      console.log("  + Created job position:", title);
+    }
+  }
+  console.log("Technician job positions ready:", technicianPositionsCreated, "created");
+
   // Step 2: Create Marketplace Subcategories (Admin creates these)
   const marketplaceSubCategoriesData = [
     { name: "Utensils", slug: "utensils", categoryId: marketplaceCategories[0].id, sortOrder: 1 },
@@ -517,7 +551,7 @@ async function main() {
 
   console.log("Seed completed successfully!");
   console.log("\n--- Login Credentials ---");
-  console.log("Admin: admin@kni.com / Admin@123");
+  console.log("Admin: info@kniservices.com / Admin@123 (change this password after first real login)");
   console.log("Owner: owner@kni.com / Owner@123 (restaurant pending)");
   console.log("Owner: approved-owner@kni.com / Owner@123 (restaurant approved)");
   console.log("Engineer: eng@kni.com / Eng@123");

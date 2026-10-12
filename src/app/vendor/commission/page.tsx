@@ -436,19 +436,20 @@ export default function VendorCommissionPage() {
             </div>
           ) : (
             <>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Order Amount</TableHead>
-                  
+
                   <TableHead>Rate</TableHead>
                   <TableHead>Commission</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
-              
+
               <TableBody>
                 {paginatedCommissions.map((c) => (
                   <TableRow key={c.id}>
@@ -474,6 +475,7 @@ export default function VendorCommissionPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-4 p-4">
                 <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
@@ -499,20 +501,21 @@ export default function VendorCommissionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            
+
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Collection ID</TableHead>
                   <TableHead>Amount</TableHead>
-                  
+
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {collections.map((col) => (
-                  
+
                   <TableRow key={col.id}>
                     <TableCell className="font-mono text-xs">
                       {col.id.slice(0, 8)}
@@ -520,17 +523,14 @@ export default function VendorCommissionPage() {
                     <TableCell className="font-medium">
                       {formatPrice(col.totalAmount)}
                     </TableCell>
-                    
+
                     <TableCell>{collectionStatusBadge(col.status)}</TableCell>
                     <TableCell>{formatDate(col.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-                    
-                  
-                  
-            
+            </div>
           </CardContent>
         </Card>
       )}

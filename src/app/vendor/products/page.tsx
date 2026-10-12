@@ -529,14 +529,14 @@ export default function VendorProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg">
-          
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead>Your Price</TableHead>
-                
+
                 <TableHead>Stock</TableHead>
                 <TableHead>Delivery</TableHead>
                 <TableHead>Status</TableHead>
@@ -603,6 +603,7 @@ export default function VendorProductsPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 

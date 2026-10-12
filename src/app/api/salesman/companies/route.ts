@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { requireSalesman } from "@/server/auth/rbac";
+import { CompanyStatus } from "@prisma/client";
 import { z } from "zod";
 
 // Strips common legal-entity suffixes so "ABC Kitchen Pvt Ltd" and
@@ -22,6 +23,28 @@ export async function GET(request: NextRequest) {
     const q = request.nextUrl.searchParams.get("q")?.trim();
     const phone = request.nextUrl.searchParams.get("phone")?.trim();
     const email = request.nextUrl.searchParams.get("email")?.trim();
+    const all = request.nextUrl.searchParams.get("all") === "true";
+    const statusParam = request.nextUrl.searchParams.get("status");
+    const status =
+      statusParam && (Object.values(CompanyStatus) as string[]).includes(statusParam)
+        ? (statusParam as CompanyStatus)
+        : undefined;
+
+    // All Companies page — every company (optionally filtered by status),
+    // with enough detail to render the list without a second round-trip.
+    // Separate from the search/dedupe branch below (used by the company
+    // picker on the Inquiry/Visit forms), which stays capped and unfiltered.
+    if (all) {
+      const companies = await db.company.findMany({
+        where: status ? { status } : undefined,
+        include: {
+          contacts: { orderBy: { isPrimary: "desc" } },
+          _count: { select: { inquiries: true, visits: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      return NextResponse.json({ ok: true, data: companies });
+    }
 
     if (!q && !phone && !email) {
       const recent = await db.company.findMany({

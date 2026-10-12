@@ -345,6 +345,7 @@ model User {
   assignedInquiries             LaunchPadInquiry[]           @relation("SalesmanInquiries")
   salesmanVisits                SalesmanVisit[]              @relation("SalesmanVisits")
   companiesCreated              Company[]                    @relation("CompaniesCreatedBySalesman")
+  salesmanFollowUps             SalesmanFollowUp[]           @relation("SalesmanFollowUps")
 
   @@index([email])
   @@index([role])
@@ -2786,6 +2787,7 @@ model LaunchPadInquiry {
   threads    LaunchPadInquiryThread[]
   activities LaunchPadActivityLog[]
   visits     SalesmanVisit[]
+  followUps  SalesmanFollowUp[]
 
   @@index([status])
   @@index([priority])
@@ -2858,6 +2860,35 @@ model SalesmanVisit {
   @@index([companyId])
 }
 
+// A standalone reminder a salesman sets on either an Inquiry or a Company
+// (exactly one of inquiryId/companyId — enforced in the API layer, not here,
+// matching how SalesmanVisit's own optional inquiryId/companyId links work)
+// to be nudged — via the existing push/in-app notification system — when
+// it's due. Kept separate from LaunchPadInquiry.followUpDate and
+// SalesmanVisit.nextFollowUpDate (which are single-slot fields on their own
+// record) so a salesman can stack multiple follow-ups over time on the same
+// inquiry/company without overwriting the previous one.
+model SalesmanFollowUp {
+  id           String            @id @default(cuid())
+  salesmanId   String
+  salesman     User              @relation("SalesmanFollowUps", fields: [salesmanId], references: [id], onDelete: Cascade)
+  inquiryId    String?
+  inquiry      LaunchPadInquiry? @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  companyId    String?
+  company      Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  followUpDate DateTime
+  note         String            @db.Text
+  isDone       Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([salesmanId])
+  @@index([followUpDate])
+  @@index([isDone])
+  @@index([inquiryId])
+  @@index([companyId])
+}
+
 // ========================================
 // COMPANY / CONTACT MASTER
 // ========================================
@@ -2865,24 +2896,33 @@ model SalesmanVisit {
 // (and multiple contacts) without duplicating its info on every one —
 // mirrors how Restaurant fans out to many ServiceBooking/MarketplaceOrder/etc.
 
+enum CompanyStatus {
+  IN_PROGRESS
+  NOT_PROGRESSING
+  SUCCESS
+}
+
 model Company {
-  id                  String   @id @default(cuid())
+  id                  String        @id @default(cuid())
   name                String
-  address             String?  @db.Text
+  address             String?       @db.Text
   city                String?
   gstNumber           String?
   website             String?
+  status              CompanyStatus @default(IN_PROGRESS)
   createdBySalesmanId String?
-  createdBySalesman   User?    @relation("CompaniesCreatedBySalesman", fields: [createdBySalesmanId], references: [id], onDelete: SetNull)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdBySalesman   User?         @relation("CompaniesCreatedBySalesman", fields: [createdBySalesmanId], references: [id], onDelete: SetNull)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   contacts  CompanyContact[]
   inquiries LaunchPadInquiry[]
   visits    SalesmanVisit[]
+  followUps SalesmanFollowUp[]
 
   @@index([name])
   @@index([createdBySalesmanId])
+  @@index([status])
 }
 
 model CompanyContact {
@@ -3166,4 +3206,58 @@ model TrainingAttendance {
   @@index([trainingProgramId])
   @@index([candidateId])
   @@index([engineerUserId])
+}
+
+// ========================================
+// CAREERS - SIMPLE JOB POSTINGS
+// (Separate, lightweight hiring pipeline for all non-Technician roles.
+//  Does NOT touch Candidate / RecruitmentPosition / the /apply wizard.)
+// ========================================
+
+enum JobApplicationStatus {
+  NEW
+  REVIEWED
+  CONTACTED
+}
+
+model JobPosition {
+  id                  String               @id @default(cuid())
+  title               String
+  slug                String               @unique
+  description         String?              @db.Text
+  department          String?
+  location            String?
+  employmentType      String?
+  externalApplyUrl    String? // non-null => Careers page links straight here (e.g. "/apply") instead of opening the popup
+  legacyPositionValue RecruitmentPosition? @unique // links this row to its matching option in the old /apply wizard's dropdown (apply/config.ts POSITIONS), so admin add/rename/deactivate/delete here is reflected there too. Null for positions that only use the new simple popup form.
+  isActive            Boolean              @default(true)
+  sortOrder           Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime? // Soft delete: non-null means hidden/removed
+
+  applications JobApplication[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([deletedAt])
+}
+
+model JobApplication {
+  id            String               @id @default(cuid())
+  jobPositionId String
+  name          String
+  email         String
+  phone         String
+  resumeUrl     String?
+  message       String?              @db.Text
+  status        JobApplicationStatus @default(NEW)
+  createdAt     DateTime             @default(now())
+
+  jobPosition JobPosition @relation(fields: [jobPositionId], references: [id], onDelete: Cascade)
+
+  @@index([jobPositionId])
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
 }

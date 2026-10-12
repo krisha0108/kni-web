@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/register-owner", "/register-vendor", "/forgot-password", "/verify-email", "/", "/guide", "/launchpad", "/apply", "/pay", "/privacy-policy", "/terms", "/refund-policy", "/cancellation-policy", "/blog", "/team/accept", "/inquiry"];
+const PUBLIC_ROUTES = ["/login", "/register-owner", "/register-vendor", "/forgot-password", "/verify-email", "/", "/guide", "/launchpad", "/apply", "/careers", "/pay", "/privacy-policy", "/terms", "/refund-policy", "/cancellation-policy", "/blog", "/team/accept", "/inquiry"];
 const API_ROUTES = ["/api"];
 
 const ROLE_ROUTES = {

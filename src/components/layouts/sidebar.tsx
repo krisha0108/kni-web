@@ -50,6 +50,8 @@ import {
   CalendarPlus,
   Gift,
   Mail,
+  Briefcase,
+  CalendarClock,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -256,6 +258,8 @@ export const adminSidebarItems: SidebarEntry[] = [
   },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
   { title: "Recruitment", href: "/admin/recruitment", icon: UserCheck },
+  { title: "Job Positions", href: "/admin/job-positions", icon: Briefcase },
+  { title: "Job Applications", href: "/admin/job-applications", icon: FileText },
   { title: "Training & Seminars", href: "/admin/training", icon: BookOpen },
   { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
   { title: "Direct Booking", href: "/admin/direct-booking", icon: CalendarPlus },
@@ -409,7 +413,9 @@ export const engineerSidebarItems: SidebarItem[] = [
 
 export const salesmanSidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/salesman/dashboard", icon: LayoutDashboard },
-  { title: "Inquiries", href: "/salesman/inquiries", icon: ClipboardList },
+  { title: "All Inquiries", href: "/salesman/inquiries", icon: ClipboardList },
   { title: "Visits", href: "/salesman/visits", icon: MapPin },
+  { title: "All Companies", href: "/salesman/companies", icon: Building2 },
+  { title: "Follow-ups", href: "/salesman/follow-ups", icon: CalendarClock },
   { title: "Profile", href: "/salesman/profile", icon: User },
 ];

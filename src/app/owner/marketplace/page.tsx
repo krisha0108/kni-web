@@ -38,6 +38,7 @@ export default function OwnerMarketplacePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
+  const [sort, setSort] = useState<string>("newest");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductDetailOpen, setIsProductDetailOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function OwnerMarketplacePage() {
       params.append("restaurantId", selectedRestaurant.restaurantId);
       if (search) params.append("search", search);
       if (categoryId && categoryId !== "all") params.append("categoryId", categoryId);
+      if (sort && sort !== "newest") params.append("sort", sort);
 
       const response = await fetch("/api/owner/marketplace/products?" + params.toString());
       const data = await response.json();
@@ -117,7 +119,7 @@ export default function OwnerMarketplacePage() {
     if (selectedRestaurant) {
       fetchProducts();
     }
-  }, [selectedRestaurant, search, categoryId]);
+  }, [selectedRestaurant, search, categoryId, sort]);
 
   useEffect(() => {
     fetchCategories();
@@ -222,11 +224,25 @@ export default function OwnerMarketplacePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
+              {categories
+                .filter((cat) => (cat._count?.products ?? 1) > 0)
+                .map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </ClientOnly>
+        <ClientOnly>
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="price_asc">Price: Low to High</SelectItem>
+              <SelectItem value="price_desc">Price: High to Low</SelectItem>
             </SelectContent>
           </Select>
         </ClientOnly>

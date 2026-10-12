@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { salesmanSidebarItems } from "@/components/layouts/sidebar";
+import { SalesmanMobileLayout } from "@/components/layouts/salesman-mobile-layout";
 import { ForcePasswordChangeDialog } from "@/components/salesman/force-password-change-dialog";
 
 export default async function SalesmanLayout({
@@ -20,9 +19,7 @@ export default async function SalesmanLayout({
   }
 
   return (
-    <DashboardLayout
-      sidebarItems={salesmanSidebarItems}
-      sidebarTitle="KNI Salesman"
+    <SalesmanMobileLayout
       user={{
         name: session.name,
         email: session.email,
@@ -31,6 +28,6 @@ export default async function SalesmanLayout({
     >
       <ForcePasswordChangeDialog initialOpen={session.mustChangePassword} />
       {children}
-    </DashboardLayout>
+    </SalesmanMobileLayout>
   );
 }

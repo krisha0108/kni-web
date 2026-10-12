@@ -111,7 +111,7 @@ export const POSTS: BlogPost[] = [
       <p>For kitchens with lots of high-value refrigeration and cooking equipment, a comprehensive plan usually pays for itself. For newer kitchens still under warranty, a non-comprehensive plan can be enough to start.</p>
 
       <h2>Why every kitchen needs an AMC</h2>
-      <p>Consider what one failure really costs. A refrigerator that dies overnight can spoil thousands of rupees of stock. A burner that fails during a Friday rush means refused orders, refunds and angry reviews. An AMC <strong>reduces downtime</strong>, prevents food-safety violations and removes the stress of unplanned repairs.</p>
+      <p>Consider what one failure really costs. A refrigerator that dies overnight can spoil thousands of rupees' worth of stock. A burner that fails during a Friday rush means refused orders, refunds and angry reviews. An AMC <strong>reduces downtime</strong>, prevents food-safety violations and removes the stress of unplanned repairs.</p>
       <p>There's also a longevity benefit: well-maintained equipment lasts years longer, delaying the huge cost of replacement. And there's a compliance angle — health and fire inspections expect documented, regular maintenance.</p>
 
       <h2>The hidden cost of skipping maintenance</h2>
@@ -326,7 +326,7 @@ export const POSTS: BlogPost[] = [
       <p>India's climate puts extra strain on kitchen equipment, so adjust your routine through the year. During the monsoon, humidity accelerates rust and can affect electrical safety — check connections and keep equipment dry. In peak summer, refrigeration and air-conditioning work much harder, so condenser cleaning and ventilation checks become even more important. A little seasonal awareness prevents the breakdowns that always seem to strike during the busiest months.</p>
 
       <h2>Warning signs your equipment needs attention</h2>
-      <p>Equipment usually warns you before it fails completely. Train your team to flag these red flags early:</p>
+      <p>Equipment usually warns you before it fails completely. Train your team to spot these red flags early:</p>
       <ul>
         <li>Unusual noises, vibration or rattling from motors and compressors.</li>
         <li>Refrigeration that struggles to hold temperature, or frost building up.</li>
@@ -582,7 +582,7 @@ export const POSTS: BlogPost[] = [
       <p><strong>MEP (Mechanical, Electrical and Plumbing)</strong> work is the invisible backbone of every commercial kitchen. Customers never see it, but it determines whether your kitchen is safe, efficient and legal. Get MEP right and everything just works; get it wrong and you face breakdowns, failed inspections, safety hazards and costly rework. Here's what every restaurant owner should understand.</p>
 
       <h2>What does MEP actually include?</h2>
-      <p>MEP covers three connected systems: <strong>mechanical</strong> (ventilation and exhaust), <strong>electrical</strong> (power and lighting) and <strong>plumbing</strong> (water, drainage and gas). In a commercial kitchen these systems carry heavy loads and must be designed specifically for the job — ordinary commercial wiring or plumbing simply won't cope.</p>
+      <p>MEP covers three connected systems: <strong>mechanical</strong> (ventilation and exhaust), <strong>electrical</strong> (power and lighting) and <strong>plumbing</strong> (water, drainage and gas). In a commercial kitchen these systems carry heavy loads and must be designed specifically for the job — ordinary wiring or plumbing simply won't cope.</p>
 
       <h2>Mechanical: ventilation &amp; exhaust</h2>
       <p>Commercial kitchens generate huge amounts of heat, smoke, steam and grease. A properly designed mechanical system removes all of it while keeping the kitchen comfortable. Key elements include:</p>
@@ -659,7 +659,7 @@ export const POSTS: BlogPost[] = [
       <p>Your biggest savings start at the point of purchase. Star-rated refrigeration, induction cooking and well-insulated ovens use far less power than older or cheaper alternatives. Induction, in particular, transfers most of its heat directly to the pan — saving energy <em>and</em> keeping your kitchen cooler. When you next replace equipment, treat efficiency as a core buying criterion, not an afterthought. Our <a href="/blog/how-to-choose-commercial-kitchen-equipment">equipment buying guide</a> covers this in detail.</p>
 
       <h2>2. Maintain equipment regularly</h2>
-      <p>Dirty condenser coils, worn door gaskets and un-calibrated thermostats all force equipment to work harder and burn more energy to do the same job. Regular cleaning and a scheduled <a href="/blog/what-is-commercial-kitchen-amc">AMC</a> keep everything running at peak efficiency — often paying for itself in energy savings alone. A simple coil cleaning can noticeably cut a refrigerator's power draw.</p>
+      <p>Dirty condenser coils, worn door gaskets and uncalibrated thermostats all force equipment to work harder and burn more energy to do the same job. Regular cleaning and a scheduled <a href="/blog/what-is-commercial-kitchen-amc">AMC</a> keep everything running at peak efficiency — often paying for itself in energy savings alone. A simple coil cleaning can noticeably cut a refrigerator's power draw.</p>
 
       <h2>3. Build smart operating habits</h2>
       <p>The biggest free savings come from how your team uses equipment day to day:</p>

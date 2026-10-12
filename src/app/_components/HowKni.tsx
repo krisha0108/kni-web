@@ -52,7 +52,7 @@ export default function HowKni() {
               <div className="features center-logo">
                 <div className="animationview"></div>
                 <div className="img_view">
-                  <img loading="lazy" src="/landing/assests/Kni-red-logo.webp" alt="kni logo" />
+                  <img loading="lazy" src="/landing/assests/Kni-red-logo.webp" alt="KNI logo" />
                 </div>
               </div>
 

@@ -269,7 +269,7 @@ export default function LaunchpadPage() {
                   </div>
                   <div>
                     <p className="text-4xl md:text-5xl font-bold text-white counter-value" data-target="10">0</p>
-                    <p className="text-gray-200 text-lg mt-2">Years Experience</p>
+                    <p className="text-gray-200 text-lg mt-2">Years of Experience</p>
                   </div>
                 </div>
               </div>
@@ -517,7 +517,7 @@ export default function LaunchpadPage() {
                     KNI is a specialized platform bridging the gap between commercial
                     kitchen owners and service professionals, offering streamlined
                     solutions for service bookings, equipment needs, and operational
-                    challenges ensuring efficiency and reliability across the industry.
+                    challenges, ensuring efficiency and reliability across the industry.
                   </p>
                 </div>
                 <div className="border-t-2 border-[#7F7C7D] max-w-6xl mx-auto mb-6"></div>

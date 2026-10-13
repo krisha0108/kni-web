@@ -32,7 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Search, Loader2, Eye, ArrowRight, Calendar, FileText, IndianRupee, CheckCircle, XCircle, Plus } from "lucide-react";
+import { Shield, Search, Loader2, Eye, ArrowRight, Calendar, FileText, IndianRupee, CheckCircle, XCircle, Plus, Truck } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 
 interface AMCRequest {
@@ -77,6 +77,9 @@ interface AMCRequest {
     status: string;
     rejectionReason: string | null;
   };
+  vendor?: { id: string; name: string; phone: string | null; email: string | null } | null;
+  vendorPaymentAmount: number | null;
+  vendorPaymentStatus: "PENDING" | "COMPLETE";
 }
 
 interface Engineer {
@@ -146,6 +149,9 @@ export default function AdminAMCRequestsPage() {
   const [showRespondCounter, setShowRespondCounter] = useState(false);
   const [respondForm, setRespondForm] = useState({ price: "", adminNote: "" });
   const [isRespondingCounter, setIsRespondingCounter] = useState(false);
+
+  // Vendor payment state
+  const [isUpdatingVendorPayment, setIsUpdatingVendorPayment] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -288,6 +294,33 @@ export default function AdminAMCRequestsPage() {
       toast({ title: "Error", description: "Failed to send revised proposal", variant: "destructive" });
     } finally {
       setIsRespondingCounter(false);
+    }
+  };
+
+  const handleMarkVendorPaid = async (requestId: string) => {
+    setIsUpdatingVendorPayment(true);
+    try {
+      const res = await fetch(`/api/admin/amc-requests/${requestId}/vendor`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorPaymentStatus: "COMPLETE" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast({ title: "Success", description: "Vendor payment marked as complete" });
+        setSelectedRequest((prev) =>
+          prev
+            ? { ...prev, vendorPaymentStatus: data.data.vendorPaymentStatus, vendorPaymentAmount: data.data.vendorPaymentAmount, vendor: data.data.vendor }
+            : prev
+        );
+        fetchRequests();
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update vendor payment status", variant: "destructive" });
+    } finally {
+      setIsUpdatingVendorPayment(false);
     }
   };
 
@@ -445,6 +478,7 @@ export default function AdminAMCRequestsPage() {
                 <TableHead className="hidden lg:table-cell">Kitchen</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead className="hidden md:table-cell">Frequency</TableHead>
+                <TableHead className="hidden lg:table-cell">Vendor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
                 
@@ -462,6 +496,16 @@ export default function AdminAMCRequestsPage() {
                   <TableCell><Badge className={planColors[req.planType] || ""}>{planLabels[req.planType] || req.planType}</Badge></TableCell>
                   
                   <TableCell className="hidden md:table-cell">{frequencyLabels[req.visitFrequency] || req.visitFrequency}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {req.vendor ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                        {req.vendor.name}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={statusColors[req.status] || "default"}>{statusLabels[req.status] || req.status}</Badge>
                     {req.survey && req.status === "SURVEY_SCHEDULED" && req.survey.status === "IN_PROGRESS" && (
@@ -668,6 +712,27 @@ export default function AdminAMCRequestsPage() {
                         <Button variant="outline" onClick={() => { setShowRejectPayment(false); setPaymentRejectReason(""); }}>Cancel</Button>
                       </div>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Vendor Details */}
+              {selectedRequest.vendor && (
+                <div className="border-t pt-4 space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2"><Truck className="h-4 w-4" /> Vendor Details</h3>
+                  <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-2">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Vendor:</span> <span className="font-medium">{selectedRequest.vendor.name}</span></div>
+                    {(selectedRequest.vendor.phone || selectedRequest.vendor.email) && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">Contact:</span> <span>{selectedRequest.vendor.phone}{selectedRequest.vendor.phone && selectedRequest.vendor.email ? " · " : ""}{selectedRequest.vendor.email}</span></div>
+                    )}
+                    <div className="flex justify-between"><span className="text-muted-foreground">Payment Amount:</span> <span className="font-bold">{selectedRequest.vendorPaymentAmount ? formatPrice(selectedRequest.vendorPaymentAmount) : "—"}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-muted-foreground">Payment Status:</span> <Badge variant={selectedRequest.vendorPaymentStatus === "COMPLETE" ? "success" : "warning"}>{selectedRequest.vendorPaymentStatus === "COMPLETE" ? "Complete" : "Pending"}</Badge></div>
+                  </div>
+                  {selectedRequest.vendorPaymentStatus === "PENDING" && (
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleMarkVendorPaid(selectedRequest.id)} disabled={isUpdatingVendorPayment}>
+                      {isUpdatingVendorPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                      Mark as Paid
+                    </Button>
                   )}
                 </div>
               )}

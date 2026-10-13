@@ -14,6 +14,8 @@ const createAMCRequestSchema = z.object({
   visitFrequency: z.enum(["MONTHLY", "BI_MONTHLY", "QUARTERLY"], { message: "Invalid visit frequency" }),
   preferredStartDate: z.string().min(1, "Preferred start date is required"),
   notes: z.string().optional(),
+  vendorId: z.string().optional(),
+  vendorPaymentAmount: z.number().int().positive().optional(),
 });
 
 /**
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
         payment: {
           select: { id: true, paymentType: true, amount: true, screenshotUrl: true, status: true, rejectionReason: true },
         },
+        vendor: { select: { id: true, name: true, phone: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ownerId, restaurantId, kitchenType, equipmentCategories, planType, visitFrequency, preferredStartDate, notes } = validation.data;
+    const { ownerId, restaurantId, kitchenType, equipmentCategories, planType, visitFrequency, preferredStartDate, notes, vendorId, vendorPaymentAmount } = validation.data;
 
     // Validate owner exists
     const owner = await db.user.findFirst({
@@ -142,9 +145,12 @@ export async function POST(request: NextRequest) {
         visitFrequency,
         preferredStartDate: new Date(preferredStartDate),
         notes: notes || null,
+        vendorId: vendorId || null,
+        vendorPaymentAmount: vendorPaymentAmount || null,
       },
       include: {
         restaurant: { select: { id: true, name: true, city: true } },
+        vendor: { select: { id: true, name: true, phone: true, email: true } },
       },
     });
 

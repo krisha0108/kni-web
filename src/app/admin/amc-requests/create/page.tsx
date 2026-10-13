@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { MultipleImageUpload } from "@/components/ui/multiple-image-upload";
 import { Badge } from "@/components/ui/badge";
+import { AMCVendorPicker, AMCVendorPickerTrigger, type PickedAMCVendor } from "@/components/admin/amc-vendor-picker";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -151,7 +152,10 @@ export default function AdminCreateAMCRequestPage() {
     visitFrequency: "",
     preferredStartDate: "",
     notes: "",
+    vendorPaymentAmount: "",
   });
+  const [selectedVendor, setSelectedVendor] = useState<PickedAMCVendor | null>(null);
+  const [showVendorPicker, setShowVendorPicker] = useState(false);
 
   // --- Owner search with debounce ---
   useEffect(() => {
@@ -396,14 +400,17 @@ export default function AdminCreateAMCRequestPage() {
 
     setIsSubmitting(true);
     try {
+      const { vendorPaymentAmount, ...restAmcData } = amcData;
       const res = await fetch("/api/admin/amc-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerId: selectedOwner.id,
           restaurantId: selectedRestaurant.id,
-          ...amcData,
+          ...restAmcData,
           notes: amcData.notes || undefined,
+          vendorId: selectedVendor?.id || undefined,
+          vendorPaymentAmount: selectedVendor && vendorPaymentAmount ? parseInt(vendorPaymentAmount, 10) : undefined,
         }),
       });
       const data = await res.json();
@@ -920,9 +927,35 @@ export default function AdminCreateAMCRequestPage() {
                 rows={3}
               />
             </div>
+
+            {/* Vendor Details (optional) */}
+            <div className="space-y-3 border-t pt-4">
+              <div>
+                <Label>Vendor Details (Optional)</Label>
+                <p className="text-xs text-muted-foreground">Only fill this in if this AMC&apos;s work will be done by an outside vendor instead of a KNI engineer.</p>
+              </div>
+              <AMCVendorPickerTrigger selected={selectedVendor} onOpen={() => setShowVendorPicker(true)} />
+              {selectedVendor && (
+                <div className="space-y-1">
+                  <Label>Vendor Payment Amount (₹)</Label>
+                  <Input
+                    type="number"
+                    value={amcData.vendorPaymentAmount}
+                    onChange={(e) => setAmcData({ ...amcData, vendorPaymentAmount: e.target.value })}
+                    placeholder="How much we need to pay this vendor"
+                  />
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
+
+      <AMCVendorPicker
+        open={showVendorPicker}
+        onOpenChange={setShowVendorPicker}
+        onSelect={setSelectedVendor}
+      />
 
       {/* Navigation Buttons */}
       <div className="flex justify-between">

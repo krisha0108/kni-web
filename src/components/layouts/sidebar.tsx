@@ -52,6 +52,8 @@ import {
   Mail,
   Briefcase,
   CalendarClock,
+  Database,
+  UserPlus,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -257,12 +259,33 @@ export const adminSidebarItems: SidebarEntry[] = [
     ],
   },
   { title: "Engineers", href: "/admin/engineers", icon: Users },
-  { title: "Recruitment", href: "/admin/recruitment", icon: UserCheck },
-  { title: "Job Positions", href: "/admin/job-positions", icon: Briefcase },
-  { title: "Job Applications", href: "/admin/job-applications", icon: FileText },
-  { title: "Training & Seminars", href: "/admin/training", icon: BookOpen },
-  { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
-  { title: "Direct Booking", href: "/admin/direct-booking", icon: CalendarPlus },
+  {
+    title: "Salesmen",
+    icon: Users,
+    children: [
+      { title: "Salesmen", href: "/admin/salesmen", icon: Users },
+      { title: "Launch Pad", href: "/admin/launchpad", icon: Rocket },
+      { title: "Companies", href: "/admin/companies", icon: Building2 },
+    ],
+  },
+  {
+    title: "Workforce & Hiring",
+    icon: UserPlus,
+    children: [
+      { title: "Technician Recruitment", href: "/admin/recruitment", icon: UserCheck },
+      { title: "Job Positions", href: "/admin/job-positions", icon: Briefcase },
+      { title: "Job Applications", href: "/admin/job-applications", icon: FileText },
+      { title: "Training & Seminars", href: "/admin/training", icon: BookOpen },
+    ],
+  },
+  {
+    title: "Bookings",
+    icon: ClipboardList,
+    children: [
+      { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
+      { title: "Direct Booking", href: "/admin/direct-booking", icon: CalendarPlus },
+    ],
+  },
 
   // ── Commerce ──
   { sectionTitle: "Commerce" },
@@ -301,18 +324,16 @@ export const adminSidebarItems: SidebarEntry[] = [
     ],
   },
 
-  // ── Lead Management ──
-  { sectionTitle: "Lead Management" },
-  { title: "Launch Pad", href: "/admin/launchpad", icon: Rocket },
-  { title: "Companies", href: "/admin/companies", icon: Building2 },
-  { title: "Salesmen", href: "/admin/salesmen", icon: Users },
-  { title: "Contact Inquiries", href: "/admin/contact-inquiries", icon: Mail },
-
   // ── Others ──
   { sectionTitle: "Others" },
   { title: "Content Management", href: "/admin/content", icon: Image },
+  { title: "Contact Inquiries", href: "/admin/contact-inquiries", icon: Mail },
   { title: "Notifications", href: "/admin/notifications", icon: Bell },
   { title: "Support Tickets", href: "/admin/support", icon: MessageSquare },
+
+  // ── System ──
+  { sectionTitle: "System" },
+  { title: "Backup Management", href: "/admin/backup-management", icon: Database },
 ];
 
 export const ownerSidebarItems: SidebarEntry[] = [

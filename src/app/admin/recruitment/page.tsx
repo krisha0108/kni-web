@@ -185,7 +185,7 @@ export default function AdminRecruitmentPage() {
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl lg:text-3xl">
             <UserCheck className="h-6 w-6" />
-            Recruitment CRM
+            Technician Recruitment
           </h1>
           <p className="text-muted-foreground">
             Manage technician applications from the QR-code registration form

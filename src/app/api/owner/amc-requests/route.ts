@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const {
       restaurantId,
-      contractCategory,
+      contractCategory: contractCategoryInput,
       equipmentCategories,
       kitchenType,
       planType,
@@ -71,8 +71,11 @@ export async function POST(request: NextRequest) {
       notes,
     } = body;
 
+    // Owner form doesn't ask for AMC vs CAMC — default to AMC (admin can change later)
+    const contractCategory = contractCategoryInput || "AMC";
+
     // Validate required fields
-    if (!restaurantId || !contractCategory || !equipmentCategories || !kitchenType || !planType || !visitFrequency || !preferredStartDate) {
+    if (!restaurantId || !equipmentCategories || !kitchenType || !planType || !visitFrequency || !preferredStartDate) {
       return NextResponse.json(
         { ok: false, error: "All required fields must be provided" },
         { status: 400 }

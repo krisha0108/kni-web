@@ -346,6 +346,7 @@ model User {
   salesmanVisits                SalesmanVisit[]              @relation("SalesmanVisits")
   companiesCreated              Company[]                    @relation("CompaniesCreatedBySalesman")
   salesmanFollowUps             SalesmanFollowUp[]           @relation("SalesmanFollowUps")
+  backupLogs                    BackupLog[]
 
   @@index([email])
   @@index([role])
@@ -1451,12 +1452,20 @@ model AMCRequest {
   // Renewal link (if this request is a renewal of an existing contract)
   renewalOfContractId String?
 
+  // Vendor fulfillment (optional — only set when KNI subcontracts this AMC's
+  // work to an outside vendor instead of its own engineers). Bookkeeping
+  // only: does not change how the work itself gets assigned/done.
+  vendorId            String?
+  vendorPaymentAmount Int?
+  vendorPaymentStatus VendorPaymentStatus @default(PENDING)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   owner             User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   restaurant        Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   renewalOfContract AMCContract?   @relation("ContractRenewals", fields: [renewalOfContractId], references: [id])
+  vendor            AMCVendor?     @relation(fields: [vendorId], references: [id])
   survey            AMCSiteSurvey?
   proposal          AMCProposal?
   payment           AMCPayment?
@@ -1465,6 +1474,7 @@ model AMCRequest {
   @@index([restaurantId])
   @@index([status])
   @@index([renewalOfContractId])
+  @@index([vendorId])
 }
 
 enum AMCRequestStatus {
@@ -1478,6 +1488,30 @@ enum AMCRequestStatus {
   PAYMENT_UPLOADED
   CONTRACT_ACTIVE
   CANCELLED
+}
+
+enum VendorPaymentStatus {
+  PENDING
+  COMPLETE
+}
+
+// A vendor KNI occasionally subcontracts AMC maintenance work to — separate
+// from the marketplace VendorProfile system (which is for product-selling
+// vendors with logins/approval/subscriptions); this is just a lightweight,
+// reusable name+contact master for "who did this AMC job and what do we
+// owe them."
+model AMCVendor {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  amcRequests AMCRequest[]
+
+  @@index([name])
 }
 
 // ========================================
@@ -3259,5 +3293,25 @@ model JobApplication {
   @@index([jobPositionId])
   @@index([status])
   @@index([email])
+  @@index([createdAt])
+}
+
+// Admin Backup Management: one row per generated backup download (full
+// system ZIP or a single module/table export), recording what was
+// generated, by whom, and whether it succeeded — not a stored copy of the
+// file itself (downloads are generated fresh each time, never cached).
+model BackupLog {
+  id            String    @id @default(cuid())
+  module        String // module key, or "FULL"
+  format        String // "xlsx" | "json" | "csv" | "zip"
+  tableKey      String? // set only for a single-table CSV download
+  status        String // "COMPLETED" | "FAILED"
+  fileSizeBytes Int?
+  errorMessage  String?   @db.Text
+  generatedById String
+  generatedBy   User      @relation(fields: [generatedById], references: [id])
+  createdAt     DateTime  @default(now())
+
+  @@index([module])
   @@index([createdAt])
 }

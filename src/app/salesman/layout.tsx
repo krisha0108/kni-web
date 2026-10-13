@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, ROLE_HOME_PATH } from "@/server/auth/session";
-import { SalesmanMobileLayout } from "@/components/layouts/salesman-mobile-layout";
+import { SalesmanResponsiveLayout } from "@/components/layouts/salesman-responsive-layout";
 import { ForcePasswordChangeDialog } from "@/components/salesman/force-password-change-dialog";
 
 export default async function SalesmanLayout({
@@ -19,7 +19,7 @@ export default async function SalesmanLayout({
   }
 
   return (
-    <SalesmanMobileLayout
+    <SalesmanResponsiveLayout
       user={{
         name: session.name,
         email: session.email,
@@ -28,6 +28,6 @@ export default async function SalesmanLayout({
     >
       <ForcePasswordChangeDialog initialOpen={session.mustChangePassword} />
       {children}
-    </SalesmanMobileLayout>
+    </SalesmanResponsiveLayout>
   );
 }

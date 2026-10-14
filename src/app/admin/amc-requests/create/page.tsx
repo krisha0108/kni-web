@@ -88,7 +88,6 @@ const KITCHEN_TYPES = [
 ];
 
 const PLAN_TYPES = [
-  { value: "BASIC", label: "Basic" },
   { value: "STANDARD", label: "Standard" },
   { value: "PREMIUM", label: "Premium" },
 ];

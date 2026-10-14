@@ -28,12 +28,6 @@ const KITCHEN_TYPES = [
 
 const PLAN_TYPES = [
   {
-    value: "BASIC",
-    label: "Basic",
-    color: "bg-green-100 text-green-800",
-    description: "Preventive maintenance visits only",
-  },
-  {
     value: "STANDARD",
     label: "Standard",
     color: "bg-blue-100 text-blue-800",

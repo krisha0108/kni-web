@@ -699,10 +699,10 @@ export default function OwnerGuidePage() {
       <PhaseSection
         phaseNumber={6}
         title="Request AMC"
-        description="Request an Annual Maintenance Contract for your restaurant equipment. Select your restaurant, choose equipment categories, pick a plan type (Basic, Standard, or Premium), set your visit frequency, and submit. Pricing comes in the proposal from our team."
+        description="Request an Annual Maintenance Contract for your restaurant equipment. Select your restaurant, choose equipment categories, pick a plan type (Standard or Premium), set your visit frequency, and submit. Pricing comes in the proposal from our team."
         whatYouWillDo={[
           "Step 1: Select restaurant & equipment categories",
-          "Step 2: Choose plan type (Basic / Standard / Premium)",
+          "Step 2: Choose plan type (Standard / Premium)",
           "Step 3: Set kitchen type, visit frequency & preferred start date",
         ]}
         accentColor={COLORS.cyan}
@@ -717,7 +717,6 @@ export default function OwnerGuidePage() {
                 <MockupCard title="AMC Plans" headerColor={COLORS.cyan}>
                   <div className="space-y-3">
                     {[
-                      { name: "Basic", desc: "Preventive maintenance visits only", color: "green" },
                       { name: "Standard", desc: "Preventive + free breakdown visits", color: "blue" },
                       { name: "Premium", desc: "Preventive + breakdown + priority + parts discount", color: "purple" },
                     ].map((plan) => (
@@ -730,7 +729,7 @@ export default function OwnerGuidePage() {
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <Badge variant={plan.name === "Basic" ? "success" : plan.name === "Standard" ? "default" : "secondary"} className="text-[10px]">
+                          <Badge variant={plan.name === "Standard" ? "default" : "secondary"} className="text-[10px]">
                             {plan.name}
                           </Badge>
                           {plan.name === "Standard" && (

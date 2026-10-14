@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate plan type
-    if (!["BASIC", "STANDARD", "PREMIUM"].includes(planType)) {
+    if (!["STANDARD", "PREMIUM"].includes(planType)) {
       return NextResponse.json(
-        { ok: false, error: "Invalid plan type. Must be BASIC, STANDARD, or PREMIUM" },
+        { ok: false, error: "Invalid plan type. Must be STANDARD or PREMIUM" },
         { status: 400 }
       );
     }

@@ -10,7 +10,7 @@ const createAMCRequestSchema = z.object({
   restaurantId: z.string().min(1, "Restaurant is required"),
   kitchenType: z.string().min(1, "Kitchen type is required"),
   equipmentCategories: z.array(z.string()).min(1, "At least one equipment category is required"),
-  planType: z.enum(["BASIC", "STANDARD", "PREMIUM"], { message: "Invalid plan type" }),
+  planType: z.enum(["STANDARD", "PREMIUM"], { message: "Invalid plan type" }),
   visitFrequency: z.enum(["MONTHLY", "BI_MONTHLY", "QUARTERLY"], { message: "Invalid visit frequency" }),
   preferredStartDate: z.string().min(1, "Preferred start date is required"),
   notes: z.string().optional(),

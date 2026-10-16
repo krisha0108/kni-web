@@ -1177,6 +1177,32 @@ model PaymentSettings {
   @@index([isActive])
 }
 
+// ========================================
+// J) APP VERSION / FORCE UPDATE
+// ========================================
+
+// One row per (appKey, platform) pair. appKey distinguishes which mobile app
+// this config is for ("owner" = kni-app today; "engineer" = ServiceEngineerApp
+// later), platform is "android" or "ios" for a future iOS release. Checked by
+// the app's own public endpoint on every launch, and edited from Admin Panel
+// -> App Version — no app code change or rebuild needed to update these
+// numbers for a new release.
+model AppVersionConfig {
+  id                      String   @id @default(cuid())
+  appKey                  String   @default("owner") // "owner" | "engineer"
+  platform                String   @default("android") // "android" | "ios"
+  latestVersionCode       Int // newest versionCode published on the store
+  latestVersionName       String // newest versionName, e.g. "40.4.0" (display only)
+  minSupportedVersionCode Int // below this, the app is blocked until updated
+  forceUpdate             Boolean  @default(true) // false = show a dismissible reminder instead of blocking
+  updateMessage           String   @db.Text // shown on the "Please Update Your App" screen
+  storeUrl                String   @db.Text // Play Store (or App Store) listing URL
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([appKey, platform])
+}
+
 enum BookingOfferType {
   FIRST_BOOKING // Only applies to an owner's first-ever (non-cancelled) ServiceBooking
   PROMOTIONAL // Applies to everyone, within the offer's date window

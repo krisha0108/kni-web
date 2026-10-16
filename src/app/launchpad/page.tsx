@@ -434,61 +434,73 @@ export default function LaunchpadPage() {
                 <div className="space-y-4">
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">What types of food businesses does KNI support?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">What types of food businesses does KNI support?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">KNI supports all types of food businesses including restaurants, cafes, cloud kitchens, QSRs, bakeries, catering companies, and more. Whether you're opening your first outlet or expanding, we've got you covered.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">KNI supports all types of food businesses including restaurants, cafes, cloud kitchens, QSRs, bakeries, catering companies, and more. Whether you're opening your first outlet or expanding, we've got you covered.</p>
+                      </div>
                     </div>
                   </div>
         
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">How long does it take from inquiry to kitchen setup?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">How long does it take from inquiry to kitchen setup?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">Depending on the size and complexity, a typical kitchen setup takes 4-12 weeks from finalized proposal to ready-to-use kitchen. Our team will provide you with a detailed timeline during the proposal stage.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">Depending on the size and complexity, a typical kitchen setup takes 4-12 weeks from finalized proposal to ready-to-use kitchen. Our team will provide you with a detailed timeline during the proposal stage.</p>
+                      </div>
                     </div>
                   </div>
         
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">Do you help with kitchen design and layout?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">Do you help with kitchen design and layout?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">Yes! Our expert team designs commercial kitchen layouts optimized for workflow, safety, and efficiency. We take into account your menu, expected volume, space constraints, and local regulations.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">Yes! Our expert team designs commercial kitchen layouts optimized for workflow, safety, and efficiency. We take into account your menu, expected volume, space constraints, and local regulations.</p>
+                      </div>
                     </div>
                   </div>
         
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">What is included in the AMC (Annual Maintenance Contract)?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">What is included in the AMC (Annual Maintenance Contract)?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">Our AMC covers periodic preventive maintenance visits, emergency breakdown support, equipment health checks, and priority service. Plans are customizable based on your equipment and business needs.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">Our AMC covers periodic preventive maintenance visits, emergency breakdown support, equipment health checks, and priority service. Plans are customizable based on your equipment and business needs.</p>
+                      </div>
                     </div>
                   </div>
         
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">Can KNI help with staff recruitment?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">Can KNI help with staff recruitment?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">Yes, we help source trained kitchen staff including chefs, line cooks, kitchen helpers, and maintenance personnel. We can also assist with training programs for your team.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">Yes, we help source trained kitchen staff including chefs, line cooks, kitchen helpers, and maintenance personnel. We can also assist with training programs for your team.</p>
+                      </div>
                     </div>
                   </div>
         
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <button className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50">
-                      <span className="font-semibold text-[#1D2254]">Is there any cost for the initial consultation?</span>
-                      <svg className="faq-arrow w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      <span className="font-semibold text-[#1D2254] flex-1 pr-4">Is there any cost for the initial consultation?</span>
+                      <svg className="faq-arrow w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div className="faq-answer px-6 pb-4">
-                      <p className="text-gray-600">No, the initial consultation call is completely free. Submit your inquiry and our team will reach out to understand your needs before providing any quotation.</p>
+                    <div className="faq-answer">
+                      <div className="px-6 pb-4 pt-1 border-t border-gray-100">
+                        <p className="text-gray-600">No, the initial consultation call is completely free. Submit your inquiry and our team will reach out to understand your needs before providing any quotation.</p>
+                      </div>
                     </div>
                   </div>
                 </div>

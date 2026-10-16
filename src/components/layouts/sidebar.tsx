@@ -54,6 +54,7 @@ import {
   CalendarClock,
   Database,
   UserPlus,
+  Smartphone,
 } from "lucide-react";
 
 export interface SidebarItem {
@@ -333,6 +334,7 @@ export const adminSidebarItems: SidebarEntry[] = [
 
   // ── System ──
   { sectionTitle: "System" },
+  { title: "App Version", href: "/admin/app-version", icon: Smartphone },
   { title: "Backup Management", href: "/admin/backup-management", icon: Database },
 ];
 
